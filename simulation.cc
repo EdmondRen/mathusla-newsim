@@ -10,12 +10,12 @@
 #include "FTFP_BERT.hh"
 #include "Randomize.hh"
 
+
 // Project include
 #include "MuDetectorConstruction.hh"
 #include "MuActionInitialization.hh"
 #include "util.hh"
 #include "libs/cxxopts.hpp"
-
 
 int main(int argc, char **argv)
 {
@@ -30,10 +30,10 @@ int main(int argc, char **argv)
     ("m,macro", "Macro name", cxxopts::value<std::vector<std::string>>())
     ("u,session", "Session name", cxxopts::value<G4String>())
     ("t,threads", "Verbose output", cxxopts::value<G4int>()->default_value("1"));
-  auto args = options.parse(argc, argv);    
-  
+  auto args = options.parse(argc, argv);
+
   // Read and process arguments
-  // * macro: need to separate the macro name and forwarding arguments 
+  // * macro: need to separate the macro name and forwarding arguments
   std::vector<std::string> macro_commands;
   std::string macro;
   macro_commands = args["macro"].count() ? args["macro"].as<std::vector<std::string>>() : macro_commands;
@@ -42,6 +42,8 @@ int main(int argc, char **argv)
   }
   auto session = args["session"].count() ? args["session"].as<G4String>() : "";
   auto nThreads = args["threads"].as<G4int>();
+
+
 
 
   // Detect interactive mode (if no macro provided) and define UI session
@@ -86,7 +88,7 @@ int main(int argc, char **argv)
   // Get the pointer to the User Interface manager
   auto UImanager = G4UImanager::GetUIpointer();
 
-  // Process macro or start UI session
+  // Run in Batch mode / Interactive mode (Process macro or start UI session)
   //
   if (macro.size())
   {
@@ -96,12 +98,10 @@ int main(int argc, char **argv)
   }
   else
   {
-    // interactive mode : define UI session
+    // interactive mode : define UI session, with gui/vis setup macros
     UImanager->ApplyCommand("/control/execute " + path_exe + "/macros/init_vis.mac");
     if (ui->IsGUI())
-    {
       UImanager->ApplyCommand("/control/execute  " + path_exe + "/macros/gui.mac");
-    }
     ui->SessionStart();
     delete ui;
   }

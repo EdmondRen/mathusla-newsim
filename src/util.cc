@@ -6,22 +6,31 @@
 #define EX_USAGE EXIT_FAILURE
 #endif
 
+#include <vector>
 #include <cstring>
+#include <string>
 #include <cstdlib>
 #include <cstdio>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 #include <filesystem>
-
 #include <unistd.h>
 #include <limits.h>
+#include <unordered_map>
+#include <memory>
+#include <stdexcept>
 
 namespace util
 {
+    namespace py
+    {
+ 
+    } // namespace py
 
     namespace path
     {
+        /* Get the path of the current executable */
         std::filesystem::path getExecutablePath()
         {
             char buffer[PATH_MAX];

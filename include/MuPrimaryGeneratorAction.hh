@@ -1,61 +1,53 @@
-//
-// ********************************************************************
-// * License and Disclaimer                                           *
-// *                                                                  *
-// * The  Geant4 software  is  copyright of the Copyright Holders  of *
-// * the Geant4 Collaboration.  It is provided  under  the terms  and *
-// * conditions of the Geant4 Software License,  included in the file *
-// * LICENSE and available at  http://cern.ch/geant4/license .  These *
-// * include a list of copyright holders.                             *
-// *                                                                  *
-// * Neither the authors of this software system, nor their employing *
-// * institutes,nor the agencies providing financial support for this *
-// * work  make  any representation or  warranty, express or implied, *
-// * regarding  this  software system or assume any liability for its *
-// * use.  Please see the license in the file  LICENSE  and URL above *
-// * for the full disclaimer and the limitation of liability.         *
-// *                                                                  *
-// * This  code  implementation is the result of  the  scientific and *
-// * technical work of the GEANT4 collaboration.                      *
-// * By using,  copying,  modifying or  distributing the software (or *
-// * any work based  on the software)  you  agree  to acknowledge its *
-// * use  in  resulting  scientific  publications,  and indicate your *
-// * acceptance of all terms of the Geant4 Software license.          *
-// ********************************************************************
-//
-// 
 /// \file MuPrimaryGeneratorAction.hh
 /// \brief Definition of the MuPrimaryGeneratorAction class
 
 #ifndef MuPrimaryGeneratorAction_h
 #define MuPrimaryGeneratorAction_h 1
 
+// G4 include
 #include "G4VUserPrimaryGeneratorAction.hh"
 #include "globals.hh"
+#include <G4UIcommand.hh>
+#include <G4UIdirectory.hh>
+#include <G4UIcmdWithoutParameter.hh>
+#include <G4UIcmdWithAString.hh>
+#include <G4UIcmdWithABool.hh>
+#include <G4UIcmdWithAnInteger.hh>
+#include <G4UIcmdWithADouble.hh>
+#include <G4UIcmdWith3Vector.hh>
+#include <G4UIcmdWithADoubleAndUnit.hh>
+#include <G4UIcmdWith3VectorAndUnit.hh>
+#include <G4UImessenger.hh>
+#include <G4UImanager.hh>
 
-class G4ParticleGun;
-class G4Event;
 
-/// The primary generator action class with particle gum.
-///
-/// It defines a single particle which hits the calorimeter 
-/// perpendicular to the input face. The type of the particle
-/// can be changed via the G4 build-in commands of G4ParticleGun class 
-/// (see the macros provided with this example).
+// Project include
+#include "generator/Generator.hh"
+#include "generator/ParticleGun.hh"
 
-class MuPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
+
+class MuPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction, public G4UImessenger
 {
 public:
   MuPrimaryGeneratorAction();    
   virtual ~MuPrimaryGeneratorAction();
 
+  // Core function to override
   virtual void GeneratePrimaries(G4Event* event);
   
   // set methods
-  void SetRandomFlag(G4bool value);
+  void SetNewValue(G4UIcommand* command, G4String value);
+  static const MuGenerators::Generator* GetGenerator();
+  static void SetGenerator(const std::string& generator);  
+
 
 private:
-  G4ParticleGun*  fParticleGun; // G4 particle gun
+  // Store all common commands to generator
+  G4UIcmdWithAString * cmd_select;
+
+  // The generator in use, _gen_, and a list of generators
+  MuGenerators::Generator*  _gen_; 
+  std::unordered_map<std::string, MuGenerators::Generator*> _gen_map_;
 };
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

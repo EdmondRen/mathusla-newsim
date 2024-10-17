@@ -7,6 +7,8 @@ if(${CMAKE_VERSION} VERSION_LESS 3.12)
 endif()
 project(Mu)
 
+set (CMAKE_CXX_STANDARD 17)
+
 #----------------------------------------------------------------------------
 # Find Geant4 package, activating all available UI and Vis drivers by default
 # You can set WITH_GEANT4_UIVIS to OFF via the command line or ccmake/cmake-gui
@@ -30,9 +32,10 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 # Locate sources and headers for this project
 # NB: headers are included so they will show up in IDEs
 #
-file(GLOB sources ${PROJECT_SOURCE_DIR}/src/*.cc)
-file(GLOB headers ${PROJECT_SOURCE_DIR}/include/*.hh)
-file(GLOB headers ${PROJECT_SOURCE_DIR}/include/*.hpp)
+file(GLOB sources ${PROJECT_SOURCE_DIR}/src/*.cc  
+                  ${PROJECT_SOURCE_DIR}/src/generator/*.cc)
+file(GLOB headers ${PROJECT_SOURCE_DIR}/include/*.hh
+                  ${PROJECT_SOURCE_DIR}/include/*.hpp)
 
 #----------------------------------------------------------------------------
 # Add the executable, and link it to the Geant4 libraries
