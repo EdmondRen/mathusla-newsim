@@ -27,9 +27,12 @@ int main(int argc, char **argv)
   options.add_options()
     ("h,help", "Print help")
     ("d,debug", "Enable debugging") // a bool parameter
-    ("m,macro", "Macro name", cxxopts::value<std::vector<std::string>>())
-    ("u,session", "Session name", cxxopts::value<G4String>())
-    ("t,threads", "Verbose output", cxxopts::value<G4int>()->default_value("1"));
+    ("m,macro", "Macro name, followed by possible parameters for macro seperated by commas. For example, -m=run1.mac,Ek,10,theta,20", cxxopts::value<std::vector<std::string>>())
+    ("u,session", "Session name", cxxopts::value<G4String>()->default_value("MathuslaSim"))
+    ("t,threads", "Number of threads", cxxopts::value<G4int>()->default_value("1"));
+    ("g,generator", "Generator, one of <gun/range/parma/cry/filereader>", cxxopts::value<G4int>()->default_value("gun"));
+    ("d,detector", "Detector, one of <math40/uoft1>", cxxopts::value<G4int>()->default_value("uoft1"));
+    ("o,output", "Output directory", cxxopts::value<G4int>()->default_value("data"));
   auto args = options.parse(argc, argv);
 
   // Read and process arguments
@@ -101,7 +104,7 @@ int main(int argc, char **argv)
     // interactive mode : define UI session, with gui/vis setup macros
     UImanager->ApplyCommand("/control/execute " + path_exe + "/macros/init_vis.mac");
     if (ui->IsGUI())
-      UImanager->ApplyCommand("/control/execute  " + path_exe + "/macros/gui.mac");
+      UImanager->ApplyCommand("/control/execute  " + path_exe + "/macros/init_gui.mac");
     ui->SessionStart();
     delete ui;
   }

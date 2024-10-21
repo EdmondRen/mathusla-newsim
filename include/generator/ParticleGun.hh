@@ -8,7 +8,7 @@
 #include "G4ParticleDefinition.hh"
 #include "G4SystemOfUnits.hh"
 
-#include "Generator.hh"
+#include "_Generator.hh"
 
 namespace MuGenerators
 {   

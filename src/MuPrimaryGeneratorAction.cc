@@ -13,10 +13,12 @@
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 MuPrimaryGeneratorAction::MuPrimaryGeneratorAction()
-    : G4VUserPrimaryGeneratorAction(), G4UImessenger("/gen/", "Particle Generators.")
+    : G4VUserPrimaryGeneratorAction(), G4UImessenger(MuGenerators::Generator::MessengerDirectory, "Particle Generators.")
 {
   // Make a map of all available generators
   _gen_map_["gun"] = new MuGenerators::ParticleGun("gun", "ParticleGun");
+  _gen_ = _gen_map_["gun"];
+
 
   // Add messenger commands 
   cmd_select = CreateCommand<G4UIcmdWithAString>("select", "Select Generator.");

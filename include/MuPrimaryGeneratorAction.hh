@@ -22,7 +22,7 @@
 
 
 // Project include
-#include "generator/Generator.hh"
+#include "generator/_Generator.hh"
 #include "generator/ParticleGun.hh"
 
 

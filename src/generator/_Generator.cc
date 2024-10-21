@@ -1,4 +1,4 @@
-#include "generator/Generator.hh"
+#include "generator/_Generator.hh"
 
 namespace MuGenerators
 {

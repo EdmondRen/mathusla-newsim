@@ -32,6 +32,18 @@
 
 #include "G4VUserDetectorConstruction.hh"
 #include "globals.hh"
+#include <G4UIcommand.hh>
+#include <G4UIdirectory.hh>
+#include <G4UIcmdWithoutParameter.hh>
+#include <G4UIcmdWithAString.hh>
+#include <G4UIcmdWithABool.hh>
+#include <G4UIcmdWithAnInteger.hh>
+#include <G4UIcmdWithADouble.hh>
+#include <G4UIcmdWith3Vector.hh>
+#include <G4UIcmdWithADoubleAndUnit.hh>
+#include <G4UIcmdWith3VectorAndUnit.hh>
+#include <G4UImessenger.hh>
+#include <G4UImanager.hh>
 
 class G4VPhysicalVolume;
 class G4GlobalMagFieldMessenger;
@@ -50,48 +62,41 @@ class G4GlobalMagFieldMessenger;
 /// In addition a transverse uniform magnetic field is defined 
 /// via G4GlobalMagFieldMessenger class.
 
-class MuDetectorConstruction : public G4VUserDetectorConstruction
+class MuDetectorConstruction : public G4VUserDetectorConstruction, public G4UImessenger 
 {
   public:
-    MuDetectorConstruction();
+    MuDetectorConstruction(const std::string& detector_name,
+          const std::string& export_dir);
     virtual ~MuDetectorConstruction();
 
   public:
-    virtual G4VPhysicalVolume* Construct();
-    virtual void ConstructSDandField();
+    // Core function to override
+    G4VPhysicalVolume* Construct() override;
+    void ConstructSDandField() override;
+    
+    // Handel messenger commands
+    void SetNewValue(G4UIcommand* command, G4String value);
+    static void SetDetector(const std::string& detector);
 
     // get methods
-    //
-    const G4VPhysicalVolume* GetAbsorberPV() const;
-    const G4VPhysicalVolume* GetGapPV() const;
      
+    static const std::string MessengerDirectory;
+
   private:
     // methods
-    //
-    void DefineMaterials();
-    G4VPhysicalVolume* DefineVolumes();
   
     // data members
-    //
-    static G4ThreadLocal G4GlobalMagFieldMessenger*  fMagFieldMessenger; 
-                                      // magnetic field messenger
-     
-    G4VPhysicalVolume*   fAbsorberPV; // the absorber physical volume
-    G4VPhysicalVolume*   fGapPV;      // the gap physical volume
-    
+    // The detector in use, _det_, and a list of detectors
+    MuGeoBuilder::Builder*  _det_; 
+    std::unordered_map<std::string, MuGeoBuilder::Builder*> _det_map_;    
     G4bool  fCheckOverlaps; // option to activate checking of volumes overlaps
+
+    // Store all common commands to generator
+    G4UIcmdWithAString * cmd_select;
 };
 
 // inline functions
 
-inline const G4VPhysicalVolume* MuDetectorConstruction::GetAbsorberPV() const { 
-  return fAbsorberPV; 
-}
-
-inline const G4VPhysicalVolume* MuDetectorConstruction::GetGapPV() const  { 
-  return fGapPV; 
-}
-     
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
