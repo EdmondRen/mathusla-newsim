@@ -4,7 +4,7 @@
 #include "G4Material.hh"
 #include "G4GeometryManager.hh"
 #include "G4PhysicalVolumeStore.hh"
-#include <G4UImessenger.hh>
+#include "G4GenericMessenger.hh"
 #include <G4UIcommand.hh>
 
 
@@ -15,10 +15,10 @@ namespace MuGeoBuilder
     // Geometry Builder Class 
     // This class takes care of detector construction 
     // as well as assigning sensitive detector to correct volumes
-    class Builder : public G4UImessenger
+    class Builder
     {
     public:
-        Builder(const std::string &detector_name);
+        Builder();
 
         // Core function 1:
         // Construct physics volume, should return world PV
@@ -30,8 +30,8 @@ namespace MuGeoBuilder
 
 
         // Messenger related
-        void SetNewValue(G4UIcommand *command, G4String value);
-        static const std::string MessengerDirectory;
+        G4GenericMessenger *fMessenger;
+        std::string DetectorName;
 
     private:
     };

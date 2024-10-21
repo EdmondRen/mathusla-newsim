@@ -69,12 +69,12 @@ MuDetectorConstruction::MuDetectorConstruction(const std::string &detector_name,
       fCheckOverlaps(true)
 {
   // Make a map of all available detectors
-  _det_map_["uoft1"] = new MuGeoBuilder::Uoft1_Builder("uoft1");
+  _det_map_["uoft1"] = new MuGeoBuilder::Uoft1_Builder();
 
   // Add messenger commands 
   fMessenger  = new G4GenericMessenger(this, MuDetectorConstruction::MessengerDirectory, "Detector constructor"),
   fMessenger->DeclareProperty("select", mes_det_selected, "Select Detector to use.");
-  mes_det_selected = "uoft1"; // Default value
+  mes_det_selected = detector_name; // Default value
 
 }
 
