@@ -41,7 +41,7 @@ namespace MuGeoBuilder
 
         // Core function 1:
         // Construct physics volume, should return world PV
-        G4VPhysicalVolume *Construct();
+        G4VPhysicalVolume *Construct() override;
 
         // Core function 2:
         // Set the sensitive detector for this geometry
@@ -49,12 +49,15 @@ namespace MuGeoBuilder
         // Helper functions:
         void DefineMaterials();
         void DefineGeometry();
-        G4VPhysicalVolume* ConstructLayer();
-        G4VPhysicalVolume* ConstructModule();
-        G4VPhysicalVolume* ConstructDetector();
-        G4VPhysicalVolume* ConstructEnvironment();
+        G4LogicalVolume* ConstructLayer();
+        G4LogicalVolume* ConstructModule();
+        G4LogicalVolume* ConstructDetector();
+        G4LogicalVolume* ConstructEnvironment();
 
         // std::unordered_map<std::string, std::any> GeometryConfig;
+
+    private:
+        bool fCheckOverlaps;
     };
 
 } //namespace MuGeoBuilder

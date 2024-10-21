@@ -8,6 +8,7 @@ endif()
 project(Mu)
 
 set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_BUILD_TYPE Debug)
 
 #----------------------------------------------------------------------------
 # Find Geant4 package, activating all available UI and Vis drivers by default
@@ -32,9 +33,8 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 # Locate sources and headers for this project
 # NB: headers are included so they will show up in IDEs
 #
-file(GLOB sources ${PROJECT_SOURCE_DIR}/src/*.cc  
-                  ${PROJECT_SOURCE_DIR}/src/generator/*.cc)
-file(GLOB headers ${PROJECT_SOURCE_DIR}/include/*.hh
+file(GLOB_RECURSE  sources ${PROJECT_SOURCE_DIR}/src/*.cc)
+file(GLOB_RECURSE  headers ${PROJECT_SOURCE_DIR}/include/*.hh
                   ${PROJECT_SOURCE_DIR}/include/*.hpp)
 
 #----------------------------------------------------------------------------

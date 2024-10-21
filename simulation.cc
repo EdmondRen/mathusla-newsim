@@ -26,13 +26,14 @@ int main(int argc, char **argv)
   cxxopts::Options options("Geant4 simulation", "Geant4 simulation for MATHUSLA");
   options.add_options()
     ("h,help", "Print help")
-    ("d,debug", "Enable debugging") // a bool parameter
+    ("D,debug", "Enable debugging") // a bool parameter
     ("m,macro", "Macro name, followed by possible parameters for macro seperated by commas. For example, -m=run1.mac,Ek,10,theta,20", cxxopts::value<std::vector<std::string>>())
-    ("u,session", "Session name", cxxopts::value<G4String>()->default_value("MathuslaSim"))
-    ("t,threads", "Number of threads", cxxopts::value<G4int>()->default_value("1"));
-    ("g,generator", "Generator, one of <gun/range/parma/cry/filereader>", cxxopts::value<G4int>()->default_value("gun"));
-    ("d,detector", "Detector, one of <math40/uoft1>", cxxopts::value<G4int>()->default_value("uoft1"));
-    ("o,output", "Output directory", cxxopts::value<G4int>()->default_value("data"));
+    ("s,session", "Session name", cxxopts::value<G4String>()->default_value("MathuslaSim"))
+    ("t,threads", "Number of threads", cxxopts::value<G4int>()->default_value("1"))
+    ("g,generator", "Generator, one of <gun/range/parma/cry/filereader>", cxxopts::value<G4String>()->default_value("gun"))
+    ("d,detector", "Detector, one of <math40/uoft1>", cxxopts::value<G4String>()->default_value("uoft1"))
+    ("e,export", "Export directory for geometry and other information", cxxopts::value<G4String>()->default_value("./export/"))
+    ("o,output", "Output directory", cxxopts::value<G4String>()->default_value("data"));
   auto args = options.parse(argc, argv);
 
   // Read and process arguments
@@ -40,20 +41,14 @@ int main(int argc, char **argv)
   std::vector<std::string> macro_commands;
   std::string macro;
   macro_commands = args["macro"].count() ? args["macro"].as<std::vector<std::string>>() : macro_commands;
-  if (macro_commands.size()){
+  if (macro_commands.size())
     macro = macro_commands[0];
-  }
-  auto session = args["session"].count() ? args["session"].as<G4String>() : "";
-  auto nThreads = args["threads"].as<G4int>();
-
-
-
 
   // Detect interactive mode (if no macro provided) and define UI session
   //
   G4UIExecutive *ui = nullptr;
   if (!macro.size())
-    ui = new G4UIExecutive(argc, argv, session);
+    ui = new G4UIExecutive(argc, argv, args["session"].as<G4String>());
 
   // Optionally: choose a different Random engine...
   //
@@ -64,15 +59,15 @@ int main(int argc, char **argv)
   auto *runManager =
       G4RunManagerFactory::CreateRunManager(G4RunManagerType::Default);
 #ifdef G4MULTITHREADED
-  if (nThreads > 0)
+  if (args["threads"].as<G4int>() > 0)
   {
-    runManager->SetNumberOfThreads(nThreads);
+    runManager->SetNumberOfThreads(args["threads"].as<G4int>());
   }
 #endif
 
   // Set mandatory initialization classes
   //
-  auto detConstruction = new MuDetectorConstruction();
+  auto detConstruction = new MuDetectorConstruction(args["detector"].as<G4String>(), args["export"].as<G4String>());
   runManager->SetUserInitialization(detConstruction);
 
   auto physicsList = new FTFP_BERT;

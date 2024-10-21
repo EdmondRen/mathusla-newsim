@@ -45,8 +45,17 @@ namespace MuGeoBuilder
     G4Material *Material::Iron = _nist_->FindOrBuildMaterial("G4_Fe");
     G4Material *Material::PolystyreneFoam = _nist_->BuildMaterialWithNewDensity("PolystyreneFoam", "G4_POLYSTYRENE", 32.0 * kg / m3);
     G4Material *Material::Polyvinyltoluene = _nist_->FindOrBuildMaterial("G4_PLASTIC_SC_VINYLTOLUENE");
-    G4Material *Material::LiquidArgon = new G4Material("LiquidArgon", z=18., a= 39.95*g/mole, density= 1.390*g/cm3);
-    G4Material *Material::Vacuum = new G4Material("Galactic", z=1., a=1.01*g/mole,density= universe_mean_density, kStateGas, 2.73*kelvin, 3.e-18*pascal);// Vacuum
+    G4Material *Material::LiquidArgon = new G4Material("LiquidArgon", 18.,  39.95*g/mole, 1.390*g/cm3);
+    G4Material *Material::Vacuum = new G4Material("Galactic", 1., 1.01*g/mole, universe_mean_density, kStateGas, 2.73*kelvin, 3.e-18*pascal);// Vacuum
+    // Make a few more material. This couldn't be down outside the class
+    G4Material * make_scintillator()
+    {
+        auto scintillator = new G4Material("PlasticScintillator", 1.032*g/cm3, 2);
+        scintillator->AddElement(Material::C, 9);
+        scintillator->AddElement(Material::H, 10);   
+        return scintillator;
+    }
+    G4Material *Material::PlasticScintillator = make_scintillator();
 
 
     // ----------------------------------------------------------------------
@@ -66,6 +75,7 @@ namespace MuGeoBuilder
 
     G4VPhysicalVolume *Builder::Construct()
     {
+        return 0;
     }
 
     // Messenger related

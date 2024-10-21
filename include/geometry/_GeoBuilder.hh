@@ -22,7 +22,8 @@ namespace MuGeoBuilder
 
         // Core function 1:
         // Construct physics volume, should return world PV
-        G4VPhysicalVolume *Construct();
+        virtual G4VPhysicalVolume *Construct();
+        G4VPhysicalVolume *worldPV;
 
         // Core function 2:
         // Set the sensitive detector for this geometry
