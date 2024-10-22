@@ -97,6 +97,7 @@ namespace MuGeoBuilder
         worldS,           // its solid
         Material::Air, // its material
         "World");         // its name
+    this->worldLV->SetVisAttributes(Vis::styles["TransparentBlue"]);
     this->worldPV = new G4PVPlacement(
         0,               // no rotation
         G4ThreeVector(), // at (0,0,0)
