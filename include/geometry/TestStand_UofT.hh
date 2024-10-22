@@ -25,6 +25,9 @@ namespace MuGeoBuilder
     // Construct physics volume, should return world PV
     G4VPhysicalVolume *Construct() override;
     std::vector<G4VPhysicalVolume *> allSensitiveDetectors;
+    G4LogicalVolume *worldLV;
+    G4LogicalVolume *detectorLV;
+    G4LogicalVolume *environmentLV;
 
     // Core function 2:
     // Set the sensitive detector for this geometry

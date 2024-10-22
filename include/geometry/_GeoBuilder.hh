@@ -6,14 +6,14 @@
 #include "G4PhysicalVolumeStore.hh"
 #include "G4GenericMessenger.hh"
 #include <G4UIcommand.hh>
+#include <G4VisAttributes.hh>
 
 
 namespace MuGeoBuilder
 {
 
-
-    // Geometry Builder Class 
-    // This class takes care of detector construction 
+    // Geometry Builder Class
+    // This class takes care of detector construction
     // as well as assigning sensitive detector to correct volumes
     class Builder
     {
@@ -28,14 +28,12 @@ namespace MuGeoBuilder
         // Core function 2:
         // Set the sensitive detector for this geometry
 
-
         // Messenger related
         G4GenericMessenger *fMessenger;
         std::string DetectorName;
 
     private:
     };
-
 
     namespace Material
     {
@@ -60,10 +58,35 @@ namespace MuGeoBuilder
         extern G4Material *PlasticScintillator;
         extern G4Material *LiquidArgon;
         extern G4Material *Vacuum;
-        
-    } /* namespace Material */    
+        extern G4Material *CaCO3;
+        extern G4Material *Kaolinite;
+        extern G4Material *SiO2;
+        extern G4Material *Marl;
+        extern G4Material *GroundMix;
+
+    } /* namespace Material */
+
+    namespace Vis
+    {
+
+        //__Sensitive Material Attribute Definition_____________________________________________________
+        const G4VisAttributes SensitiveAttributes1();
+        const G4VisAttributes SensitiveAttributes2();
+        const G4VisAttributes HighlightRed();
+        const G4VisAttributes TransparentBrown();
+
+        //__Casing and Border Material Attribute Definition_____________________________________________
+        const G4VisAttributes CasingAttributes();
+        const G4VisAttributes BorderAttributes();
+
+        //__Iron, Aluminum, Concrete
+        const G4VisAttributes AlAttributes();
+        const G4VisAttributes IronAttributes();
+        const G4VisAttributes ConcreteAttributes();
+
+
+    } /* namespace Vis*/
 
 } // namespace MuGeoBuilder
-
 
 #endif
