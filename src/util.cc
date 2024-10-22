@@ -23,9 +23,10 @@
 
 namespace util
 {
+
     namespace py
     {
- 
+
     } // namespace py
 
     namespace path
@@ -43,5 +44,22 @@ namespace util
             return std::filesystem::path();
         }
     } // namespace path
+
+    namespace io
+    {
+        std::string readFileToString(const std::string &filename)
+        {
+            std::ifstream file(filename);
+            if (!file.is_open())
+            {
+                throw std::runtime_error("Could not open file: " + filename);
+            }
+
+            std::ostringstream oss;
+            oss << file.rdbuf(); // Read the file's buffer into the string stream
+
+            return oss.str(); // Return the contents as a string
+        }
+    } // namespace io
 
 } // namespace util

@@ -83,7 +83,7 @@ namespace MuGeoBuilder
   {
     // Setup detector name and messenger
     this->DetectorName = "uoft1";
-    this->fMessenger = new G4GenericMessenger(this, "/det/" + this->DetectorName, "Detector is: UofT teststand 1");
+    this->fMessenger = new G4GenericMessenger(this, "/det/" + this->DetectorName + "/", "Detector is: UofT teststand 1");
   }
 
   // Core function 1:

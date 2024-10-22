@@ -23,11 +23,21 @@ else()
 endif()
 
 #----------------------------------------------------------------------------
+# Find CRY package
+find_library(CRY NAMES CRY PATHS ${PROJECT_SOURCE_DIR}/cry_v1.7/lib NO_DEFAULT_PATH )
+set(CRY_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/cry_v1.7/src)
+set(CRY_LIBRARIES ${PROJECT_SOURCE_DIR}/cry_v1.7/lib/libCRY.a)
+MESSAGE ("CRY installed at: " ${CRY_INCLUDE_DIRS} )
+
+
+
+#----------------------------------------------------------------------------
 # Setup Geant4 include directories and compile definitions
 # Setup include directory for this project
 #
 include(${Geant4_USE_FILE})
-include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_SOURCE_DIR}/include
+                  ${CRY_INCLUDE_DIRS})
 
 #----------------------------------------------------------------------------
 # Locate sources and headers for this project
@@ -41,7 +51,7 @@ file(GLOB_RECURSE  headers ${PROJECT_SOURCE_DIR}/include/*.hh
 # Add the executable, and link it to the Geant4 libraries
 #
 add_executable(simulation simulation.cc ${sources} ${headers})
-target_link_libraries(simulation ${Geant4_LIBRARIES})
+target_link_libraries(simulation ${Geant4_LIBRARIES} ${CRY_LIBRARIES})
 
 #----------------------------------------------------------------------------
 # Copy all scripts to the build directory, i.e. the directory in which we

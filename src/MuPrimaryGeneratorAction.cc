@@ -8,6 +8,7 @@
 
 // Project include
 #include "MuPrimaryGeneratorAction.hh"
+#include "util.hh"
 
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -17,7 +18,8 @@ MuPrimaryGeneratorAction::MuPrimaryGeneratorAction()
 {
   // Make a map of all available generators
   _gen_map_["gun"] = new MuGenerators::ParticleGun("gun", "ParticleGun");
-  _gen_ = _gen_map_["gun"];
+  _gen_map_["cry"] = new MuGenerators::MuCRY("cry", "CRY cosmic", util::globals::PROJECT_SOURCE_DIR);
+  _gen_ = _gen_map_["cry"];
 
 
   // Add messenger commands 
@@ -48,6 +50,8 @@ void MuPrimaryGeneratorAction::GeneratePrimaries(G4Event *anEvent)
 void MuPrimaryGeneratorAction::SetNewValue(G4UIcommand *command,
                                            G4String value)
 {
-  if (command == cmd_select)
+  if (command == cmd_select){
     _gen_ = _gen_map_[value];
+
+  }
 }

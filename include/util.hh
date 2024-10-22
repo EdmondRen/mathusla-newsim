@@ -14,7 +14,12 @@
 #include <any>
 
 namespace util
-{
+{   
+    namespace globals
+    {
+        extern std::string PROJECT_SOURCE_DIR;
+
+    } // namespace globals
 
     /*
     Python-like interface, such as dict, print...
@@ -68,6 +73,12 @@ namespace util
     {
         std::filesystem::path getExecutablePath();
     } // namespace path
+
+    namespace io
+    {
+        std::string readFileToString(const std::string &filename);
+    } // namespace io
+    
 }
 
 #endif // UTIL_H

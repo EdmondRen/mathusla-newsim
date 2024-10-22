@@ -10,30 +10,27 @@
 #include "FTFP_BERT.hh"
 #include "Randomize.hh"
 
-
 // Project include
 #include "MuDetectorConstruction.hh"
 #include "MuActionInitialization.hh"
 #include "util.hh"
 #include "libs/cxxopts.hpp"
 
+// Global variables
+std::string util::globals::PROJECT_SOURCE_DIR = "";
+
 int main(int argc, char **argv)
 {
-  // Get the executable path
-  auto path_exe = util::path::getExecutablePath().parent_path().string();
+
+  // Get the source file directory
+  auto PROJECT_SOURCE_DIR = util::path::getExecutablePath().parent_path().parent_path().string();
+  G4cout << PROJECT_SOURCE_DIR << G4endl;
+  util::globals::PROJECT_SOURCE_DIR = PROJECT_SOURCE_DIR;
 
   // Evaluate arguments
   cxxopts::Options options("Geant4 simulation", "Geant4 simulation for MATHUSLA");
-  options.add_options()
-    ("h,help", "Print help")
-    ("D,debug", "Enable debugging") // a bool parameter
-    ("m,macro", "Macro name, followed by possible parameters for macro seperated by commas. For example, -m=run1.mac,Ek,10,theta,20", cxxopts::value<std::vector<std::string>>())
-    ("s,session", "Session name", cxxopts::value<G4String>()->default_value("MathuslaSim"))
-    ("t,threads", "Number of threads", cxxopts::value<G4int>()->default_value("1"))
-    ("g,generator", "Generator, one of <gun/range/parma/cry/filereader>", cxxopts::value<G4String>()->default_value("gun"))
-    ("d,detector", "Detector, one of <math40/uoft1>", cxxopts::value<G4String>()->default_value("uoft1"))
-    ("e,export", "Export directory for geometry and other information", cxxopts::value<G4String>()->default_value("./export/"))
-    ("o,output", "Output directory", cxxopts::value<G4String>()->default_value("data"));
+  options.add_options()("h,help", "Print help")("D,debug", "Enable debugging") // a bool parameter
+      ("m,macro", "Macro name, followed by possible parameters for macro seperated by commas. For example, -m=run1.mac,Ek,10,theta,20", cxxopts::value<std::vector<std::string>>())("g,generator", "Generator, one of <gun/range/parma/cry/filereader>", cxxopts::value<G4String>()->default_value("gun"))("d,detector", "Detector, one of <math40/uoft1>", cxxopts::value<G4String>()->default_value("uoft1"))("e,export", "Export directory for geometry and other information", cxxopts::value<G4String>()->default_value("./export/"))("o,output", "Output directory", cxxopts::value<G4String>()->default_value("data"))("r,run", "Run number", cxxopts::value<G4int>()->default_value("0"))("s,session", "Session name", cxxopts::value<G4String>()->default_value("MathuslaSim"))("t,threads", "Number of threads", cxxopts::value<G4int>()->default_value("1"));
   auto args = options.parse(argc, argv);
 
   // Read and process arguments
@@ -43,6 +40,14 @@ int main(int argc, char **argv)
   macro_commands = args["macro"].count() ? args["macro"].as<std::vector<std::string>>() : macro_commands;
   if (macro_commands.size())
     macro = macro_commands[0];
+
+  // Setup random number generator
+  G4int run_number = args["run"].as<G4int>();
+  G4Random::setTheEngine(new CLHEP::RanecuEngine);
+  if (run_number == 0)
+    G4Random::setTheSeed(time(nullptr));
+  else
+    G4Random::setTheSeed(run_number);
 
   // Detect interactive mode (if no macro provided) and define UI session
   //
@@ -97,9 +102,9 @@ int main(int argc, char **argv)
   else
   {
     // interactive mode : define UI session, with gui/vis setup macros
-    UImanager->ApplyCommand("/control/execute " + path_exe + "/macros/init_vis.mac");
+    UImanager->ApplyCommand("/control/execute " + PROJECT_SOURCE_DIR + "/macros/init_vis.mac");
     if (ui->IsGUI())
-      UImanager->ApplyCommand("/control/execute  " + path_exe + "/macros/init_gui.mac");
+      UImanager->ApplyCommand("/control/execute  " + PROJECT_SOURCE_DIR + "/macros/init_gui.mac");
     ui->SessionStart();
     delete ui;
   }

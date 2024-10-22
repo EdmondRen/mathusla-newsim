@@ -1,3 +1,5 @@
+#ifndef MU__particlegun_hh
+#define MU__particlegun_hh
 
 #include "G4LogicalVolumeStore.hh"
 #include "G4LogicalVolume.hh"
@@ -40,3 +42,5 @@ namespace MuGenerators
         G4ParticleGun* fParticleGun;
     };
 }
+
+#endif
