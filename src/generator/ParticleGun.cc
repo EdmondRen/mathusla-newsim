@@ -9,17 +9,14 @@ namespace MuGenerators
     {
         G4int nofParticles = 1;
         fParticleGun = new G4ParticleGun(nofParticles);
-    }
 
-    // Core function 1: GeneratePrimaryVertex()
-    // This will be called by GeneratorAction::GeneratePrimaries()
-    void ParticleGun::GeneratePrimaryVertex(G4Event *anEvent)
-    {
+        // Set the default parameters for particle gun
         // default particle kinematic
         //
         auto particleDefinition = G4ParticleTable::GetParticleTable()->FindParticle("e-");
         fParticleGun->SetParticleDefinition(particleDefinition);
-        fParticleGun->SetParticleMomentumDirection(G4ThreeVector(0., 0., 1.));
+        fParticleGun->SetParticlePosition(G4ThreeVector(0., 0., 20*m));
+        fParticleGun->SetParticleMomentumDirection(G4ThreeVector(0., 0., -1.));
         fParticleGun->SetParticleEnergy(50. * MeV);
 
         // In order to avoid dependence of PrimaryGeneratorAction
@@ -46,10 +43,16 @@ namespace MuGenerators
                         "MyCode0002", JustWarning, msg);
         }
 
-        // Set gun position
+        // Set gun position to top at the middle of world. 
         fParticleGun
-            ->SetParticlePosition(G4ThreeVector(0., 0., -worldZHalfLength));
+            ->SetParticlePosition(G4ThreeVector(0., 0., worldZHalfLength));        
 
+    }
+
+    // Core function 1: GeneratePrimaryVertex()
+    // This will be called by GeneratorAction::GeneratePrimaries()
+    void ParticleGun::GeneratePrimaryVertex(G4Event *anEvent)
+    {
         fParticleGun->GeneratePrimaryVertex(anEvent);
     }
 

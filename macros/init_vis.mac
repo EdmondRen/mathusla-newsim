@@ -21,6 +21,7 @@
 # of the Mu example when running in interactive mode
 #
 
+
 # Use these open statements to open selected visualization
 #
 # Use this open statement to create an OpenGL view:
@@ -101,3 +102,7 @@
 # For file-based drivers, use this to create an empty detector view:
 #/vis/viewer/flush
 
+
+
+# Increase the display limit
+/vis/ogl/set/displayListLimit 1000000

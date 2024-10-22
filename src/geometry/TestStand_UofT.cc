@@ -67,6 +67,9 @@ namespace MuGeoBuilder
     // Surroundings
     double env_earth_depth = 10 * m;
     double env_air_depth = 10 * m;
+    double env_ceiling_lenx = detector_lenx + 5 * m;
+    double env_ceiling_leny = detector_lenx + 5 * m;
+    double env_ceiling_lenz = detector_lenz + 3 * m;
     double env_ceiling_concrete_thickness = 40 * cm;
     double env_floor_iron_thickness = 2 * cm;
     // World
@@ -92,7 +95,7 @@ namespace MuGeoBuilder
                             uoftdims::world_lenx / 2, uoftdims::world_leny / 2, uoftdims::world_lenz / 2); // its size
     this->worldLV = new G4LogicalVolume(
         worldS,           // its solid
-        Material::Vacuum, // its material
+        Material::Air, // its material
         "World");         // its name
     this->worldPV = new G4PVPlacement(
         0,               // no rotation
@@ -118,7 +121,7 @@ namespace MuGeoBuilder
         bar,                           // its solid
         Material::PlasticScintillator, // its material
         "bar");                        // its name
-    barLV->SetVisAttributes(Vis::SensitiveAttributes1());
+    barLV->SetVisAttributes(Vis::styles["SensitiveAttributes_border"]);
 
     // Fill the bars in the layer volume
     for (int i = 0; i < uoftdims::layer_Nbars_x; i++)
@@ -188,7 +191,7 @@ namespace MuGeoBuilder
         detector,      // its solid
         Material::Air, // its material
         "detector");   // its name
-    this->detectorLV->SetVisAttributes(Vis::BorderAttributes());
+    // this->detectorLV->SetVisAttributes(Vis::styles["CasingAttributes"]);
 
     // Place detector in world
     auto detectorPV = new G4PVPlacement(
@@ -211,7 +214,7 @@ namespace MuGeoBuilder
         Material::Air, // its material
         "module");     // its name
     ConstructModule(moduleLV);
-    moduleLV->SetVisAttributes(Vis::CasingAttributes);
+    moduleLV->SetVisAttributes(Vis::styles["CasingAttributes"]);
     // Place all tower modules into detector
     for (int i = 0; i < uoftdims::layer_Nbars_x; i++)
     {
@@ -232,36 +235,71 @@ namespace MuGeoBuilder
     }
   }
 
-  G4LogicalVolume *Uoft1_Builder::ConstructEnvironment(G4LogicalVolume *worldLV)
+  G4LogicalVolume *Uoft1_Builder::ConstructEnvironment(G4LogicalVolume *_worldLV)
   {
+    // Make the detector box again, so that we can subtract it from earth/air
+    auto detector = new G4Box("detector", uoftdims::detector_lenx / 2, uoftdims::detector_leny / 2, uoftdims::detector_lenz / 2);
+
+    //
     // Earth
     auto earth = new G4Box("earth", uoftdims::world_lenx / 2, uoftdims::world_leny / 2, uoftdims::env_earth_depth / 2);
-    auto detector = new G4Box("detector", uoftdims::detector_lenx / 2, uoftdims::detector_leny / 2, uoftdims::detector_lenz / 2);
     // Subtract detector from earth (in case we want to excavate a little bit)
-    auto earth_excavated = new G4SubtractionSolid("earth_excavated",
-                                                  earth,
-                                                  detector,
-                                                  G4Transform3D(G4RotationMatrix(), // rotation
-                                                                G4ThreeVector(uoftdims::detector_ground_offset[0],
-                                                                              uoftdims::detector_ground_offset[1],
-                                                                              0.5 * uoftdims::detector_lenz + 0.5 * uoftdims::env_earth_depth + uoftdims::detector_ground_offset[2])));
+    auto earth_excavated =
+        new G4SubtractionSolid("earth_excavated",
+                               earth,
+                               detector,
+                               G4Transform3D(G4RotationMatrix(), // rotation
+                                             G4ThreeVector(uoftdims::detector_ground_offset[0],
+                                                           uoftdims::detector_ground_offset[1],
+                                                           0.5 * uoftdims::env_earth_depth + 0.5 * uoftdims::detector_lenz + uoftdims::detector_ground_offset[2])));
     G4LogicalVolume *earthLV = new G4LogicalVolume(
-        earth_excavated,               // its solid
+        earth_excavated,     // its solid
         Material::GroundMix, // its material
         "earth");            // its name
-    earthLV->SetVisAttributes(Vis::TransparentBrown());
+    earthLV->SetVisAttributes(Vis::styles["TransparentBrown"]);
 
     // Place earth in world
     auto earthPV = new G4PVPlacement(
         G4Transform3D(G4RotationMatrix(), // rotation
                       G4ThreeVector(0, 0,
-                                    -0.5* uoftdims::env_earth_depth)), // offset
-        earthLV,                                                                                  // its logical volume
-        "earth",                                                                                           // its name
-        worldLV,                                                                                           // its mother volume
-        false,                                                                                             // no boolean operation
-        0,                                                                                                 // copy number (layer number within a module)
-        fCheckOverlaps);                                                                                   // checking overlaps
+                                    -0.5 * uoftdims::env_earth_depth)), // offset
+        earthLV,                                                        // its logical volume
+        "earth",                                                        // its name
+        _worldLV,                                                        // its mother volume
+        false,                                                          // no boolean operation
+        0,                                                              // copy number (layer number within a module)
+        fCheckOverlaps);                                                // checking overlaps
+
+    //
+    // ceiling
+    auto ceiling_out = new G4Box("ceiling_out", uoftdims::env_ceiling_lenx / 2, uoftdims::env_ceiling_leny / 2, uoftdims::env_ceiling_lenz / 2);
+    auto ceiling_inside = new G4Box("ceiling_inside", uoftdims::env_ceiling_lenx / 2 - uoftdims::env_ceiling_concrete_thickness,
+                                    uoftdims::env_ceiling_leny / 2 - uoftdims::env_ceiling_concrete_thickness,
+                                    uoftdims::env_ceiling_lenz / 2 - uoftdims::env_ceiling_concrete_thickness /2);
+    // Subtract detector from earth (in case we want to excavate a little bit)
+    auto ceiling =
+        new G4SubtractionSolid("ceiling",
+                               ceiling_out,
+                               ceiling_inside,
+                               G4Transform3D(G4RotationMatrix(), // rotation
+                                             G4ThreeVector(0,0, -1.*uoftdims::env_ceiling_concrete_thickness)));
+    G4LogicalVolume *ceilingLV = new G4LogicalVolume(
+        ceiling,     // its solid
+        Material::Concrete, // its material
+        "ceiling");            // its name
+    ceilingLV->SetVisAttributes(Vis::styles["TransparentBrown"]);
+
+    // Place ceiling in world
+    auto ceilingPV = new G4PVPlacement(
+        G4Transform3D(G4RotationMatrix(), // rotation
+                      G4ThreeVector(0, 0,
+                                    0.5 * uoftdims::env_ceiling_lenz)), // offset
+        ceilingLV,                                                        // its logical volume
+        "ceiling",                                                        // its name
+        _worldLV,                                                        // its mother volume
+        false,                                                          // no boolean operation
+        0,                                                              // copy number (layer number within a module)
+        fCheckOverlaps);                                                // checking overlaps
   }
 
 } // namespace MuGeoBuilder

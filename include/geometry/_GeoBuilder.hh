@@ -68,23 +68,8 @@ namespace MuGeoBuilder
 
     namespace Vis
     {
-
-        //__Sensitive Material Attribute Definition_____________________________________________________
-        const G4VisAttributes SensitiveAttributes1();
-        const G4VisAttributes SensitiveAttributes2();
-        const G4VisAttributes HighlightRed();
-        const G4VisAttributes TransparentBrown();
-
-        //__Casing and Border Material Attribute Definition_____________________________________________
-        const G4VisAttributes CasingAttributes();
-        const G4VisAttributes BorderAttributes();
-
-        //__Iron, Aluminum, Concrete
-        const G4VisAttributes AlAttributes();
-        const G4VisAttributes IronAttributes();
-        const G4VisAttributes ConcreteAttributes();
-
-
+        extern std::map<std::string, G4VisAttributes> styles;
+        
     } /* namespace Vis*/
 
 } // namespace MuGeoBuilder
