@@ -52,6 +52,9 @@ namespace MuGenerators
         
         std::string PROJECT_SOURCE_DIR;
 
+        // Messenger commands
+        G4UIcmdWithAString *_ui_pathname;
+
     };
 }
 

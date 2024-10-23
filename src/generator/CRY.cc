@@ -7,6 +7,7 @@
 #include "G4ParticleDefinition.hh"
 #include "G4SystemOfUnits.hh"
 #include "Randomize.hh"
+#include "G4RandomTools.hh" // For G4UniformRand
 
 // CRY
 #include "CRYSetup.h"
@@ -19,7 +20,7 @@
 #include "util.hh"
 
 namespace MuGenerators
-{   
+{
 
     //--------------------------------------------------------------------------
     // Wrapper for random number generator
@@ -50,6 +51,16 @@ namespace MuGenerators
 
     template <class T>
     double RNGWrapper<T>::rng(void) { return (m_obj->*m_func)(); }
+
+    double GenerateRandomInRange(double min, double max)
+    {
+        if (min >= max)
+        {
+            throw std::invalid_argument("Invalid range: min must be less than max");
+        }
+        // Generate a random number in the range [min, max)
+        return min + (max - min) * G4UniformRand();
+    }
     //--------------------------------------------------------------------------
 
     MuCRY::MuCRY(const std::string &name,
@@ -65,20 +76,18 @@ namespace MuGenerators
         fParticleGun->SetParticleMomentumDirection(G4ThreeVector(0., 0., -1.));
         fParticleGun->SetParticleEnergy(50. * MeV);
 
-
         // CRY initialization
-        auto cry_setupString = util::io::readFileToString(PROJECT_SOURCE_DIR + "/macros/cry_default.file");
+        auto cry_setupString = util::io::readFileToString_CRY(PROJECT_SOURCE_DIR + "/macros/generators/cry_default.file");
 
-        G4cout<<cry_setupString;
+        G4cout << cry_setupString;
 
         CRYSetup *cry_setup = new CRYSetup(cry_setupString, PROJECT_SOURCE_DIR + "/cry_v1.7/data");
         // Set random number generator to use GEANT4 engine
-        // RNGWrapper<CLHEP::HepRandomEngine>::set(CLHEP::HepRandom::getTheEngine(), &CLHEP::HepRandomEngine::flat);
-        // cry_setup->setRandomFunction(RNGWrapper<CLHEP::HepRandomEngine>::rng);        
+        RNGWrapper<CLHEP::HepRandomEngine>::set(CLHEP::HepRandom::getTheEngine(), &CLHEP::HepRandomEngine::flat);
+        cry_setup->setRandomFunction(RNGWrapper<CLHEP::HepRandomEngine>::rng);
         // Make the CRY generator
         this->fCRYgenerator = new CRYGenerator(cry_setup);
-        this->cry_generated = new std::vector<CRYParticle*>; // vector to hold generated particles
-
+        this->cry_generated = new std::vector<CRYParticle *>; // vector to hold generated particles
 
         // Create the table containing all particle names
         this->fparticleTable = G4ParticleTable::GetParticleTable();
@@ -89,6 +98,11 @@ namespace MuGenerators
         fCRY_additional_setup["offset_z"] = 4 * m;
         fCRY_additional_setup["offset_t_low"] = -1000 * ns;
         fCRY_additional_setup["offset_t_high"] = 1000 * ns;
+
+        // Make messenger commands
+        _ui_pathname = CreateCommand<G4UIcmdWithAString>("pathname", "Set pathname of CRY parameters file.");
+        _ui_pathname->SetParameterName("pathname", false, false);
+        _ui_pathname->AvailableForStates(G4State_PreInit, G4State_Idle);
     }
 
     // Core function 1: GeneratePrimaryVertex()
@@ -98,7 +112,6 @@ namespace MuGenerators
 
         G4String particleName;
         bool pass_cuts = false;
-
 
         int countAttempt = 0;
         do
@@ -126,6 +139,9 @@ namespace MuGenerators
                << "CRY generated nparticles=" << cry_generated->size()
                << " pass Ekin threshold: " << pass_cuts << G4endl;
 
+        // Sample a time for this event
+        G4double t0 = GenerateRandomInRange(fCRY_additional_setup["offset_t_low"], fCRY_additional_setup["offset_t_high"]);
+
         for (unsigned j = 0; j < cry_generated->size(); j++)
         {
             particleName = CRYUtils::partName((*cry_generated)[j]->id());
@@ -134,15 +150,18 @@ namespace MuGenerators
 
             G4double fParticleEkin = (*cry_generated)[j]->ke() * MeV;
             G4double fParticleMass = particleDefinition->GetPDGMass() * MeV;
+            G4double fParticleMomentum = sqrt(fParticleEkin * fParticleEkin + 2 * fParticleEkin * fParticleMass);
             G4double fParticlePosX = (*cry_generated)[j]->x() * m;
             G4double fParticlePosY = (*cry_generated)[j]->y() * m;
             G4double fParticlePosZ = (*cry_generated)[j]->z() * m;
             G4double fParticleMomentumDirectionU = (*cry_generated)[j]->u();
             G4double fParticleMomentumDirectionV = (*cry_generated)[j]->v();
             G4double fParticleMomentumDirectionW = (*cry_generated)[j]->w();
-            G4double fParticleTime = (*cry_generated)[j]->t();
+            G4double fParticleMomentumX = fParticleMomentum * fParticleMomentumDirectionU;
+            G4double fParticleMomentumY = fParticleMomentum * fParticleMomentumDirectionV;
+            G4double fParticleMomentumZ = fParticleMomentum * fParticleMomentumDirectionW;
+            G4double fParticleTime = t0; //(*cry_generated)[j]->t();
 
-            
             std::cout << "fParticleDefinition: " << (*cry_generated)[j]->PDGid() << " " << std::endl;
             std::cout << "fParticleEkin: " << fParticleEkin << " MeV" << std::endl;
             std::cout << "fParticleMomentum: " << sqrt(fParticleEkin * fParticleEkin + 2 * fParticleEkin * fParticleMass) << " MeV" << std::endl;
@@ -154,7 +173,6 @@ namespace MuGenerators
             std::cout << "fParticleMomentumDirectionW: " << fParticleMomentumDirectionW << "" << std::endl;
             std::cout << "fParticleTime: " << fParticleTime << "" << std::endl;
             std::cout << std::endl;
-            
 
             fParticleGun->SetParticleDefinition(particleDefinition);
             fParticleGun->SetParticleMomentum(sqrt(fParticleEkin * fParticleEkin + 2 * fParticleEkin * fParticleMass));
@@ -162,10 +180,9 @@ namespace MuGenerators
                                                             fParticlePosY + fCRY_additional_setup["offset_y"],
                                                             fParticlePosZ + fCRY_additional_setup["offset_z"]));
             fParticleGun->SetParticleMomentumDirection(G4ThreeVector(fParticleMomentumDirectionU, fParticleMomentumDirectionV, fParticleMomentumDirectionW));
-            fParticleGun->SetParticleTime(0);
+            fParticleGun->SetParticleTime(fParticleTime);
             fParticleGun->GeneratePrimaryVertex(anEvent);
         }
-
     }
 
     // Core function 2: GeneratePrimaryVertex()
@@ -173,6 +190,18 @@ namespace MuGenerators
     void MuCRY::SetNewValue(G4UIcommand *command,
                             G4String value)
     {
+        if (command == _ui_pathname)
+        {
+            // CRY initialization
+            auto cry_setupString = util::io::readFileToString_CRY(value);
+            G4cout << "\nCRY setup string: \n" <<cry_setupString << "\n";
+            CRYSetup *cry_setup = new CRYSetup(cry_setupString, "cry_v1.7/data");
+            // Set random number generator to use GEANT4 engine
+            RNGWrapper<CLHEP::HepRandomEngine>::set(CLHEP::HepRandom::getTheEngine(), &CLHEP::HepRandomEngine::flat);
+            cry_setup->setRandomFunction(RNGWrapper<CLHEP::HepRandomEngine>::rng);
+            // Make the CRY generator
+            this->fCRYgenerator = new CRYGenerator(cry_setup);
+        }
     }
 
 }

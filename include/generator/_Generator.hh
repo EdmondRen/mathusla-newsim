@@ -5,7 +5,22 @@
 #include "G4Event.hh"
 #include "G4PrimaryVertex.hh"
 #include "G4PrimaryParticle.hh"
-#include "G4UImessenger.hh"
+
+// G4 include
+#include "G4VUserPrimaryGeneratorAction.hh"
+#include "globals.hh"
+#include <G4UIcommand.hh>
+#include <G4UIdirectory.hh>
+#include <G4UIcmdWithoutParameter.hh>
+#include <G4UIcmdWithAString.hh>
+#include <G4UIcmdWithABool.hh>
+#include <G4UIcmdWithAnInteger.hh>
+#include <G4UIcmdWithADouble.hh>
+#include <G4UIcmdWith3Vector.hh>
+#include <G4UIcmdWithADoubleAndUnit.hh>
+#include <G4UIcmdWith3VectorAndUnit.hh>
+#include <G4UImessenger.hh>
+#include <G4UImanager.hh>
 
 namespace MuGenerators
 {

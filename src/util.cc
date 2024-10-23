@@ -60,6 +60,31 @@ namespace util
 
             return oss.str(); // Return the contents as a string
         }
+
+        std::string readFileToString_CRY(const std::string &filename)
+        {
+            // Read the cry input file
+            std::ifstream inputFile(filename);
+            char buffer[1000];
+
+            std::string setupString("");
+
+            if (inputFile.fail())
+            {
+                throw std::runtime_error("Could not open file: " + filename);
+            }
+            else
+            {
+                while (!inputFile.getline(buffer, 1000).eof())
+                {
+                    setupString.append(buffer);
+                    setupString.append(" ");
+                }
+            }
+
+            return setupString;
+        }
+
     } // namespace io
 
 } // namespace util

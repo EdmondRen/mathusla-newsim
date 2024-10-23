@@ -52,6 +52,5 @@ void MuPrimaryGeneratorAction::SetNewValue(G4UIcommand *command,
 {
   if (command == cmd_select){
     _gen_ = _gen_map_[value];
-
   }
 }

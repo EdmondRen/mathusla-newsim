@@ -77,6 +77,7 @@ namespace util
     namespace io
     {
         std::string readFileToString(const std::string &filename);
+        std::string readFileToString_CRY(const std::string &filename);
     } // namespace io
     
 }
