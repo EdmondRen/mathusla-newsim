@@ -65,7 +65,7 @@ namespace Analysis
 
 
     // Hold the information of one column
-    typedef struct
+    typedef struct KEY_DATA_COLUMN_struct
     {
         int key_index;
         std::string key_name;

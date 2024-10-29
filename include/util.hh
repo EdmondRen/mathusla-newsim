@@ -14,7 +14,7 @@
 #include <any>
 
 namespace util
-{   
+{
     namespace globals
     {
         extern std::string PROJECT_SOURCE_DIR;
@@ -26,6 +26,59 @@ namespace util
     */
     namespace py
     {
+
+        // Base template for variadic arguments
+        template <typename T>
+        void print_item(std::ostringstream &oss, const T &item)
+        {
+            oss << item;
+        }
+
+        // Overload for vector printing
+        template <typename T>
+        void print_item(std::ostringstream &oss, const std::vector<T> &vec)
+        {
+            oss << "[";
+            for (size_t i = 0; i < vec.size(); ++i)
+            {
+                oss << vec[i];
+                if (i != vec.size() - 1)
+                {
+                    oss << ", ";
+                }
+            }
+            oss << "]";
+        }
+
+
+        // python-like print function
+        //  - Usage: print(arg1, arg2, ...)
+        //  - Does not support different sep and end
+        //    Variadic template function to handle any number of arguments
+        template <typename... Args>
+        void print(Args... args)
+        {
+            // Default values for sep and end
+            std::string sep = " ";
+            std::string end = "\n";
+
+            std::ostringstream oss;
+
+            // Using fold expression to unpack the arguments and insert the separator
+            ((print_item(oss, args), oss << sep), ...);
+
+            std::string output = oss.str();
+
+            // Remove the last separator
+            if (!output.empty())
+            {
+                output.erase(output.size() - sep.size());
+            }
+
+            // Print the result with the specified ending
+            std::cout << output << end;
+        }
+
         // Python-like dictionary class
         /*
         Example:
@@ -43,7 +96,8 @@ namespace util
             return 0;
         }
         */
-        class dict {
+        class dict
+        {
         public:
             std::unordered_map<std::string, std::any> _tVars;
 
@@ -62,7 +116,7 @@ namespace util
             {
                 _tVars[key] = value;
             }
-        };       
+        };
 
     } // namespace py
 
@@ -79,13 +133,10 @@ namespace util
         std::string readFileToString(const std::string &filename);
         std::string readFileToString_CRY(const std::string &filename);
     } // namespace io
-    
+
 }
 
 #endif // UTIL_H
-
-
-
 
 //   util::py::argparse parser;
 //   // Add positional and optional arguments

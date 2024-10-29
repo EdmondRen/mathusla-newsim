@@ -31,6 +31,8 @@
 #define MuActionInitialization_h 1
 
 #include "G4VUserActionInitialization.hh"
+#include "libs/cxxopts.hpp"
+
 
 class MuDetectorConstruction;
 
@@ -41,6 +43,7 @@ class MuActionInitialization : public G4VUserActionInitialization
 {
   public:
     MuActionInitialization(MuDetectorConstruction*);
+    // MuActionInitialization(MuDetectorConstruction*, cxxopts::ParseResult & args);
     virtual ~MuActionInitialization();
 
     virtual void BuildForMaster() const;
@@ -48,6 +51,7 @@ class MuActionInitialization : public G4VUserActionInitialization
 
   private:
     MuDetectorConstruction* fDetConstruction;
+    // cxxopts::ParseResult & args;
 };
 
 #endif

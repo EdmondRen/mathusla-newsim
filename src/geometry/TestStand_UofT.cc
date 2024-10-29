@@ -56,11 +56,11 @@ namespace MuGeoBuilder
     double module_vbeam_thick = 1 * cm;
     double module_gap = 1 * m;
     // Entire detector
+    int detector_Ntowers_x = 1;
+    int detector_Ntowers_y = 1;
     double detector_lenx = 140 * cm;
     double detector_leny = 140 * cm;
     double detector_lenz = 250 * cm;
-    std::vector<int> detector_Nmodules_x = {1};
-    std::vector<int> detector_Nmodules_y = {1};
     std::vector<double> detector_modules_xoffset = {0 * m};
     std::vector<double> detector_modules_yoffset = detector_modules_xoffset;
     std::vector<double> detector_ground_offset = {0, 0, 0}; // x and y offsets are relative to detector box center, z offset is from the bottom.
@@ -217,9 +217,9 @@ namespace MuGeoBuilder
     ConstructModule(moduleLV);
     moduleLV->SetVisAttributes(Vis::styles["CasingAttributes"]);
     // Place all tower modules into detector
-    for (int i = 0; i < uoftdims::layer_Nbars_x; i++)
+    for (int i = 0; i < uoftdims::detector_Ntowers_x; i++)
     {
-      for (int j = 0; j < uoftdims::layer_Nbars_y; j++)
+      for (int j = 0; j < uoftdims::detector_Ntowers_y; j++)
       {
         auto modulePV = new G4PVPlacement(
             G4Transform3D(G4RotationMatrix(), // rotation

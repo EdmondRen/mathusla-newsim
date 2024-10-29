@@ -36,10 +36,16 @@
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
+// MuActionInitialization::MuActionInitialization
+//                             (MuDetectorConstruction* detConstruction, cxxopts::ParseResult & args)
+//  : G4VUserActionInitialization(),
+//  fDetConstruction(detConstruction),
+//    args(args)
+// {}
+
 MuActionInitialization::MuActionInitialization
                             (MuDetectorConstruction* detConstruction)
- : G4VUserActionInitialization(),
-   fDetConstruction(detConstruction)
+ : G4VUserActionInitialization(),fDetConstruction(detConstruction)
 {}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

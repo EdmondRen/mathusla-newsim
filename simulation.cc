@@ -28,10 +28,21 @@ int main(int argc, char **argv)
   util::globals::PROJECT_SOURCE_DIR = PROJECT_SOURCE_DIR;
 
   // Evaluate arguments
+  // clang-format off
   cxxopts::Options options("Geant4 simulation", "Geant4 simulation for MATHUSLA");
-  options.add_options()("h,help", "Print help")("D,debug", "Enable debugging") // a bool parameter
-      ("m,macro", "Macro name, followed by possible parameters for macro seperated by commas. For example, -m=run1.mac,Ek,10,theta,20", cxxopts::value<std::vector<std::string>>())("g,generator", "Generator, one of <gun/range/parma/cry/filereader>", cxxopts::value<G4String>()->default_value("gun"))("d,detector", "Detector, one of <math40/uoft1>", cxxopts::value<G4String>()->default_value("uoft1"))("e,export", "Export directory for geometry and other information", cxxopts::value<G4String>()->default_value("./export/"))("o,output", "Output directory", cxxopts::value<G4String>()->default_value("data"))("r,run", "Run number", cxxopts::value<G4int>()->default_value("0"))("s,session", "Session name", cxxopts::value<G4String>()->default_value("MathuslaSim"))("t,threads", "Number of threads", cxxopts::value<G4int>()->default_value("1"));
+  options.add_options()
+      ("h,help", "Print help")
+      ("D,debug", "Enable debugging") // a bool parameter
+      ("m,macro", "Macro name, followed by possible parameters for macro seperated by commas. For example, -m=run1.mac,Ek,10,theta,20", cxxopts::value<std::vector<std::string>>())
+      ("g,generator", "Generator, one of <gun/range/parma/cry/filereader>", cxxopts::value<G4String>()->default_value("gun"))
+      ("d,detector", "Detector, one of <math40/uoft1>", cxxopts::value<G4String>()->default_value("uoft1"))
+      ("e,export", "Export directory for geometry and other information", cxxopts::value<G4String>()->default_value("./export/"))
+      ("o,output", "Output directory", cxxopts::value<G4String>()->default_value("data"))
+      ("r,run", "Run number", cxxopts::value<G4int>()->default_value("0"))
+      ("s,session", "Session name", cxxopts::value<G4String>()->default_value("MathuslaSim"))
+      ("t,threads", "Number of threads", cxxopts::value<G4int>()->default_value("1"));
   auto args = options.parse(argc, argv);
+  // clang-format on
 
   // Read and process arguments
   // * macro: need to separate the macro name and forwarding arguments
