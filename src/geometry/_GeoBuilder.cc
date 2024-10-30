@@ -29,6 +29,7 @@ namespace MuGeoBuilder
     // Geometry Builder Class
     Builder::Builder() {}
     G4VPhysicalVolume *Builder::Construct() { return 0; }
+    void Builder::ConstructSD(G4VSensitiveDetector *detector) { (void)detector; }
 
     // ----------------------------------------------------------------------
     // Helper functions for building geometry, such as

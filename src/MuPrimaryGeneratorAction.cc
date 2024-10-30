@@ -13,13 +13,13 @@
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-MuPrimaryGeneratorAction::MuPrimaryGeneratorAction()
+MuPrimaryGeneratorAction::MuPrimaryGeneratorAction(std::string _gen_default_)
     : G4VUserPrimaryGeneratorAction(), G4UImessenger(MuGenerators::Generator::MessengerDirectory, "Particle Generators.")
 {
   // Make a map of all available generators
   _gen_map_["gun"] = new MuGenerators::ParticleGun("gun", "ParticleGun");
   _gen_map_["cry"] = new MuGenerators::MuCRY("cry", "CRY cosmic", util::globals::PROJECT_SOURCE_DIR);
-  _gen_ = _gen_map_["cry"];
+  _gen_ = _gen_map_[_gen_default_];
 
 
   // Add messenger commands 

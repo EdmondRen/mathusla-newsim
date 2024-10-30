@@ -47,16 +47,13 @@
 // G4 constants/units
 #include "G4PhysicalConstants.hh"
 #include "G4SystemOfUnits.hh"
-
-
-
-
+// G4 manager
+#include "G4SDManager.hh"
 
 #include "MuDetectorConstruction.hh"
-
+#include "MuAnalysis.hh"
 #include "geometry/_GeoBuilder.hh"
 #include "geometry/TestStand_UofT.hh"
-
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 const std::string MuDetectorConstruction::MessengerDirectory = "/det/";
@@ -66,16 +63,25 @@ const std::string MuDetectorConstruction::MessengerDirectory = "/det/";
 MuDetectorConstruction::MuDetectorConstruction(const std::string &detector_name,
                                                const std::string &export_dir)
     : G4VUserDetectorConstruction(),
+      G4UImessenger(MuDetectorConstruction::MessengerDirectory, "detector construction"),
       fCheckOverlaps(true)
 {
   // Make a map of all available detectors
   _det_map_["uoft1"] = new MuGeoBuilder::Uoft1_Builder();
+  _det_name_ = detector_name;
+  _det_ = _det_map_[_det_name_];
 
-  // Add messenger commands 
-  fMessenger  = new G4GenericMessenger(this, MuDetectorConstruction::MessengerDirectory, "Detector constructor"),
-  fMessenger->DeclareProperty("select", mes_det_selected, "Select Detector to use.");
-  mes_det_selected = detector_name; // Default value
+  // Add messenger commands
+  // fMessenger  = new G4GenericMessenger(this, MuDetectorConstruction::MessengerDirectory, "Detector constructor"),
+  // fMessenger->DeclareProperty("select", msg_det_selected, "Select Detector to use.");
 
+  // Make messenger commands
+  _ui_select = CreateCommand<G4UIcmdWithAString>("select", "Select Detector to use.");
+  _ui_select->SetParameterName("select", false, false);
+  _ui_select->SetDefaultValue("uoft1");
+  _ui_select->AvailableForStates(G4State_PreInit, G4State_Idle);
+
+  // Set the detector to the default one
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -88,17 +94,32 @@ MuDetectorConstruction::~MuDetectorConstruction()
 
 G4VPhysicalVolume *MuDetectorConstruction::Construct()
 {
-  G4cout<<"Construct start -------"<<mes_det_selected<< G4endl;
-  _det_map_[mes_det_selected]->Construct();
-  return _det_map_[mes_det_selected]->worldPV;
-
+  G4cout << "** Constructing detector" << _det_name_ << G4endl;
+  _det_->Construct();
+  return _det_->worldPV;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 void MuDetectorConstruction::ConstructSDandField()
 {
+  if (_det_name_ == "uoft1")
+  {
+    auto sensitive_detector = new Analysis::DefaultDetector();
+    _det_->ConstructSD(sensitive_detector);
+    G4SDManager::GetSDMpointer()->AddNewDetector(sensitive_detector);
+  }
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
+void MuDetectorConstruction::SetNewValue(G4UIcommand *command,
+                                         G4String value)
+{
+  if (command == _ui_select)
+  {
+    _det_name_ = value;
+    _det_ = _det_map_[_det_name_];
+    G4cout << "** Selecting detector " << _det_name_ << G4endl;
+  }
+}

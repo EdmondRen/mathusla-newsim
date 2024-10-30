@@ -37,6 +37,11 @@
 #else
 #include "G4AnalysisManager.hh "
 #endif
+#include "G4VSensitiveDetector.hh"
+#include "G4Allocator.hh"
+#include "G4THitsCollection.hh"
+
+#include "util.hh"
 // #include "g4csv.hh"
 // #include "g4xml.hh"
 
@@ -44,53 +49,82 @@
 // using G4AnalysisManager = G4GenericAnalysisManager;
 
 namespace Analysis
-{   
-    // Define type of the key <single or vector>
-    // Tuple can hold singles of I (int), F(float), D(double) or S(string)    
-    // or vectors of  I (int), F(float), D(double)
-    enum KEYTYPE
-    {
-        SINGLE,
-        VECTOR,
-    };
+{
+    // Geant4 generated tuple ID
+    extern int tuple_id;
 
-    // Tuple can hold data types of I (int), F(float), D(double) or S(string)    
-    enum DTYPE
-    {
-        TUPLE_INT,
-        TUPLE_FLOAT,
-        TUPLE_DOUBLE,
-        TUPLE_STRING,
-    };
-
-
-    // Hold the information of one column
-    typedef struct KEY_DATA_COLUMN_struct
-    {
-        int key_index;
-        std::string key_name;
-        enum KEYTYPE key_type;
-        enum KEYTYPE data_type;
-        union {
-            G4int data_int;
-            G4float data_float;
-            G4double data_doube;
-            G4String *data_string;
-            std::vector<G4int> *vec_int;
-            std::vector<G4float> *vec_float;
-            std::vector<G4double> *vec_doube;
-        };
-    } KEY_DATA_COLUMN_t;
-
-    // Hold the information of everything
-    typedef std::vector<KEY_DATA_COLUMN_t> KEY_DATA_t;
-
-
+    // Helper function for all analysis
     void Setup();
     bool Open(const std::string &path);
     bool Save();
-    bool CreateNTuple(KEY_DATA_t &data, const std::string &name);
-    bool FillNTuple(KEY_DATA_t &data);
+    bool CreateNTuple(util::py::Dict &data, const std::string &name);
+    bool FillNTuple(util::py::Dict &data);
+
+    // // Analysis template class
+    // class AnalysisTemplate
+    // {
+    // public:
+    //     // virtual ~AnalysisTemplate();
+
+    //     // Data dictionary
+    //     util::py::Dict fdata;
+
+    //     // Sensitive detector
+    //     G4VSensitiveDetector *fDetector;
+    // };
+
+    // // Default analysis class
+    // class DefaultAnalysis : public AnalysisTemplate
+    // {
+    // public:
+    //     DefaultAnalysis();
+    // };
+
+    // Default hits/steps
+    class uHit : public G4VHit
+    {
+    public:
+        uHit();
+        uHit(G4Step *step);
+        // overload the allocator to use Geant4 version
+        inline void *operator new(size_t);
+        inline void operator delete(void *hit);
+
+        const G4ParticleDefinition *_particle;
+        int _trackID;
+        int _trackPDG;
+        int _parentID;
+        int _parentPDG;
+        double _edeposit;
+        G4LorentzVector _position;
+        G4LorentzVector _momentum;
+    };
+    extern G4Allocator<uHit> *HitAllocator;
+    inline void *uHit::operator new(size_t)
+    {
+        return (void *)HitAllocator->MallocSingle();
+    }
+    inline void uHit::operator delete(void *hit)
+    {
+        HitAllocator->FreeSingle((uHit *)hit);
+    }
+
+    // Default hits collection
+    typedef G4THitsCollection<uHit> HitsCollection;
+
+    // Default detector
+    class DefaultDetector : public G4VSensitiveDetector
+    {
+    public:
+        DefaultDetector();
+        void Initialize(G4HCofThisEvent *event) override;
+        G4bool ProcessHits(G4Step *step, G4TouchableHistory *) override;
+        void EndOfEvent(G4HCofThisEvent *) override;
+
+    private:
+        HitsCollection *fHitsCollection;
+        util::py::Dict *fdata;
+    };
 
 }
 

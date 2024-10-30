@@ -34,41 +34,36 @@
 #include "MuSteppingAction.hh"
 #include "MuDetectorConstruction.hh"
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+#include "util.hh"
 
-// MuActionInitialization::MuActionInitialization
-//                             (MuDetectorConstruction* detConstruction, cxxopts::ParseResult & args)
-//  : G4VUserActionInitialization(),
-//  fDetConstruction(detConstruction),
-//    args(args)
-// {}
 
-MuActionInitialization::MuActionInitialization
-                            (MuDetectorConstruction* detConstruction)
- : G4VUserActionInitialization(),fDetConstruction(detConstruction)
-{}
+MuActionInitialization::MuActionInitialization(MuDetectorConstruction *detConstruction, cxxopts::ParseResult &uargs)
+    : G4VUserActionInitialization(),
+      fDetConstruction(detConstruction),
+      args(uargs)
+{
+  // Make new directory for output
+  util::io::create_directory(args["output"].as<G4String>());
+}
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 MuActionInitialization::~MuActionInitialization()
-{}
+{
+}
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 void MuActionInitialization::BuildForMaster() const
 {
   SetUserAction(new MuRunAction);
 }
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 void MuActionInitialization::Build() const
 {
-  SetUserAction(new MuPrimaryGeneratorAction);
+  SetUserAction(new MuPrimaryGeneratorAction(args["generator"].as<G4String>()));
   SetUserAction(new MuRunAction);
   auto eventAction = new MuEventAction;
   SetUserAction(eventAction);
-  SetUserAction(new MuSteppingAction(fDetConstruction,eventAction));
-}  
+  SetUserAction(new MuSteppingAction(fDetConstruction, eventAction));
+}
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

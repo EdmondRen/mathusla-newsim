@@ -30,7 +30,7 @@
 class MuPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction, public G4UImessenger
 {
 public:
-  MuPrimaryGeneratorAction();    
+  MuPrimaryGeneratorAction(std::string _gen_default_);    
   virtual ~MuPrimaryGeneratorAction();
 
   // Core function to override

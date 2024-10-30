@@ -16,6 +16,8 @@
 #include "util.hh"
 #include "libs/cxxopts.hpp"
 
+#include <sys/stat.h>
+
 // Global variables
 std::string util::globals::PROJECT_SOURCE_DIR = "";
 
@@ -36,7 +38,7 @@ int main(int argc, char **argv)
       ("m,macro", "Macro name, followed by possible parameters for macro seperated by commas. For example, -m=run1.mac,Ek,10,theta,20", cxxopts::value<std::vector<std::string>>())
       ("g,generator", "Generator, one of <gun/range/parma/cry/filereader>", cxxopts::value<G4String>()->default_value("gun"))
       ("d,detector", "Detector, one of <math40/uoft1>", cxxopts::value<G4String>()->default_value("uoft1"))
-      ("e,export", "Export directory for geometry and other information", cxxopts::value<G4String>()->default_value("./export/"))
+      ("e,export", "Export directory for geometry and other information", cxxopts::value<G4String>()->default_value("export"))
       ("o,output", "Output directory", cxxopts::value<G4String>()->default_value("data"))
       ("r,run", "Run number", cxxopts::value<G4int>()->default_value("0"))
       ("s,session", "Session name", cxxopts::value<G4String>()->default_value("MathuslaSim"))
@@ -59,6 +61,7 @@ int main(int argc, char **argv)
     G4Random::setTheSeed(time(nullptr));
   else
     G4Random::setTheSeed(run_number);
+
 
   // Detect interactive mode (if no macro provided) and define UI session
   //
@@ -89,7 +92,7 @@ int main(int argc, char **argv)
   auto physicsList = new FTFP_BERT;
   runManager->SetUserInitialization(physicsList);
 
-  auto actionInitialization = new MuActionInitialization(detConstruction);
+  auto actionInitialization = new MuActionInitialization(detConstruction, args);
   runManager->SetUserInitialization(actionInitialization);
 
   // Initialize visualization

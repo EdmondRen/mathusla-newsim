@@ -21,6 +21,12 @@
 #include <memory>
 #include <stdexcept>
 
+#include <cstdio>
+#include <sys/stat.h>
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 namespace util
 {
 
@@ -83,6 +89,38 @@ namespace util
             }
 
             return setupString;
+        }
+
+        //__Create Directory___
+        int create_directory(const std::string &newDirPath)
+        {
+#if defined(_WIN32)
+            return _mkdir(dir.c_str());
+#else
+            // Get current directory. If it is relative, use the  directory of the executable
+            auto testDir = newDirPath[0]=='/'? newDirPath  : path::getExecutablePath().string();
+            // So that we can make new directory with same permissions
+            auto path_current = std::filesystem::path(testDir);
+            auto path_parent = path_current.parent_path().string();
+            // Get the parent's status
+            struct stat parentStat;
+            if (stat(path_parent.c_str(), &parentStat) != 0)
+            {   
+                std::cout << "Error getting parent directory status: " << strerror(errno) << std::endl;
+                return false;
+            }
+            // Extract the parent's permissions
+            mode_t parentPermissions = parentStat.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO); // Read, write, execute for user, group, others
+
+            // Finally, create the new directory with the same permissions as the parent
+            if (mkdir(newDirPath.c_str(), parentPermissions) != 0)
+            {
+                std::cout << "Error creating directory: " << strerror(errno) << std::endl;
+                return false;
+            }
+            return true;
+
+#endif
         }
 
     } // namespace io

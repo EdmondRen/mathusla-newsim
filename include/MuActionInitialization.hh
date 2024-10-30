@@ -42,8 +42,8 @@ class MuDetectorConstruction;
 class MuActionInitialization : public G4VUserActionInitialization
 {
   public:
-    MuActionInitialization(MuDetectorConstruction*);
-    // MuActionInitialization(MuDetectorConstruction*, cxxopts::ParseResult & args);
+    // MuActionInitialization(MuDetectorConstruction*);
+    MuActionInitialization(MuDetectorConstruction*, cxxopts::ParseResult & args);
     virtual ~MuActionInitialization();
 
     virtual void BuildForMaster() const;
@@ -51,7 +51,7 @@ class MuActionInitialization : public G4VUserActionInitialization
 
   private:
     MuDetectorConstruction* fDetConstruction;
-    // cxxopts::ParseResult & args;
+    cxxopts::ParseResult & args;
 };
 
 #endif

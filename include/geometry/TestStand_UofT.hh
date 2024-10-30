@@ -31,6 +31,7 @@ namespace MuGeoBuilder
 
     // Core function 2:
     // Set the sensitive detector for this geometry
+    void ConstructSD(G4VSensitiveDetector *detector) override;
 
     // Helper functions:
     // void DefineMaterials();

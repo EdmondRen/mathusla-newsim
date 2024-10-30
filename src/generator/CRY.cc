@@ -98,7 +98,7 @@ namespace MuGenerators
         fCRY_additional_setup["offset_z"] = 4 * m;
         fCRY_additional_setup["offset_t_low"] = -1000 * ns;
         fCRY_additional_setup["offset_t_high"] = 1000 * ns;
-        fCRY_additional_setup["ekin_cut_low"] = 100 * GeV;
+        fCRY_additional_setup["ekin_cut_low"] = 0.1 * GeV;
         fCRY_additional_setup["ekin_cut_high"] = 100 * TeV;
 
         // Make messenger commands

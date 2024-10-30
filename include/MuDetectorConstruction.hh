@@ -65,7 +65,7 @@ class G4GlobalMagFieldMessenger;
 /// In addition a transverse uniform magnetic field is defined 
 /// via G4GlobalMagFieldMessenger class.
 
-class MuDetectorConstruction : public G4VUserDetectorConstruction 
+class MuDetectorConstruction : public G4VUserDetectorConstruction, public G4UImessenger
 {
   public:
     MuDetectorConstruction(const std::string& detector_name,
@@ -73,9 +73,6 @@ class MuDetectorConstruction : public G4VUserDetectorConstruction
     virtual ~MuDetectorConstruction();
 
   public:
-    // Messenger
-    G4GenericMessenger *fMessenger;
-
     // Core function to override
     G4VPhysicalVolume* Construct() override;
     void ConstructSDandField() override;
@@ -90,13 +87,18 @@ class MuDetectorConstruction : public G4VUserDetectorConstruction
     // methods
   
     // data members
-    // The detector in use, _det_, and a list of detectors
+    // The detector in use, _det_, with name _det_name_
+    // and a list of detectors
     MuGeoBuilder::Builder*  _det_; 
+    std::string _det_name_;
     std::unordered_map<std::string, MuGeoBuilder::Builder*> _det_map_;    
     G4bool  fCheckOverlaps; // option to activate checking of volumes overlaps
 
     // Store messenger related variables
-    G4String mes_det_selected;
+    void SetNewValue(G4UIcommand *command,
+                                G4String value) override;    
+    // Messenger commands
+    G4UIcmdWithAString *_ui_select;
 };
 
 // inline functions
@@ -105,4 +107,3 @@ class MuDetectorConstruction : public G4VUserDetectorConstruction
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 #endif
-

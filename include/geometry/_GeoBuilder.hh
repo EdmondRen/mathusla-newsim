@@ -9,6 +9,7 @@
 #include <G4VisAttributes.hh>
 
 
+
 namespace MuGeoBuilder
 {
 
@@ -27,6 +28,8 @@ namespace MuGeoBuilder
 
         // Core function 2:
         // Set the sensitive detector for this geometry
+        virtual void ConstructSD(G4VSensitiveDetector *detector);
+        G4VSensitiveDetector *fdetector;
 
         // Messenger related
         G4GenericMessenger *fMessenger;

@@ -115,6 +115,18 @@ namespace MuGeoBuilder
     return this->worldPV;
   }
 
+  void Uoft1_Builder::ConstructSD(G4VSensitiveDetector *detector) 
+  { 
+    // Keep a copy of the pointer
+    this->fdetector = detector;
+
+    // Assign each physical volume the sensitive detector
+    for (auto& bar : allSensitiveDetectors)
+    {
+      bar->GetLogicalVolume()->SetSensitiveDetector(detector);
+    }
+  }
+
   G4LogicalVolume *Uoft1_Builder::ConstructLayer(G4LogicalVolume *layerLV)
   {
     auto bar = new G4Box("bar", uoftdims::bar_lenx / 2, uoftdims::bar_leny / 2, uoftdims::bar_lenz / 2);

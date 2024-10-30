@@ -45,7 +45,7 @@ namespace MuGenerators
         // Core function 2: GeneratePrimaryVertex()
         // This is used to set generator parameters
         virtual void SetNewValue(G4UIcommand *command,
-                                 G4String value);
+                                 G4String value) override;
 
         // Other helper functions
         virtual std::ostream &Print(std::ostream &os = std::cout) const;
