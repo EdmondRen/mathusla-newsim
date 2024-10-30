@@ -189,6 +189,11 @@ namespace Analysis
         // clang-format on
     }
 
+    util::py::Dict* DefaultDetector::GetDataDict()
+    {
+        return fdata;
+    }
+
     void DefaultDetector::Initialize(G4HCofThisEvent *event)
     {
         // Define a hits collection name
@@ -207,31 +212,38 @@ namespace Analysis
 
     void DefaultDetector::EndOfEvent(G4HCofThisEvent *)
     {
-        // // Get the event index
-        // const auto event_id = G4RunManager::GetRunManager()->GetCurrentEvent()->GetEventID();
-        // // Process hit collection
-        // auto &data = *fdata;
-        // data.clear();
-        // for (std::size_t i = 0; i < fHitsCollection->GetSize(); ++i)
-        // {
-        //     const auto hit = dynamic_cast<uHit *>(fHitsCollection->GetHit(i));
-        //     data["Hit_x"].push_back(hit->_position.x());
-        //     data["Hit_y"].push_back(hit->_position.y());
-        //     data["Hit_z"].push_back(hit->_position.z());
-        //     data["Hit_t"].push_back(hit->_position.t());
-        //     data["Hit_edep"].push_back(hit->_edeposit);
-        //     data["Hit_px"].push_back(hit->_momentum.px());
-        //     data["Hit_py"].push_back(hit->_momentum.py());
-        //     data["Hit_pz"].push_back(hit->_momentum.pz());
-        //     data["Hit_trackID"].push_back(hit->_trackID);            
-        //     data["Hit_trackIDparent"].push_back(hit->_parentID);            
-        //     data["Hit_pdgID"].push_back(hit->_trackPDG);            
-        //     data["Hit_pdgIDparent"].push_back(hit->_parentPDG);            
-        //     data["Hit_processID"].push_back(0); //Fix this later                
-        // }
+        // Get pointer to data dict
+        auto &data = *fdata;
+        data.clear();
 
-        // // Fill them into the tuple
-        // FillNTuple(data);
+        // Get the event index
+        const auto event_id = G4RunManager::GetRunManager()->GetCurrentEvent()->GetEventID();
+
+        // Set single values
+        data["Entry_generated"] = event_id;
+
+        // Process hit collection
+
+        for (std::size_t i = 0; i < fHitsCollection->GetSize(); ++i)
+        {
+            const auto hit = dynamic_cast<uHit *>(fHitsCollection->GetHit(i));
+            data["Hit_x"].push_back(hit->_position.x());
+            data["Hit_y"].push_back(hit->_position.y());
+            data["Hit_z"].push_back(hit->_position.z());
+            data["Hit_t"].push_back(hit->_position.t());
+            data["Hit_edep"].push_back(hit->_edeposit);
+            data["Hit_px"].push_back(hit->_momentum.px());
+            data["Hit_py"].push_back(hit->_momentum.py());
+            data["Hit_pz"].push_back(hit->_momentum.pz());
+            data["Hit_trackID"].push_back(hit->_trackID);            
+            data["Hit_trackIDparent"].push_back(hit->_parentID);            
+            data["Hit_pdgID"].push_back(hit->_trackPDG);            
+            data["Hit_pdgIDparent"].push_back(hit->_parentPDG);            
+            data["Hit_processID"].push_back(0); //Fix this later                
+        }
+
+        // Fill them into the tuple
+        FillNTuple(data);
     }
 
 } // namespace Analysis

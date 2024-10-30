@@ -224,6 +224,7 @@ namespace util
                 while (it != this->data.end())
                 {
                     it->second->clear();
+                    it++;
                 }
             }
 

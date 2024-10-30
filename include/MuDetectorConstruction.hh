@@ -47,6 +47,7 @@
 #include "G4GenericMessenger.hh"
 
 #include "geometry/_GeoBuilder.hh"
+#include "util.hh"
 
 class G4VPhysicalVolume;
 class G4GlobalMagFieldMessenger;
@@ -80,6 +81,7 @@ class MuDetectorConstruction : public G4VUserDetectorConstruction, public G4UIme
     // Handel messenger commands
 
     // get methods
+    static util::py::Dict* GetSDdata();
      
     static const std::string MessengerDirectory;
 

@@ -117,7 +117,7 @@ namespace MuGenerators
         _ui_ekin_low = CreateCommand<G4UIcmdWithADoubleAndUnit>("ekin_low", "Set time kinetic energy cut lower bound with unit.");
         _ui_ekin_low->SetParameterName("ekin_low", false, false);
         _ui_ekin_low->AvailableForStates(G4State_PreInit, G4State_Idle);
-        _ui_ekin_high = CreateCommand<G4UIcmdWithADoubleAndUnit>("ekin__high", "Set time kinetic energy cut upper bound with unit.");
+        _ui_ekin_high = CreateCommand<G4UIcmdWithADoubleAndUnit>("ekin_high", "Set time kinetic energy cut upper bound with unit.");
         _ui_ekin_high->SetParameterName("ekin_high", false, false);
         _ui_ekin_high->AvailableForStates(G4State_PreInit, G4State_Idle);                                  
     }

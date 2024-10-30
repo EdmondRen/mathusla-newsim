@@ -60,6 +60,8 @@ const std::string MuDetectorConstruction::MessengerDirectory = "/det/";
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
+util::py::Dict *sensitiveDetectorData;
+
 MuDetectorConstruction::MuDetectorConstruction(const std::string &detector_name,
                                                const std::string &export_dir)
     : G4VUserDetectorConstruction(),
@@ -107,8 +109,14 @@ void MuDetectorConstruction::ConstructSDandField()
   {
     auto sensitive_detector = new Analysis::DefaultDetector();
     _det_->ConstructSD(sensitive_detector);
+    sensitiveDetectorData = sensitive_detector->GetDataDict();
     G4SDManager::GetSDMpointer()->AddNewDetector(sensitive_detector);
   }
+}
+
+util::py::Dict *MuDetectorConstruction::GetSDdata()
+{
+  return sensitiveDetectorData;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

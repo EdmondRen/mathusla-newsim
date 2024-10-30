@@ -27,13 +27,16 @@
 /// \file MuRunAction.cc
 /// \brief Implementation of the MuRunAction class
 
-#include "MuRunAction.hh"
-#include "MuAnalysis.hh"
 
 #include "G4Run.hh"
 #include "G4RunManager.hh"
 #include "G4UnitsTable.hh"
 #include "G4SystemOfUnits.hh"
+
+
+#include "MuRunAction.hh"
+#include "MuAnalysis.hh"
+#include "MuDetectorConstruction.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -71,12 +74,16 @@ void MuRunAction::BeginOfRunAction(const G4Run * /*run*/)
   auto analysisManager = G4AnalysisManager::Instance();
 
   // Open an output file
-  G4String fileName = "Mu";
+  G4String fileName = "run";
   // Analysis::Open(fileName);
   G4String fileName_full = output_dir + "/" + fileName + "_" + run_number + ".root";
   analysisManager->OpenFile(fileName_full);
 
   // Creat tuple based on the sensitive detector of a geometry
+  // auto detectorConstruction = G4RunManager::GetRunManager()->GetUserDetectorConstruction();  
+  // auto thisDetectorConstruction = dynamic_cast<const MuDetectorConstruction*>(detectorConstruction);
+  auto & sensitiveDetectorData = *MuDetectorConstruction::GetSDdata();
+  Analysis::CreateNTuple(sensitiveDetectorData, "run");
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

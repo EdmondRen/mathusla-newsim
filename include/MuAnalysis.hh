@@ -121,6 +121,8 @@ namespace Analysis
         G4bool ProcessHits(G4Step *step, G4TouchableHistory *) override;
         void EndOfEvent(G4HCofThisEvent *) override;
 
+        util::py::Dict* GetDataDict();
+
     private:
         HitsCollection *fHitsCollection;
         util::py::Dict *fdata;
