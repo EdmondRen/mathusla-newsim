@@ -37,42 +37,56 @@
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-MuRunAction::MuRunAction()
- : G4UserRunAction()
-{ 
+MuRunAction::MuRunAction(std::string OutDir, std::string RunNumber)
+    : G4UserRunAction(), output_dir(OutDir), run_number(RunNumber)
+{
   // set printing event number per each event
   G4RunManager::GetRunManager()->SetPrintProgress(1);
+
+  // Create analysis manager
+  // The choice of analysis technology is done via selectin of a namespace
+  // in MuAnalysis.hh
+  auto analysisManager = G4AnalysisManager::Instance();
+  G4cout << "Using " << analysisManager->GetType() << G4endl;
+
+  analysisManager->SetNtupleMerging(true);
+  analysisManager->SetVerboseLevel(0);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 MuRunAction::~MuRunAction()
 {
-  delete G4AnalysisManager::Instance();  
+  delete G4AnalysisManager::Instance();
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void MuRunAction::BeginOfRunAction(const G4Run* /*run*/)
-{ 
-  //inform the runManager to save random number seed
-  //G4RunManager::GetRunManager()->SetRandomNumberStore(true);
-  
+void MuRunAction::BeginOfRunAction(const G4Run * /*run*/)
+{
+  // inform the runManager to save random number seed
+  // G4RunManager::GetRunManager()->SetRandomNumberStore(true);
+
   // Get analysis manager
   auto analysisManager = G4AnalysisManager::Instance();
 
   // Open an output file
   G4String fileName = "Mu";
-  analysisManager->OpenFile(fileName);
+  // Analysis::Open(fileName);
+  G4String fileName_full = output_dir + "/" + fileName + "_" + run_number + ".root";
+  analysisManager->OpenFile(fileName_full);
 
   // Creat tuple based on the sensitive detector of a geometry
-  
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void MuRunAction::EndOfRunAction(const G4Run* /*run*/)
+void MuRunAction::EndOfRunAction(const G4Run * /*run*/)
 {
+  auto analysisManager = G4AnalysisManager::Instance();
+
+  analysisManager->Write();
+  analysisManager->CloseFile();
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

@@ -1,6 +1,12 @@
+#include <filesystem>
+#include <cstdio>
+#include <iostream>
+
 
 #include "MuAnalysis.hh"
 #include "G4RunManager.hh"
+
+#include "util.hh"
 
 namespace Analysis
 {
@@ -16,16 +22,19 @@ namespace Analysis
         // #else
         //         G4AnalysisManager::Instance()->Clear();
         // #endif
-        auto MuAnalysisManager = G4AnalysisManager::Instance();
 
-        MuAnalysisManager->SetNtupleMerging(false);
-        MuAnalysisManager->SetVerboseLevel(0);
     }
 
     // Open Output File
     bool Open(const std::string &path)
-    {
-        return G4AnalysisManager::Instance()->OpenFile(path);
+    {   
+        auto path_full = path+".root";
+        // util::py::print("File to create", path_full);
+        // if (std::filesystem::exists(path_full)){
+        //     std::remove(path_full.c_str());
+        //     util::py::print("File alreay exists, removed.", path_full);
+        // }
+        return G4AnalysisManager::Instance()->OpenFile(path_full);
     }
 
     // Save Output
@@ -124,7 +133,7 @@ namespace Analysis
     }
 
     // Geant4 hit allocator
-    G4Allocator<uHit> *HitAllocator;
+    G4Allocator<uHit> *HitAllocator = new G4Allocator<uHit>;
 
     //  ---------------------------------------------------------------------------
     // Default hit class
@@ -198,31 +207,31 @@ namespace Analysis
 
     void DefaultDetector::EndOfEvent(G4HCofThisEvent *)
     {
-        // Get the event index
-        const auto event_id = G4RunManager::GetRunManager()->GetCurrentEvent()->GetEventID();
-        // Process hit collection
-        auto &data = *fdata;
-        data.clear();
-        for (std::size_t i = 0; i < fHitsCollection->GetSize(); ++i)
-        {
-            const auto hit = dynamic_cast<uHit *>(fHitsCollection->GetHit(i));
-            data["Hit_x"].push_back(hit->_position.x());
-            data["Hit_y"].push_back(hit->_position.y());
-            data["Hit_z"].push_back(hit->_position.z());
-            data["Hit_t"].push_back(hit->_position.t());
-            data["Hit_edep"].push_back(hit->_edeposit);
-            data["Hit_px"].push_back(hit->_momentum.px());
-            data["Hit_py"].push_back(hit->_momentum.py());
-            data["Hit_pz"].push_back(hit->_momentum.pz());
-            data["Hit_trackID"].push_back(hit->_trackID);            
-            data["Hit_trackIDparent"].push_back(hit->_parentID);            
-            data["Hit_pdgID"].push_back(hit->_trackPDG);            
-            data["Hit_pdgIDparent"].push_back(hit->_parentPDG);            
-            data["Hit_processID"].push_back(0); //Fix this later                
-        }
+        // // Get the event index
+        // const auto event_id = G4RunManager::GetRunManager()->GetCurrentEvent()->GetEventID();
+        // // Process hit collection
+        // auto &data = *fdata;
+        // data.clear();
+        // for (std::size_t i = 0; i < fHitsCollection->GetSize(); ++i)
+        // {
+        //     const auto hit = dynamic_cast<uHit *>(fHitsCollection->GetHit(i));
+        //     data["Hit_x"].push_back(hit->_position.x());
+        //     data["Hit_y"].push_back(hit->_position.y());
+        //     data["Hit_z"].push_back(hit->_position.z());
+        //     data["Hit_t"].push_back(hit->_position.t());
+        //     data["Hit_edep"].push_back(hit->_edeposit);
+        //     data["Hit_px"].push_back(hit->_momentum.px());
+        //     data["Hit_py"].push_back(hit->_momentum.py());
+        //     data["Hit_pz"].push_back(hit->_momentum.pz());
+        //     data["Hit_trackID"].push_back(hit->_trackID);            
+        //     data["Hit_trackIDparent"].push_back(hit->_parentID);            
+        //     data["Hit_pdgID"].push_back(hit->_trackPDG);            
+        //     data["Hit_pdgIDparent"].push_back(hit->_parentPDG);            
+        //     data["Hit_processID"].push_back(0); //Fix this later                
+        // }
 
-        // Fill them into the tuple
-        FillNTuple(data);
+        // // Fill them into the tuple
+        // FillNTuple(data);
     }
 
 } // namespace Analysis

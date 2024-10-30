@@ -54,14 +54,15 @@ MuActionInitialization::~MuActionInitialization()
 
 void MuActionInitialization::BuildForMaster() const
 {
-  SetUserAction(new MuRunAction);
+  SetUserAction(new MuRunAction(args["output"].as<G4String>(), std::to_string(args["run"].as<G4int>())));
 }
 
 
 void MuActionInitialization::Build() const
 {
   SetUserAction(new MuPrimaryGeneratorAction(args["generator"].as<G4String>()));
-  SetUserAction(new MuRunAction);
+  SetUserAction(new MuRunAction(args["output"].as<G4String>(),
+                                  std::to_string(args["run"].as<G4int>())));
   auto eventAction = new MuEventAction;
   SetUserAction(eventAction);
   SetUserAction(new MuSteppingAction(fDetConstruction, eventAction));

@@ -75,8 +75,8 @@ int main(int argc, char **argv)
 
   // Construct the default run manager
   //
-  auto *runManager =
-      G4RunManagerFactory::CreateRunManager(G4RunManagerType::Default);
+  auto *runManager = G4RunManagerFactory::CreateRunManager(G4RunManagerType::Default);
+  // auto *runManager = new G4RunManager();
 #ifdef G4MULTITHREADED
   if (args["threads"].as<G4int>() > 0)
   {

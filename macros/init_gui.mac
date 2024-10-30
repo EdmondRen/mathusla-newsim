@@ -41,4 +41,5 @@
 #
 # To limit the output flow in the "dump" widget :
 /run/printProgress 100
+/run/numberOfThreads 1
 #
