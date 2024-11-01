@@ -7,10 +7,14 @@
 #/run/numberOfThreads 4
 #
 # Initialize kernel
+/vis/disable
 /run/initialize
+/run/printProgress 100
+
+## Setup CRY generator
+/gen/select cry
+/gen/cry/pathname ../macros/generators/cry_proton.file
+/gen/cry/ekin_low 2.67 GeV
 
 /tracking/verbose 0
-/run/beamOn 10
-
-/gen/select cry
-/run/beamOn 2
+/run/beamOn 1000

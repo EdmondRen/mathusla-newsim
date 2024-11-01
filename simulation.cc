@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 
   // Initialize visualization
   //
-  auto visManager = new G4VisExecutive;
+  auto visManager = new G4VisExecutive("Quiet");
   // G4VisExecutive can take a verbosity argument - see /vis/verbose guidance.
   // G4VisManager* visManager = new G4VisExecutive("Quiet");
   visManager->Initialize();

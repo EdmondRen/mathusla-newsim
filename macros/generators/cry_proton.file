@@ -1,0 +1,17 @@
+returnMuons 0
+ returnNeutrons 0
+ returnProtons 1
+ returnGammas 0
+ returnPions 0
+ returnKaons 0
+ returnElectrons 0
+ nParticlesMax 100
+ date 2-22-2024
+ latitude 46
+ altitude 0
+ subboxLength 10
+
+
+
+
+

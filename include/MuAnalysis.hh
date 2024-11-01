@@ -60,25 +60,6 @@ namespace Analysis
     bool CreateNTuple(util::py::Dict &data, const std::string &name);
     bool FillNTuple(util::py::Dict &data);
 
-    // // Analysis template class
-    // class AnalysisTemplate
-    // {
-    // public:
-    //     // virtual ~AnalysisTemplate();
-
-    //     // Data dictionary
-    //     util::py::Dict fdata;
-
-    //     // Sensitive detector
-    //     G4VSensitiveDetector *fDetector;
-    // };
-
-    // // Default analysis class
-    // class DefaultAnalysis : public AnalysisTemplate
-    // {
-    // public:
-    //     DefaultAnalysis();
-    // };
 
     // Default hits/steps
     class uHit : public G4VHit
@@ -109,7 +90,7 @@ namespace Analysis
         HitAllocator->FreeSingle((uHit *)hit);
     }
 
-    // Default hits collection
+    // Default hits collection type
     typedef G4THitsCollection<uHit> HitsCollection;
 
     // Default detector
@@ -117,10 +98,17 @@ namespace Analysis
     {
     public:
         DefaultDetector();
+
+        // override virtual functions
+
         void Initialize(G4HCofThisEvent *event) override;
         G4bool ProcessHits(G4Step *step, G4TouchableHistory *) override;
         void EndOfEvent(G4HCofThisEvent *) override;
 
+
+        /// @brief  Get the data dictionary of this detector
+        /// Used during run action to initialize the ROOT tuple
+        /// @return 
         util::py::Dict* GetDataDict();
 
     private:

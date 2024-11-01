@@ -200,7 +200,7 @@ namespace MuGenerators
             // CRY initialization
             auto cry_setupString = util::io::readFileToString_CRY(value);
             G4cout << "\nCRY setup string: \n" <<cry_setupString << "\n";
-            CRYSetup *cry_setup = new CRYSetup(cry_setupString, "cry_v1.7/data");
+            CRYSetup *cry_setup = new CRYSetup(cry_setupString, PROJECT_SOURCE_DIR + "/cry_v1.7/data");
             // Set random number generator to use GEANT4 engine
             RNGWrapper<CLHEP::HepRandomEngine>::set(CLHEP::HepRandom::getTheEngine(), &CLHEP::HepRandomEngine::flat);
             cry_setup->setRandomFunction(RNGWrapper<CLHEP::HepRandomEngine>::rng);
