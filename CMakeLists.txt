@@ -49,9 +49,14 @@ file(GLOB_RECURSE  headers ${PROJECT_SOURCE_DIR}/include/*.hh
 
 #----------------------------------------------------------------------------
 # Add the executable, and link it to the Geant4 libraries
-#
+## Main simulation executable
 add_executable(simulation simulation.cc ${sources} ${headers})
 target_link_libraries(simulation ${Geant4_LIBRARIES} ${CRY_LIBRARIES})
+
+## Standalone CRY cosmic generator
+add_executable(cry_ascii cry.cc ${headers})
+target_link_libraries(cry_ascii ${CRY_LIBRARIES})
+
 
 #----------------------------------------------------------------------------
 # Copy all scripts to the build directory, i.e. the directory in which we
