@@ -54,7 +54,7 @@ add_executable(simulation simulation.cc ${sources} ${headers})
 target_link_libraries(simulation ${Geant4_LIBRARIES} ${CRY_LIBRARIES})
 
 ## Standalone CRY cosmic generator
-add_executable(cry_ascii cry.cc ${headers})
+add_executable(cry_ascii cry.cc src/util.cc ${headers})
 target_link_libraries(cry_ascii ${CRY_LIBRARIES})
 
 

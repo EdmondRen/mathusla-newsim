@@ -131,6 +131,7 @@ namespace MuGenerators
         bool pass_cuts = false;
 
         int countAttempt = 0;
+        double tmin = 1e100;
         do
         {
             cry_generated->clear();
@@ -140,7 +141,11 @@ namespace MuGenerators
             {
 
                 particleName = CRYUtils::partName((*cry_generated)[j]->id());
-                G4ParticleDefinition *particleDefinition = fparticleTable->FindParticle((*cry_generated)[j]->PDGid());
+                // G4ParticleDefinition *particleDefinition = fparticleTable->FindParticle((*cry_generated)[j]->PDGid());
+
+                // Find the time of the first particle
+                if ((*cry_generated)[j]->t()<tmin)
+                    tmin = (*cry_generated)[j]->t();
 
                 double kinEnergy = (*cry_generated)[j]->ke() * MeV;
                 if (kinEnergy >= fCRY_additional_setup["ekin_cut_low"] && kinEnergy <= fCRY_additional_setup["ekin_cut_high"] )
@@ -167,17 +172,17 @@ namespace MuGenerators
 
             G4double fParticleEkin = (*cry_generated)[j]->ke() * MeV;
             G4double fParticleMass = particleDefinition->GetPDGMass() * MeV;
-            G4double fParticleMomentum = sqrt(fParticleEkin * fParticleEkin + 2 * fParticleEkin * fParticleMass);
             G4double fParticlePosX = (*cry_generated)[j]->x() * m;
             G4double fParticlePosY = (*cry_generated)[j]->y() * m;
             G4double fParticlePosZ = (*cry_generated)[j]->z() * m;
             G4double fParticleMomentumDirectionU = (*cry_generated)[j]->u();
             G4double fParticleMomentumDirectionV = (*cry_generated)[j]->v();
             G4double fParticleMomentumDirectionW = (*cry_generated)[j]->w();
-            G4double fParticleMomentumX = fParticleMomentum * fParticleMomentumDirectionU;
-            G4double fParticleMomentumY = fParticleMomentum * fParticleMomentumDirectionV;
-            G4double fParticleMomentumZ = fParticleMomentum * fParticleMomentumDirectionW;
-            G4double fParticleTime = t0; //(*cry_generated)[j]->t();
+            // G4double fParticleMomentum = sqrt(fParticleEkin * fParticleEkin + 2 * fParticleEkin * fParticleMass);
+            // G4double fParticleMomentumX = fParticleMomentum * fParticleMomentumDirectionU;
+            // G4double fParticleMomentumY = fParticleMomentum * fParticleMomentumDirectionV;
+            // G4double fParticleMomentumZ = fParticleMomentum * fParticleMomentumDirectionW;
+            G4double fParticleTime = t0 + ((*cry_generated)[j]->t() - tmin);
 
             fParticleGun->SetParticleDefinition(particleDefinition);
             fParticleGun->SetParticleMomentum(sqrt(fParticleEkin * fParticleEkin + 2 * fParticleEkin * fParticleMass));

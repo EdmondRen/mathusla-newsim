@@ -96,7 +96,7 @@ public:
 
   void setRandomFunction(double (*newFunc)(void)) {_utils->setRandomFunction(newFunc);}
 
-  CRYData *getData(int altitude=0) {return _data[altitude];}
+  CRYData *getData(int alt=0) {return _data[alt];}
   CRYUtils *getUtils() {return _utils;}
 
 private:
