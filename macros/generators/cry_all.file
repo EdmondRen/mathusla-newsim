@@ -5,11 +5,11 @@ returnMuons 1
  returnPions 1
  returnKaons 1
  returnElectrons 1
- nParticlesMax 100
+ nParticlesMax 1000
  date 2-22-2024
  latitude 46
  altitude 0
- subboxLength 100
+ subboxLength 40
 
 
 

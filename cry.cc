@@ -118,15 +118,19 @@ int main(int argc, const char *argv[])
 
     // If cut is enabled, check if the result contains the specified particle
     bool selected = false;
+    double tmin = 1e100;
     if (selection_en)
     {
       for (unsigned j = 0; j < ev->size(); j++)
       {
         CRYParticle *p = (*ev)[j];
+        // Find the time of the first particle
+        if (p->t() < tmin)
+          tmin = p->t();
         if ((std::find(selections.begin(), selections.end(), p->PDGid()) != selections.end()) && ((p->ke() * ekin_cut_sign) > ekin_cut))
         {
           selected = true;
-          break;
+          // break;
         }
       }
     }
@@ -151,7 +155,7 @@ int main(int argc, const char *argv[])
           << " " << p->u()
           << " " << p->v()
           << " " << p->w()
-          << " " << p->t()
+          << " " << p->t() - tmin
           << "\n";
       delete (*ev)[j];
     }
