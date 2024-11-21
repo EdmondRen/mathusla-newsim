@@ -11,6 +11,8 @@
 #include "util.hh"
 
 
+MuGenerators::Generator*  _gen_; 
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 MuPrimaryGeneratorAction::MuPrimaryGeneratorAction(std::string _gen_default_)
@@ -29,14 +31,12 @@ MuPrimaryGeneratorAction::MuPrimaryGeneratorAction(std::string _gen_default_)
   cmd_select->AvailableForStates(G4State_PreInit, G4State_Idle);
 }
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 MuPrimaryGeneratorAction::~MuPrimaryGeneratorAction()
 {
   delete _gen_;
 }
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 void MuPrimaryGeneratorAction::GeneratePrimaries(G4Event *anEvent)
 {
@@ -46,7 +46,6 @@ void MuPrimaryGeneratorAction::GeneratePrimaries(G4Event *anEvent)
   // util::py::print("RanecuEngine status after gen [address, init_seed, seed[0], seed[1]]", engienStatus);
 }
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 //__Generator Action Messenger Set Value
 void MuPrimaryGeneratorAction::SetNewValue(G4UIcommand *command,
@@ -56,3 +55,17 @@ void MuPrimaryGeneratorAction::SetNewValue(G4UIcommand *command,
     _gen_ = _gen_map_[value];
   }
 }
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+
+const MuGenerators::Generator* MuPrimaryGeneratorAction::GetGenerator()
+{
+  return _gen_;
+}
+
+const MuGenerators::ParticleVector MuPrimaryGeneratorAction::GetLastEvent()
+{
+  return _gen_->genParticles;
+}
+

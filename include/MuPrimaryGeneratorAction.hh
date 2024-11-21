@@ -36,10 +36,11 @@ public:
   // Core function to override
   virtual void GeneratePrimaries(G4Event* event);
   
-  // set methods
+  // set and get methods
   void SetNewValue(G4UIcommand* command, G4String value);
+  static void SetGenerator(const std::string& generator); 
   static const MuGenerators::Generator* GetGenerator();
-  static void SetGenerator(const std::string& generator);  
+  static const MuGenerators::ParticleVector GetLastEvent(); 
 
 
 private:
@@ -47,7 +48,6 @@ private:
   G4UIcmdWithAString * cmd_select;
 
   // The generator in use, _gen_, and a list of generators
-  MuGenerators::Generator*  _gen_; 
   std::unordered_map<std::string, MuGenerators::Generator*> _gen_map_;
 };
 

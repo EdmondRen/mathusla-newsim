@@ -7,6 +7,7 @@
 
 #include "util.hh"
 #include "MuEventAction.hh"
+#include "MuPrimaryGeneratorAction.hh"
 
 namespace Analysis
 {
@@ -76,8 +77,8 @@ namespace Analysis
         fdata->Add("Gen_px",            util::py::__vector__, util::py::__float__);
         fdata->Add("Gen_py",            util::py::__vector__, util::py::__float__);
         fdata->Add("Gen_pz",            util::py::__vector__, util::py::__float__);
-        fdata->Add("Gen_edep",          util::py::__vector__, util::py::__float__);
         fdata->Add("Gen_pdgID",         util::py::__vector__, util::py::__double__);
+        fdata->Add("Gen_index",         util::py::__vector__, util::py::__double__);
         // clang-format on
     }
 
@@ -128,7 +129,6 @@ namespace Analysis
         data["Seed_1"] = *reinterpret_cast<int *>(&seedInfo[2]);    // Cast the address of the unsigned long to an int pointer
 
         // Process hit collection
-
         for (std::size_t i = 0; i < fHitsCollection->GetSize(); ++i)
         {
             const auto hit = dynamic_cast<uHit *>(fHitsCollection->GetHit(i));
@@ -150,6 +150,21 @@ namespace Analysis
             for (int cn : hit->_copyNumber)
                 data["Hit_copyNumber"].push_back(cn);
             data["Hit_copyNumber"].push_back(-1);
+        }
+
+        // Process generated particles
+        auto GenPrticles = MuPrimaryGeneratorAction::GetLastEvent();
+        for (auto particle : GenPrticles)
+        {
+            data["Gen_x"].push_back(particle.x);
+            data["Gen_y"].push_back(particle.y);
+            data["Gen_z"].push_back(particle.z);
+            data["Gen_t"].push_back(particle.t);
+            data["Gen_px"].push_back(particle.px);
+            data["Gen_py"].push_back(particle.py);
+            data["Gen_pz"].push_back(particle.pz);
+            data["Gen_pdgID"].push_back(particle.pdgid);
+            data["Gen_index"].push_back(particle.index);
         }
 
         // Fill them into the tuple

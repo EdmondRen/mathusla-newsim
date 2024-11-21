@@ -107,7 +107,7 @@ namespace MuGenerators
         _ui_pathname->AvailableForStates(G4State_PreInit, G4State_Idle);
         _ui_offset = CreateCommand<G4UIcmdWith3VectorAndUnit>("offset", "Set x-y-z offset with unit.");
         _ui_offset->SetParameterName("offset_x", "offset_y", "offset_z", false, false);
-        _ui_offset->AvailableForStates(G4State_PreInit, G4State_Idle);    
+        _ui_offset->AvailableForStates(G4State_PreInit, G4State_Idle);
         _ui_offset_t_low = CreateCommand<G4UIcmdWithADoubleAndUnit>("offset_t_low", "Set time offset range lower bound with unit.");
         _ui_offset_t_low->SetParameterName("offset_t_low", false, false);
         _ui_offset_t_low->AvailableForStates(G4State_PreInit, G4State_Idle);
@@ -119,13 +119,15 @@ namespace MuGenerators
         _ui_ekin_low->AvailableForStates(G4State_PreInit, G4State_Idle);
         _ui_ekin_high = CreateCommand<G4UIcmdWithADoubleAndUnit>("ekin_high", "Set time kinetic energy cut upper bound with unit.");
         _ui_ekin_high->SetParameterName("ekin_high", false, false);
-        _ui_ekin_high->AvailableForStates(G4State_PreInit, G4State_Idle);                                  
+        _ui_ekin_high->AvailableForStates(G4State_PreInit, G4State_Idle);
     }
 
     // Core function 1: GeneratePrimaryVertex()
     // This will be called by GeneratorAction::GeneratePrimaries()
     void MuCRY::GeneratePrimaryVertex(G4Event *anEvent)
     {
+        // Clear the store of generated particles
+        this->genParticles.clear();
 
         G4String particleName;
         bool pass_cuts = false;
@@ -144,11 +146,11 @@ namespace MuGenerators
                 // G4ParticleDefinition *particleDefinition = fparticleTable->FindParticle((*cry_generated)[j]->PDGid());
 
                 // Find the time of the first particle
-                if ((*cry_generated)[j]->t()<tmin)
+                if ((*cry_generated)[j]->t() < tmin)
                     tmin = (*cry_generated)[j]->t();
 
                 double kinEnergy = (*cry_generated)[j]->ke() * MeV;
-                if (kinEnergy >= fCRY_additional_setup["ekin_cut_low"] && kinEnergy <= fCRY_additional_setup["ekin_cut_high"] )
+                if (kinEnergy >= fCRY_additional_setup["ekin_cut_low"] && kinEnergy <= fCRY_additional_setup["ekin_cut_high"])
                     pass_cuts = true; // 2670
                 else
                     countAttempt++;
@@ -157,9 +159,9 @@ namespace MuGenerators
         } while (pass_cuts == false);
 
         //....debug output
-        G4cout << "\nEvent=" << anEvent->GetEventID() << " "
-               << "CRY generated nparticles=" << cry_generated->size()
-               << " pass Ekin threshold: " << pass_cuts << G4endl;
+        // G4cout << "\nEvent=" << anEvent->GetEventID() << " "
+        //        << "CRY generated nparticles=" << cry_generated->size()
+        //        << " pass Ekin threshold: " << pass_cuts << G4endl;
 
         // Sample a time for this event
         G4double t0 = GenerateRandomInRange(fCRY_additional_setup["offset_t_low"], fCRY_additional_setup["offset_t_high"]);
@@ -168,30 +170,46 @@ namespace MuGenerators
         {
             particleName = CRYUtils::partName((*cry_generated)[j]->id());
 
-            auto particleDefinition = fparticleTable->FindParticle((*cry_generated)[j]->PDGid());
+            auto pdgID = (*cry_generated)[j]->PDGid();
+            auto particleDefinition = fparticleTable->FindParticle(pdgID);
 
             G4double fParticleEkin = (*cry_generated)[j]->ke() * MeV;
             G4double fParticleMass = particleDefinition->GetPDGMass() * MeV;
-            G4double fParticlePosX = (*cry_generated)[j]->x() * m;
-            G4double fParticlePosY = (*cry_generated)[j]->y() * m;
-            G4double fParticlePosZ = (*cry_generated)[j]->z() * m;
+            G4double fParticlePosX = (*cry_generated)[j]->x() * m + fCRY_additional_setup["offset_x"];
+            G4double fParticlePosY = (*cry_generated)[j]->y() * m + fCRY_additional_setup["offset_y"];
+            G4double fParticlePosZ = (*cry_generated)[j]->z() * m + fCRY_additional_setup["offset_z"];
             G4double fParticleMomentumDirectionU = (*cry_generated)[j]->u();
             G4double fParticleMomentumDirectionV = (*cry_generated)[j]->v();
             G4double fParticleMomentumDirectionW = (*cry_generated)[j]->w();
-            // G4double fParticleMomentum = sqrt(fParticleEkin * fParticleEkin + 2 * fParticleEkin * fParticleMass);
-            // G4double fParticleMomentumX = fParticleMomentum * fParticleMomentumDirectionU;
-            // G4double fParticleMomentumY = fParticleMomentum * fParticleMomentumDirectionV;
-            // G4double fParticleMomentumZ = fParticleMomentum * fParticleMomentumDirectionW;
+            G4double fParticleMomentum = sqrt(fParticleEkin * fParticleEkin + 2 * fParticleEkin * fParticleMass);
+            G4double fParticleMomentumX = fParticleMomentum * fParticleMomentumDirectionU;
+            G4double fParticleMomentumY = fParticleMomentum * fParticleMomentumDirectionV;
+            G4double fParticleMomentumZ = fParticleMomentum * fParticleMomentumDirectionW;
             G4double fParticleTime = t0 + ((*cry_generated)[j]->t() - tmin);
 
-            fParticleGun->SetParticleDefinition(particleDefinition);
-            fParticleGun->SetParticleMomentum(sqrt(fParticleEkin * fParticleEkin + 2 * fParticleEkin * fParticleMass));
-            fParticleGun->SetParticlePosition(G4ThreeVector(fParticlePosX + fCRY_additional_setup["offset_x"],
-                                                            fParticlePosY + fCRY_additional_setup["offset_y"],
-                                                            fParticlePosZ + fCRY_additional_setup["offset_z"]));
-            fParticleGun->SetParticleMomentumDirection(G4ThreeVector(fParticleMomentumDirectionU, fParticleMomentumDirectionV, fParticleMomentumDirectionW));
-            fParticleGun->SetParticleTime(fParticleTime);
-            fParticleGun->GeneratePrimaryVertex(anEvent);
+            // You can continue using particle gun, 
+            // fParticleGun->SetParticleDefinition(particleDefinition);
+            // fParticleGun->SetParticlePosition(G4ThreeVector(fParticlePosX, fParticlePosY, fParticlePosZ));
+            // fParticleGun->SetParticleMomentum(G4ThreeVector(fParticleMomentumX, fParticleMomentumY, fParticleMomentumZ));
+            // fParticleGun->SetParticleTime(fParticleTime);
+            // fParticleGun->GeneratePrimaryVertex(anEvent);
+
+            // or you can make a particle, then add it to the event and the particle store.
+            Particle newParticle = Particle(pdgID,
+                                            fParticlePosX,
+                                            fParticlePosY,
+                                            fParticlePosZ,
+                                            fParticleTime,
+                                            fParticleMomentumX,
+                                            fParticleMomentumY,
+                                            fParticleMomentumZ,
+                                            j);
+
+            const auto vertex = new G4PrimaryVertex(newParticle.x, newParticle.y, newParticle.z, newParticle.t);
+            vertex->SetPrimary(new G4PrimaryParticle(newParticle.pdgid, newParticle.px, newParticle.py, newParticle.pz));
+            anEvent->AddPrimaryVertex(vertex);            
+
+            genParticles.push_back(newParticle);
         }
     }
 
@@ -204,7 +222,8 @@ namespace MuGenerators
         {
             // CRY initialization
             auto cry_setupString = util::io::readFileToString_CRY(value);
-            G4cout << "\nCRY setup string: \n" <<cry_setupString << "\n";
+            G4cout << "\nCRY setup string: \n"
+                   << cry_setupString << "\n";
             CRYSetup *cry_setup = new CRYSetup(cry_setupString, PROJECT_SOURCE_DIR + "/cry_v1.7/data");
             // Set random number generator to use GEANT4 engine
             RNGWrapper<CLHEP::HepRandomEngine>::set(CLHEP::HepRandom::getTheEngine(), &CLHEP::HepRandomEngine::flat);
@@ -217,16 +236,16 @@ namespace MuGenerators
             auto vec = _ui_offset->GetNew3VectorValue(value);
             fCRY_additional_setup["offset_x"] = vec[0];
             fCRY_additional_setup["offset_y"] = vec[1];
-            fCRY_additional_setup["offset_z"] = vec[2];            
+            fCRY_additional_setup["offset_z"] = vec[2];
         }
         else if (command == _ui_offset_t_low)
             fCRY_additional_setup["offset_t_low"] = _ui_offset_t_low->GetNewDoubleValue(value);
         else if (command == _ui_offset_t_high)
-            fCRY_additional_setup["offset_t_high"] = _ui_offset_t_high->GetNewDoubleValue(value); 
+            fCRY_additional_setup["offset_t_high"] = _ui_offset_t_high->GetNewDoubleValue(value);
         else if (command == _ui_ekin_low)
             fCRY_additional_setup["ekin_cut_low"] = _ui_ekin_low->GetNewDoubleValue(value);
         else if (command == _ui_ekin_high)
-            fCRY_additional_setup["ekin_cut_high"] = _ui_ekin_high->GetNewDoubleValue(value);                        
+            fCRY_additional_setup["ekin_cut_high"] = _ui_ekin_high->GetNewDoubleValue(value);
     }
 
 }

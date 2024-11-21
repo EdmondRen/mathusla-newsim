@@ -53,7 +53,24 @@ namespace MuGenerators
     // This will be called by GeneratorAction::GeneratePrimaries()
     void ParticleGun::GeneratePrimaryVertex(G4Event *anEvent)
     {
+        // Clear the store of generated particles
+        this->genParticles.clear();
+
+
+        // Run the generator
         fParticleGun->GeneratePrimaryVertex(anEvent);
+
+        // Add the particle to store
+        Particle newParticle = Particle(fParticleGun->GetParticleDefinition()->GetPDGEncoding(),
+                                            fParticleGun->GetParticlePosition()[0],
+                                            fParticleGun->GetParticlePosition()[1],
+                                            fParticleGun->GetParticlePosition()[2],
+                                            fParticleGun->GetParticleTime(),
+                                            fParticleGun->GetParticleMomentum()*fParticleGun->GetParticleMomentumDirection()[0],
+                                            fParticleGun->GetParticleMomentum()*fParticleGun->GetParticleMomentumDirection()[1],
+                                            fParticleGun->GetParticleMomentum()*fParticleGun->GetParticleMomentumDirection()[2],
+                                            0);
+        this->genParticles.push_back(newParticle);        
     }
 
     // Core function 2: GeneratePrimaryVertex()
