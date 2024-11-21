@@ -8,37 +8,21 @@
 #
 # Initialize kernel
 /run/initialize
+/vis/disable
 #
 # Default kinematics: 
 # electron 50 MeV in direction (0.,0.,1.)
 # 1 event with tracking/verbose
 #
 /tracking/verbose 1
-/run/beamOn 10
-#
-#
+/tracking/verbose 0
+/run/printProgress 5
+
+
 # muon 300 MeV in direction (0.,0.,1.)
 # 3 events
 #
-/gun/particle mu+
-/gun/energy 3000 MeV
-/run/beamOn 3000
-#
-# 20 events
-#
-/tracking/verbose 0
-/run/printProgress 5
-/run/beamOn 20
-#
-# Magnetic field
-# 
-/globalField/setValue 0.2 0 0 tesla
-/run/beamOn 3
-#
-# Activate/inactivate physics processes
-#
-/process/list
-/process/inactivate eBrem
-#
+/gun/particle neutron
+/gun/energy 4000 MeV
 /run/beamOn 2000
-#
+

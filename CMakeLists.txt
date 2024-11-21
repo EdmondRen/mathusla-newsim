@@ -8,7 +8,15 @@ endif()
 project(Mu)
 
 set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+
+## Enable profiling for debug build
+# Run the simulation, then use `gprof my_program gmon.out > analysis.txt` to check the result
 set (CMAKE_BUILD_TYPE Debug)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "Profile")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
+endif()
 
 #----------------------------------------------------------------------------
 # Find Geant4 package, activating all available UI and Vis drivers by default

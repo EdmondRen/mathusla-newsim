@@ -57,9 +57,6 @@ void MuSteppingAction::UserSteppingAction(const G4Step* step)
 
   // get volume of the current step
   auto volume = step->GetPreStepPoint()->GetTouchableHandle()->GetVolume();
-  
-  // energy deposit
-  auto edep = step->GetTotalEnergyDeposit();
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
