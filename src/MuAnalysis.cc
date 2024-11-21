@@ -51,8 +51,9 @@ namespace Analysis
         // clang-format off
         fdata = new util::py::Dict();
         fdata->Add("Entry_generated",   util::py::__single__, util::py::__float__);
-        fdata->Add("Seed_l",            util::py::__single__, util::py::__int__);
-        fdata->Add("Seed_h",            util::py::__single__, util::py::__int__);
+        fdata->Add("Seed_init",         util::py::__single__, util::py::__int__);
+        fdata->Add("Seed_0",            util::py::__single__, util::py::__int__);
+        fdata->Add("Seed_1",            util::py::__single__, util::py::__int__);
         fdata->Add("Hit_x",             util::py::__vector__, util::py::__float__);
         fdata->Add("Hit_y",             util::py::__vector__, util::py::__float__);
         fdata->Add("Hit_z",             util::py::__vector__, util::py::__float__);
@@ -115,15 +116,16 @@ namespace Analysis
 
         // Get the per-Event user information
         auto* eventInfo = dynamic_cast<MyEventInformation*>(event->GetUserInformation());
-        long seed = eventInfo->GetSeed();
+        std::vector<unsigned long> seedInfo = eventInfo->GetInfo();
 
         // Get the event index
         const auto event_id = G4RunManager::GetRunManager()->GetCurrentEvent()->GetEventID();
 
         // Set single values
         data["Entry_generated"] = event_id;
-        data["Seed_l"] = static_cast<int>(seed & 0xFFFFFFFF); // lower 32 bits
-        data["Seed_h"] = static_cast<int>(seed & 0xFFFFFFFF); // higher 32 bits
+        data["Seed_init"] = *reinterpret_cast<int*>(&seedInfo[0]);  // Cast the address of the unsigned long to an int pointer
+        data["Seed_0"] = *reinterpret_cast<int*>(&seedInfo[1]);  // Cast the address of the unsigned long to an int pointer
+        data["Seed_1"] = *reinterpret_cast<int*>(&seedInfo[2]);  // Cast the address of the unsigned long to an int pointer
 
         // Process hit collection
 

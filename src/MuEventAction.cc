@@ -44,16 +44,27 @@
 
 // Event information class
 // Constructor
-MyEventInformation::MyEventInformation(long seed) : fSeed(seed) {}
+MyEventInformation::MyEventInformation(unsigned long seed, 
+                                        unsigned long seed0, 
+                                        unsigned long seed1) : 
+                                        fSeed_init(seed),
+                                        fSeed_0(seed0),
+                                        fSeed_1(seed1) {}
 
 // Getter for the seed
-long MyEventInformation::GetSeed() const {
-    return fSeed;
+std::vector<unsigned long> MyEventInformation::GetInfo() const {
+  std::vector<unsigned long> v;
+  v.push_back(fSeed_init);
+  v.push_back(fSeed_0);
+  v.push_back(fSeed_1);
+  return v;
 }
 
 // Override Print method
 void MyEventInformation::Print() const {
-    std::cout << "Seed: " << fSeed << std::endl;
+    std::cout << "Seed_init: " << fSeed_init << std::endl;
+    std::cout << "Seed 0: " << fSeed_0 << std::endl;
+    std::cout << "Seed 1: " << fSeed_1 << std::endl;
 }
 
 
@@ -72,11 +83,17 @@ void MuEventAction::BeginOfEventAction(const G4Event* event)
 {  
   // initialisation per event
 
-  // Get the random number generator SEED
-  long seed = G4Random::getTheSeed();
+  // Get the data related to random engine status
+  // G4Random::showEngineStatus(); // Directly show it at stdout
 
-  util::py::print("Seed of this event is", seed);
-  auto* eventInfo = new MyEventInformation(seed);
+  // * This only works for RanecuEngine engine!
+  // * RanecuEngine engine status is described by three unsigned ints
+  //   {init_seed, seed[0], seed[1]}
+  //   Any other engines are more complicated than this.
+  std::vector<unsigned long> engienStatus = CLHEP::HepRandom::getTheEngine()->put();
+  // util::py::print("RanecuEngine status [address, init_seed, seed[0], seed[1]]", engienStatus);
+
+  auto* eventInfo = new MyEventInformation(engienStatus[1], engienStatus[2], engienStatus[3]);
   const_cast<G4Event*>(event)->SetUserInformation(eventInfo);
 }
 

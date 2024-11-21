@@ -66,7 +66,8 @@ int main(int argc, char **argv)
   // Setup random number generator
   G4int run_number = args["run"].as<G4int>(); (void)run_number;
   G4int run_seed = args["seed"].as<G4int>();
-  G4Random::setTheEngine(new CLHEP::RanecuEngine);
+  // Tom: Do not change the engine! The EventAction is only able to record status of RanecuEngine.
+  G4Random::setTheEngine(new CLHEP::RanecuEngine); 
   if (run_seed == -1)
     G4Random::setTheSeed(time(nullptr));
   else

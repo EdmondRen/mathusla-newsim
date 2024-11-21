@@ -78,13 +78,13 @@ namespace MuGenerators
 
         // CRY initialization
         auto cry_setupString = util::io::readFileToString_CRY(PROJECT_SOURCE_DIR + "/macros/generators/cry_default.file");
-
-        G4cout << cry_setupString;
-
+        // G4cout << cry_setupString;
         CRYSetup *cry_setup = new CRYSetup(cry_setupString, PROJECT_SOURCE_DIR + "/cry_v1.7/data");
+
         // Set random number generator to use GEANT4 engine
         RNGWrapper<CLHEP::HepRandomEngine>::set(CLHEP::HepRandom::getTheEngine(), &CLHEP::HepRandomEngine::flat);
         cry_setup->setRandomFunction(RNGWrapper<CLHEP::HepRandomEngine>::rng);
+
         // Make the CRY generator
         this->fCRYgenerator = new CRYGenerator(cry_setup);
         this->cry_generated = new std::vector<CRYParticle *>; // vector to hold generated particles

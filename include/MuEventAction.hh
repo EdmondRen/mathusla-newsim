@@ -42,10 +42,10 @@
 class MyEventInformation : public G4VUserEventInformation {
 public:
     // Constructor
-    explicit MyEventInformation(long seed);
+    explicit MyEventInformation(unsigned long seed_init, unsigned long seed_0, unsigned long seed_1);
 
     // Getter for the seed
-    long GetSeed() const;
+    std::vector<unsigned long> GetInfo() const;
 
     // Overriding the pure virtual function from G4VUserEventInformation
     virtual void Print() const override;
@@ -54,7 +54,9 @@ public:
     virtual ~MyEventInformation() override = default;
 
 private:
-    long fSeed; // Store the random seed
+    unsigned long fSeed_init; // Store the random seed
+    unsigned long fSeed_0; // Store the random seed
+    unsigned long fSeed_1; // Store the random seed
 };
 
 
