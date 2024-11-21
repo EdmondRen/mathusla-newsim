@@ -93,6 +93,7 @@ class MuDetectorConstruction : public G4VUserDetectorConstruction, public G4UIme
     // and a list of detectors
     MuGeoBuilder::Builder*  _det_; 
     std::string _det_name_;
+    std::string _export_dir_;
     std::unordered_map<std::string, MuGeoBuilder::Builder*> _det_map_;    
     G4bool  fCheckOverlaps; // option to activate checking of volumes overlaps
 

@@ -61,6 +61,8 @@ namespace MuGenerators
     void ParticleGun::SetNewValue(G4UIcommand *command,
                                   G4String value)
     {
+        (void)command;
+        (void)value;
     }
 
     // Other helper functions

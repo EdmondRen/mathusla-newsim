@@ -53,10 +53,9 @@ MuSteppingAction::~MuSteppingAction()
 
 void MuSteppingAction::UserSteppingAction(const G4Step* step)
 {
-// Collect energy and track length step by step
-
   // get volume of the current step
-  auto volume = step->GetPreStepPoint()->GetTouchableHandle()->GetVolume();
+  // auto volume = step->GetPreStepPoint()->GetTouchableHandle()->GetVolume();
+  (void)step;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

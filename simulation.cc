@@ -29,6 +29,7 @@ int main(int argc, char **argv)
   G4cout << PROJECT_SOURCE_DIR << G4endl;
   util::globals::PROJECT_SOURCE_DIR = PROJECT_SOURCE_DIR;
 
+  // ------------------------------
   // Evaluate arguments
   // clang-format off
   cxxopts::Options options("Geant4 simulation", "Geant4 simulation for MATHUSLA");
@@ -38,13 +39,21 @@ int main(int argc, char **argv)
       ("m,macro", "Macro name, followed by possible parameters for macro seperated by commas. For example, -m=run1.mac,Ek,10,theta,20", cxxopts::value<std::vector<std::string>>())
       ("g,generator", "Generator, one of <gun/range/parma/cry/filereader>", cxxopts::value<G4String>()->default_value("gun"))
       ("d,detector", "Detector, one of <math40/uoft1>", cxxopts::value<G4String>()->default_value("uoft1"))
-      ("e,export", "Export directory for geometry and other information", cxxopts::value<G4String>()->default_value("export"))
-      ("o,output", "Output directory", cxxopts::value<G4String>()->default_value("data"))
+      ("e,export", "Export directory for geometry and other information. Default is ./export/", cxxopts::value<G4String>()->default_value("export"))
+      ("o,output", "Output directory. Default is ./data/", cxxopts::value<G4String>()->default_value("data"))
       ("r,run", "Run number", cxxopts::value<G4int>()->default_value("0"))
-      ("s,session", "Session name", cxxopts::value<G4String>()->default_value("MathuslaSim"))
+      ("s,seed", "Seed of random number generator, a positive integer. Default to -1 for random seed. Events in the same run share the same seed.", cxxopts::value<G4int>()->default_value("-1"))
+      ("S,session", "Session name", cxxopts::value<G4String>()->default_value("MathuslaSim"))
       ("t,threads", "Number of threads", cxxopts::value<G4int>()->default_value("1"));
   auto args = options.parse(argc, argv);
+  // Show help if the user asks for it
+  if (args.count("help"))
+  {
+    std::cout << options.help() << std::endl;
+    return 0; // Exit the program after showing help
+  }
   // clang-format on
+  // ------------------------------
 
   // Read and process arguments
   // * macro: need to separate the macro name and forwarding arguments
@@ -55,12 +64,13 @@ int main(int argc, char **argv)
     macro = macro_commands[0];
 
   // Setup random number generator
-  G4int run_number = args["run"].as<G4int>();
+  G4int run_number = args["run"].as<G4int>(); (void)run_number;
+  G4int run_seed = args["seed"].as<G4int>();
   G4Random::setTheEngine(new CLHEP::RanecuEngine);
-  if (run_number == 0)
+  if (run_seed == -1)
     G4Random::setTheSeed(time(nullptr));
   else
-    G4Random::setTheSeed(run_number);
+    G4Random::setTheSeed(run_seed);
 
 
   // Detect interactive mode (if no macro provided) and define UI session

@@ -38,41 +38,52 @@
 #include "Randomize.hh"
 #include <iomanip>
 
+
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+// Event information class
+// Constructor
+MyEventInformation::MyEventInformation(long seed) : fSeed(seed) {}
+
+// Getter for the seed
+long MyEventInformation::GetSeed() const {
+    return fSeed;
+}
+
+// Override Print method
+void MyEventInformation::Print() const {
+    std::cout << "Seed: " << fSeed << std::endl;
+}
+
+
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+// EventAction class
 
 MuEventAction::MuEventAction()
- : G4UserEventAction(),
-   fEnergyAbs(0.),
-   fEnergyGap(0.),
-   fTrackLAbs(0.),
-   fTrackLGap(0.)
+ : G4UserEventAction()
 {}
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 MuEventAction::~MuEventAction()
 {}
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-void MuEventAction::BeginOfEventAction(const G4Event* /*event*/)
+void MuEventAction::BeginOfEventAction(const G4Event* event)
 {  
   // initialisation per event
-  fEnergyAbs = 0.;
-  fEnergyGap = 0.;
-  fTrackLAbs = 0.;
-  fTrackLGap = 0.;
-}
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+  // Get the random number generator SEED
+  long seed = G4Random::getTheSeed();
+
+  util::py::print("Seed of this event is", seed);
+  auto* eventInfo = new MyEventInformation(seed);
+  const_cast<G4Event*>(event)->SetUserInformation(eventInfo);
+}
 
 void MuEventAction::EndOfEventAction(const G4Event* event)
 {
-  // Accumulate statistics
-  //
-
   // get analysis manager
-  auto analysisManager = G4AnalysisManager::Instance();
+  // auto analysisManager = G4AnalysisManager::Instance();
   
   // Print per event (modulo n)
   //

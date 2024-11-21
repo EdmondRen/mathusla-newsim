@@ -6,6 +6,7 @@
 #include "G4RunManager.hh"
 
 #include "util.hh"
+#include "MuEventAction.hh"
 
 namespace Analysis
 {
@@ -19,10 +20,12 @@ namespace Analysis
     // Default hit class
     uHit::uHit() : G4VHit() {}
 
-    uHit::uHit(G4Step *step) : G4VHit()
-    {
+    uHit::uHit(G4Step *step, G4TouchableHistory *touchable) : G4VHit()
+    {   
+        (void)touchable;
         const auto track = step->GetTrack();
         const auto step_point = step->GetPostStepPoint();
+
         this->_particle = track->GetParticleDefinition();
         this->_trackID = track->GetTrackID();
         this->_trackPDG = this->_particle->GetPDGEncoding();
@@ -31,6 +34,13 @@ namespace Analysis
         this->_edeposit = step->GetTotalEnergyDeposit();
         this->_position = G4LorentzVector(step_point->GetGlobalTime(), step_point->GetPosition());
         this->_momentum = G4LorentzVector(step_point->GetTotalEnergy(), step_point->GetMomentum());
+
+        // Get touchable
+        const auto preStepPoint = step->GetPreStepPoint();
+        const auto touchable_pre = preStepPoint->GetTouchable();         
+        G4int totalDepth = touchable_pre->GetHistoryDepth();
+        for (int i=0; i<totalDepth; i++)
+            this->_copyNumber.push_back(touchable_pre->GetCopyNumber());
     }
 
     //  ---------------------------------------------------------------------------
@@ -41,6 +51,8 @@ namespace Analysis
         // clang-format off
         fdata = new util::py::Dict();
         fdata->Add("Entry_generated",   util::py::__single__, util::py::__float__);
+        fdata->Add("Seed_l",            util::py::__single__, util::py::__int__);
+        fdata->Add("Seed_h",            util::py::__single__, util::py::__int__);
         fdata->Add("Hit_x",             util::py::__vector__, util::py::__float__);
         fdata->Add("Hit_y",             util::py::__vector__, util::py::__float__);
         fdata->Add("Hit_z",             util::py::__vector__, util::py::__float__);
@@ -55,6 +67,7 @@ namespace Analysis
         fdata->Add("Hit_pdgIDparent",   util::py::__vector__, util::py::__double__);
         fdata->Add("Hit_isprimary",     util::py::__vector__, util::py::__int__);
         fdata->Add("Hit_processID",     util::py::__vector__, util::py::__int__);
+        fdata->Add("Hit_copyNumber",    util::py::__vector__, util::py::__int__);
         fdata->Add("Gen_x",             util::py::__vector__, util::py::__float__);
         fdata->Add("Gen_y",             util::py::__vector__, util::py::__float__);
         fdata->Add("Gen_z",             util::py::__vector__, util::py::__float__);
@@ -83,22 +96,34 @@ namespace Analysis
     G4bool DefaultDetector::ProcessHits(G4Step *step, G4TouchableHistory *touchable)
     {
         // Create a hit
-        auto newHit = new uHit(step);
+        auto newHit = new uHit(step, touchable);
         // Add the hit in the SD hits collection
         fHitsCollection->insert(newHit);
+
+        return true;
     }
 
     void DefaultDetector::EndOfEvent(G4HCofThisEvent *)
-    {
+    {   
+        const G4Event* event = G4RunManager::GetRunManager()->GetCurrentEvent();
+        if (!event)
+            return;
+
         // Get pointer to data dict
         auto &data = *fdata;
         data.clear();
+
+        // Get the per-Event user information
+        auto* eventInfo = dynamic_cast<MyEventInformation*>(event->GetUserInformation());
+        long seed = eventInfo->GetSeed();
 
         // Get the event index
         const auto event_id = G4RunManager::GetRunManager()->GetCurrentEvent()->GetEventID();
 
         // Set single values
         data["Entry_generated"] = event_id;
+        data["Seed_l"] = static_cast<int>(seed & 0xFFFFFFFF); // lower 32 bits
+        data["Seed_h"] = static_cast<int>(seed & 0xFFFFFFFF); // higher 32 bits
 
         // Process hit collection
 
@@ -118,6 +143,12 @@ namespace Analysis
             data["Hit_pdgID"].push_back(hit->_trackPDG);
             data["Hit_pdgIDparent"].push_back(hit->_parentPDG);
             data["Hit_processID"].push_back(0); // Fix this later
+
+            // Copy number is a list for each hit. Flatten it and separate by -1
+            for (int cn : hit->_copyNumber)
+                data["Hit_copyNumber"].push_back(cn);
+            data["Hit_copyNumber"].push_back(-1);
+
         }
 
         // Fill them into the tuple

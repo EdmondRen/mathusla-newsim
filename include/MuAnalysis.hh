@@ -66,7 +66,7 @@ namespace Analysis
     {
     public:
         uHit();
-        uHit(G4Step *step);
+        uHit(G4Step *step, G4TouchableHistory *touchable);
         // overload the allocator to use Geant4 version
         inline void *operator new(size_t);
         inline void operator delete(void *hit);
@@ -79,6 +79,8 @@ namespace Analysis
         double _edeposit;
         G4LorentzVector _position;
         G4LorentzVector _momentum;
+
+        std::vector<int> _copyNumber;
     };
     extern G4Allocator<uHit> *HitAllocator;
     inline void *uHit::operator new(size_t)

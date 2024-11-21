@@ -84,6 +84,10 @@ MuDetectorConstruction::MuDetectorConstruction(const std::string &detector_name,
   _ui_select->AvailableForStates(G4State_PreInit, G4State_Idle);
 
   // Set the detector to the default one
+
+
+  // Private members
+  this->_export_dir_ = export_dir;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
