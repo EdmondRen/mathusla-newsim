@@ -149,7 +149,7 @@ namespace Analysis
             // Copy number is a list for each hit. Flatten it and separate by -1
             for (int cn : hit->_copyNumber)
                 data["Hit_copyNumber"].push_back(cn);
-            data["Hit_copyNumber"].push_back(-1);
+            data["Hit_copyNumber"].push_back(-1); // -1 is used to separate multiple hits in one event.
         }
 
         // Process generated particles

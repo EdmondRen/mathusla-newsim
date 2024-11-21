@@ -82,8 +82,9 @@ void MuRunAction::BeginOfRunAction(const G4Run * /*run*/)
   // Creat tuple based on the sensitive detector of a geometry
   // auto detectorConstruction = G4RunManager::GetRunManager()->GetUserDetectorConstruction();  
   // auto thisDetectorConstruction = dynamic_cast<const MuDetectorConstruction*>(detectorConstruction);
-  auto & sensitiveDetectorData = *MuDetectorConstruction::GetSDdata();
-  Analysis::CreateNTuple(sensitiveDetectorData, "run");
+  auto  sensitiveDetectorData = MuDetectorConstruction::GetSDdata();
+  if (sensitiveDetectorData)
+    Analysis::CreateNTuple(*sensitiveDetectorData, "run");
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

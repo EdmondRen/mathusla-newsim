@@ -18,4 +18,4 @@
 /gen/cry/ekin_low 2.67 GeV
 
 /tracking/verbose 0
-/run/beamOn 10
+/run/beamOn 1000

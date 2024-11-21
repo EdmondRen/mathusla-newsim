@@ -70,13 +70,7 @@ MuDetectorConstruction::MuDetectorConstruction(const std::string &detector_name,
 {
   // Make a map of all available detectors
   _det_map_["uoft1"] = new MuGeoBuilder::Uoft1_Builder();
-  _det_name_ = detector_name;
-  _det_ = _det_map_[_det_name_];
-
-  // Add messenger commands
-  // fMessenger  = new G4GenericMessenger(this, MuDetectorConstruction::MessengerDirectory, "Detector constructor"),
-  // fMessenger->DeclareProperty("select", msg_det_selected, "Select Detector to use.");
-
+  
   // Make messenger commands
   _ui_select = CreateCommand<G4UIcmdWithAString>("select", "Select Detector to use.");
   _ui_select->SetParameterName("select", false, false);
@@ -84,7 +78,8 @@ MuDetectorConstruction::MuDetectorConstruction(const std::string &detector_name,
   _ui_select->AvailableForStates(G4State_PreInit, G4State_Idle);
 
   // Set the detector to the default one
-
+  _det_name_ = detector_name;
+  _det_ = _det_map_[_det_name_];
 
   // Private members
   this->_export_dir_ = export_dir;
@@ -109,6 +104,7 @@ G4VPhysicalVolume *MuDetectorConstruction::Construct()
 
 void MuDetectorConstruction::ConstructSDandField()
 {
+  // Assign a sensitive detector to the geometry
   if (_det_name_ == "uoft1")
   {
     auto sensitive_detector = new Analysis::DefaultDetector();
