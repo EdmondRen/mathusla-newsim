@@ -1,5 +1,16 @@
 # mathusla-newsim
 
+## Random number generator
+
+This simulation is built around one single static generator, G4Random::RanecuEngine
+
+Notes:
+* Do not use other engines. This is the only engine that can be restored to certain status with just 3 integers.
+* If you want to use the engien in other parts of the code, use CLHEP::HepRandom::getTheEngine()
+* The engien status after the generator is saved in the result as \[Seed_init, Seed_0, Seed_1\]
+  * Seed are saved as int in the ROOT file, but they need to be converted to unsigned int before using it.
+  * Example: `*reinterpret_cast<unsigned int*>(&seed)`
+
 
 # Standalone generator: CRY
 

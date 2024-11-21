@@ -64,15 +64,15 @@ int main(int argc, char **argv)
     macro = macro_commands[0];
 
   // Setup random number generator
-  G4int run_number = args["run"].as<G4int>(); (void)run_number;
+  G4int run_number = args["run"].as<G4int>();
+  (void)run_number;
   G4int run_seed = args["seed"].as<G4int>();
-  // Tom: Do not change the engine! The EventAction is only able to record status of RanecuEngine.
-  G4Random::setTheEngine(new CLHEP::RanecuEngine); 
+  // Tom: Do not change the engine! EventAction is only able to record status of RanecuEngine.
+  G4Random::setTheEngine(new CLHEP::RanecuEngine);
   if (run_seed == -1)
     G4Random::setTheSeed(time(nullptr));
   else
     G4Random::setTheSeed(run_seed);
-
 
   // Detect interactive mode (if no macro provided) and define UI session
   //

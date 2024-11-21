@@ -21,7 +21,7 @@ namespace Analysis
     uHit::uHit() : G4VHit() {}
 
     uHit::uHit(G4Step *step, G4TouchableHistory *touchable) : G4VHit()
-    {   
+    {
         (void)touchable;
         const auto track = step->GetTrack();
         const auto step_point = step->GetPostStepPoint();
@@ -37,9 +37,9 @@ namespace Analysis
 
         // Get touchable
         const auto preStepPoint = step->GetPreStepPoint();
-        const auto touchable_pre = preStepPoint->GetTouchable();         
+        const auto touchable_pre = preStepPoint->GetTouchable();
         G4int totalDepth = touchable_pre->GetHistoryDepth();
-        for (int i=0; i<totalDepth; i++)
+        for (int i = 0; i < totalDepth; i++)
             this->_copyNumber.push_back(touchable_pre->GetCopyNumber());
     }
 
@@ -105,8 +105,8 @@ namespace Analysis
     }
 
     void DefaultDetector::EndOfEvent(G4HCofThisEvent *)
-    {   
-        const G4Event* event = G4RunManager::GetRunManager()->GetCurrentEvent();
+    {
+        const G4Event *event = G4RunManager::GetRunManager()->GetCurrentEvent();
         if (!event)
             return;
 
@@ -115,7 +115,7 @@ namespace Analysis
         data.clear();
 
         // Get the per-Event user information
-        auto* eventInfo = dynamic_cast<MyEventInformation*>(event->GetUserInformation());
+        auto *eventInfo = dynamic_cast<MyEventInformation *>(event->GetUserInformation());
         std::vector<unsigned long> seedInfo = eventInfo->GetInfo();
 
         // Get the event index
@@ -123,9 +123,9 @@ namespace Analysis
 
         // Set single values
         data["Entry_generated"] = event_id;
-        data["Seed_init"] = *reinterpret_cast<int*>(&seedInfo[0]);  // Cast the address of the unsigned long to an int pointer
-        data["Seed_0"] = *reinterpret_cast<int*>(&seedInfo[1]);  // Cast the address of the unsigned long to an int pointer
-        data["Seed_1"] = *reinterpret_cast<int*>(&seedInfo[2]);  // Cast the address of the unsigned long to an int pointer
+        data["Seed_init"] = *reinterpret_cast<int *>(&seedInfo[0]); // Cast the address of the unsigned long to an int pointer
+        data["Seed_0"] = *reinterpret_cast<int *>(&seedInfo[1]);    // Cast the address of the unsigned long to an int pointer
+        data["Seed_1"] = *reinterpret_cast<int *>(&seedInfo[2]);    // Cast the address of the unsigned long to an int pointer
 
         // Process hit collection
 
@@ -150,7 +150,6 @@ namespace Analysis
             for (int cn : hit->_copyNumber)
                 data["Hit_copyNumber"].push_back(cn);
             data["Hit_copyNumber"].push_back(-1);
-
         }
 
         // Fill them into the tuple

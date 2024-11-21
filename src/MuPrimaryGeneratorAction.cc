@@ -42,6 +42,8 @@ void MuPrimaryGeneratorAction::GeneratePrimaries(G4Event *anEvent)
 {
   // This function is called at the begining of event
   _gen_->GeneratePrimaryVertex(anEvent);
+  // std::vector<unsigned long> engienStatus = CLHEP::HepRandom::getTheEngine()->put();
+  // util::py::print("RanecuEngine status after gen [address, init_seed, seed[0], seed[1]]", engienStatus);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
