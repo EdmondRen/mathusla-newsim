@@ -7,6 +7,7 @@ if(${CMAKE_VERSION} VERSION_LESS 3.12)
 endif()
 project(Mu)
 
+## Compiler settings
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -19,6 +20,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "Profile")
 endif()
 
 #----------------------------------------------------------------------------
+# Find packages
+
 # Find Geant4 package, activating all available UI and Vis drivers by default
 # You can set WITH_GEANT4_UIVIS to OFF via the command line or ccmake/cmake-gui
 # to build a batch mode only executable
@@ -30,14 +33,14 @@ else()
   find_package(Geant4 REQUIRED)
 endif()
 
-#----------------------------------------------------------------------------
 # Find CRY package
 find_library(CRY NAMES CRY PATHS ${PROJECT_SOURCE_DIR}/cry_v1.7/lib NO_DEFAULT_PATH )
 set(CRY_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/cry_v1.7/src)
 set(CRY_LIBRARIES ${PROJECT_SOURCE_DIR}/cry_v1.7/lib/libCRY.a)
 MESSAGE ("CRY installed at: " ${CRY_INCLUDE_DIRS} )
 
-
+# ROOT package. Only used for digitizer and metadata
+find_package(ROOT    REQUIRED)
 
 #----------------------------------------------------------------------------
 # Setup Geant4 include directories and compile definitions
@@ -59,11 +62,14 @@ file(GLOB_RECURSE  headers ${PROJECT_SOURCE_DIR}/include/*.hh
 # Add the executable, and link it to the Geant4 libraries
 ## Main simulation executable
 add_executable(simulation simulation.cc ${sources} ${headers})
-target_link_libraries(simulation ${Geant4_LIBRARIES} ${CRY_LIBRARIES})
+target_link_libraries(simulation PUBLIC
+                    ${Geant4_LIBRARIES} 
+                    ${ROOT_LIBRARIES}
+                    ${CRY_LIBRARIES})
 
 ## Standalone CRY cosmic generator
-add_executable(cry_ascii cry.cc src/util.cc ${headers})
-target_link_libraries(cry_ascii ${CRY_LIBRARIES})
+add_executable(cry cry.cc src/util.cc ${headers})
+target_link_libraries(cry ${CRY_LIBRARIES})
 
 
 #----------------------------------------------------------------------------
@@ -71,7 +77,7 @@ target_link_libraries(cry_ascii ${CRY_LIBRARIES})
 # build Mu. This is so that we can run the executable directly because it
 # relies on these scripts being in the current working directory.
 
-file(COPY macros DESTINATION ${PROJECT_BINARY_DIR})
+# file(COPY macros DESTINATION ${PROJECT_BINARY_DIR})
 
 
 # set(EXAMPLEMuA_SCRIPTS
@@ -98,3 +104,4 @@ file(COPY macros DESTINATION ${PROJECT_BINARY_DIR})
 # Install the executable to 'bin' directory under CMAKE_INSTALL_PREFIX
 #
 install(TARGETS simulation DESTINATION bin)
+install(TARGETS cry DESTINATION bin)

@@ -12,6 +12,7 @@
 
 
 MuGenerators::Generator*  _gen_; 
+std::string _gen_name_;
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -21,7 +22,8 @@ MuPrimaryGeneratorAction::MuPrimaryGeneratorAction(std::string _gen_default_)
   // Make a map of all available generators
   _gen_map_["gun"] = new MuGenerators::ParticleGun("gun", "ParticleGun");
   _gen_map_["cry"] = new MuGenerators::MuCRY("cry", "CRY cosmic", util::globals::PROJECT_SOURCE_DIR);
-  _gen_ = _gen_map_[_gen_default_];
+  _gen_name_ = _gen_default_;
+  _gen_ = _gen_map_[_gen_name_];
 
 
   // Add messenger commands 
@@ -62,6 +64,11 @@ void MuPrimaryGeneratorAction::SetNewValue(G4UIcommand *command,
 const MuGenerators::Generator* MuPrimaryGeneratorAction::GetGenerator()
 {
   return _gen_;
+}
+
+const std::string MuPrimaryGeneratorAction::GetName()
+{
+  return _gen_name_;
 }
 
 const MuGenerators::ParticleVector MuPrimaryGeneratorAction::GetLastEvent()

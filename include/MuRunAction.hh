@@ -48,6 +48,8 @@ class MuRunAction : public G4UserRunAction
   private:
     std::string output_dir;
     std::string run_number;
+    std::string fileName_output;
+    int tupleID_metadata;
     
 };
 

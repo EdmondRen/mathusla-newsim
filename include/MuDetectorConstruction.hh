@@ -82,6 +82,7 @@ class MuDetectorConstruction : public G4VUserDetectorConstruction, public G4UIme
 
     // get methods
     static util::py::Dict* GetSDdata();
+    static const std::string GetName();
      
     static const std::string MessengerDirectory;
 
@@ -92,7 +93,6 @@ class MuDetectorConstruction : public G4VUserDetectorConstruction, public G4UIme
     // The detector in use, _det_, with name _det_name_
     // and a list of detectors
     MuGeoBuilder::Builder*  _det_; 
-    std::string _det_name_;
     std::string _export_dir_;
     std::unordered_map<std::string, MuGeoBuilder::Builder*> _det_map_;    
     G4bool  fCheckOverlaps; // option to activate checking of volumes overlaps

@@ -81,6 +81,31 @@ namespace util
             std::cout << output << end;
         }
 
+        template <typename... Args>
+        std::string fprint(Args... args)
+        {
+            // Default values for sep and end
+            std::string sep = " ";
+            std::string end = "\n";
+
+            std::ostringstream oss;
+
+            // Using fold expression to unpack the arguments and insert the separator
+            ((print_item(oss, args), oss << sep), ...);
+
+            std::string output = oss.str();
+
+            // Remove the last separator
+            if (!output.empty())
+            {
+                output.erase(output.size() - sep.size());
+            }
+
+            // Print the result with the specified ending
+            output += end;
+            return output;
+        }        
+
         // Python-like dictionary class
         /*
         Example:

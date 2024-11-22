@@ -57,7 +57,7 @@ namespace Analysis
     void Setup();
     bool Open(const std::string &path);
     bool Save();
-    bool CreateNTuple(util::py::Dict &data, const std::string &name);
+    bool MuCreateNTuple(util::py::Dict &data, const std::string &name);
     bool FillNTuple(util::py::Dict &data);
 
 

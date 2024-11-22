@@ -202,7 +202,7 @@ namespace Analysis
     }
 
     // Create ROOT NTuple
-    bool CreateNTuple(util::py::Dict &data, const std::string &name)
+    bool MuCreateNTuple(util::py::Dict &data, const std::string &name)
     {
         const auto manager = G4AnalysisManager::Instance();
         tuple_id = manager->CreateNtuple(name, name);

@@ -39,6 +39,7 @@ public:
   // set and get methods
   void SetNewValue(G4UIcommand* command, G4String value);
   static void SetGenerator(const std::string& generator); 
+  static const std::string GetName();
   static const MuGenerators::Generator* GetGenerator();
   static const MuGenerators::ParticleVector GetLastEvent(); 
 

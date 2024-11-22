@@ -4,7 +4,8 @@
 # Set some default verbose
 #
 /control/verbose 2
-/control/saveHistory
+# Save command history
+# /control/saveHistory
 /run/verbose 2
 #
 # Change the default number of threads (in multi-threaded mode)

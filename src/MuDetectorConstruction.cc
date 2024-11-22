@@ -61,6 +61,7 @@ const std::string MuDetectorConstruction::MessengerDirectory = "/det/";
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 util::py::Dict *sensitiveDetectorData;
+std::string _det_name_;
 
 MuDetectorConstruction::MuDetectorConstruction(const std::string &detector_name,
                                                const std::string &export_dir)
@@ -117,6 +118,11 @@ void MuDetectorConstruction::ConstructSDandField()
 util::py::Dict *MuDetectorConstruction::GetSDdata()
 {
   return sensitiveDetectorData;
+}
+
+const std::string MuDetectorConstruction::GetName()
+{
+  return _det_name_;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
