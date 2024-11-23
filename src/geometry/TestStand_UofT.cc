@@ -65,12 +65,12 @@ namespace MuGeoBuilder
     std::vector<double> detector_modules_yoffset = detector_modules_xoffset;
     std::vector<double> detector_ground_offset = {0, 0, 0}; // x and y offsets are relative to detector box center, z offset is from the bottom.
     // Surroundings
-    double env_earth_depth = 10 * m;
+    double env_earth_depth = 0.01 * m;
     double env_air_depth = 10 * m;
     double env_ceiling_lenx = detector_lenx + 5 * m;
     double env_ceiling_leny = detector_lenx + 5 * m;
     double env_ceiling_lenz = detector_lenz + 3 * m;
-    double env_ceiling_concrete_thickness = 40 * cm;
+    double env_ceiling_concrete_thickness = 5 * cm;
     double env_floor_iron_thickness = 2 * cm;
     // World
     double world_lenx = 10 * m;

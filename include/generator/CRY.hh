@@ -59,7 +59,7 @@ namespace MuGenerators
         G4UIcmdWithADoubleAndUnit *_ui_offset_t_high;
         G4UIcmdWithADoubleAndUnit *_ui_ekin_low;
         G4UIcmdWithADoubleAndUnit *_ui_ekin_high;
-
+        G4UIcmdWithADouble *_ui_particle;
     };
 }
 

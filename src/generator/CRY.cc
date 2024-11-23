@@ -79,7 +79,7 @@ namespace MuGenerators
         // CRY initialization
         auto cry_setupString = util::io::readFileToString_CRY(PROJECT_SOURCE_DIR + "/macros/generators/cry_default.file");
         // G4cout << cry_setupString;
-        CRYSetup *cry_setup = new CRYSetup(cry_setupString, PROJECT_SOURCE_DIR + "/cry_v1.7/data");
+        CRYSetup *cry_setup = new CRYSetup(cry_setupString, PROJECT_SOURCE_DIR + "/third_party/cry_v1.7/data");
 
         // Set random number generator to use GEANT4 engine
         RNGWrapper<CLHEP::HepRandomEngine>::set(CLHEP::HepRandom::getTheEngine(), &CLHEP::HepRandomEngine::flat);
@@ -100,6 +100,7 @@ namespace MuGenerators
         fCRY_additional_setup["offset_t_high"] = 1000 * ns;
         fCRY_additional_setup["ekin_cut_low"] = 0.1 * GeV;
         fCRY_additional_setup["ekin_cut_high"] = 100 * TeV;
+        fCRY_additional_setup["particle_pdgid"] = 0;
 
         // Make messenger commands
         _ui_pathname = CreateCommand<G4UIcmdWithAString>("pathname", "Set pathname of CRY parameters file.");
@@ -120,6 +121,9 @@ namespace MuGenerators
         _ui_ekin_high = CreateCommand<G4UIcmdWithADoubleAndUnit>("ekin_high", "Set time kinetic energy cut upper bound with unit.");
         _ui_ekin_high->SetParameterName("ekin_high", false, false);
         _ui_ekin_high->AvailableForStates(G4State_PreInit, G4State_Idle);
+        _ui_particle = CreateCommand<G4UIcmdWithADouble>("particle_pdgid", "Select the PDG ID of the particle to apply the cut on. Default is all particles. If this command is set, then only events CONTAINING the selected particle will be kept. To undo it, set the value to 0");
+        _ui_particle->SetParameterName("particle_pdgid", false, false);
+        _ui_particle->AvailableForStates(G4State_PreInit, G4State_Idle);        
     }
 
     // Core function 1: GeneratePrimaryVertex()
@@ -130,6 +134,8 @@ namespace MuGenerators
         this->genParticles.clear();
 
         G4String particleName;
+        double kinEnergy = 0;
+        int pdgid = 0;
         bool pass_cuts = false;
 
         int countAttempt = 0;
@@ -141,27 +147,32 @@ namespace MuGenerators
 
             for (unsigned j = 0; j < cry_generated->size(); j++)
             {
-
-                particleName = CRYUtils::partName((*cry_generated)[j]->id());
                 // G4ParticleDefinition *particleDefinition = fparticleTable->FindParticle((*cry_generated)[j]->PDGid());
+                // particleName = CRYUtils::partName((*cry_generated)[j]->id());
+                kinEnergy = (*cry_generated)[j]->ke() * MeV;
+                pdgid = (*cry_generated)[j]->PDGid();
+                
+                // Select particles in the given energy range
+                // If "particle_pdgid" is set, cut on that as well.
+                if ((fCRY_additional_setup["particle_pdgid"]==0 || fCRY_additional_setup["particle_pdgid"]==pdgid) 
+                    && (kinEnergy >= fCRY_additional_setup["ekin_cut_low"] && kinEnergy <= fCRY_additional_setup["ekin_cut_high"]))
+                    pass_cuts = true; 
+                else
+                    countAttempt++;
 
                 // Find the time of the first particle
                 if ((*cry_generated)[j]->t() < tmin)
-                    tmin = (*cry_generated)[j]->t();
-
-                double kinEnergy = (*cry_generated)[j]->ke() * MeV;
-                if (kinEnergy >= fCRY_additional_setup["ekin_cut_low"] && kinEnergy <= fCRY_additional_setup["ekin_cut_high"])
-                    pass_cuts = true; // 2670
-                else
-                    countAttempt++;
+                    tmin = (*cry_generated)[j]->t();                    
             }
 
         } while (pass_cuts == false);
+
 
         //....debug output
         // G4cout << "\nEvent=" << anEvent->GetEventID() << " "
         //        << "CRY generated nparticles=" << cry_generated->size()
         //        << " pass Ekin threshold: " << pass_cuts << G4endl;
+        // util::py::print(cry_generated->size());
 
         // Sample a time for this event
         G4double t0 = GenerateRandomInRange(fCRY_additional_setup["offset_t_low"], fCRY_additional_setup["offset_t_high"]);
@@ -224,7 +235,7 @@ namespace MuGenerators
             auto cry_setupString = util::io::readFileToString_CRY(value);
             G4cout << "\nCRY setup string: \n"
                    << cry_setupString << "\n";
-            CRYSetup *cry_setup = new CRYSetup(cry_setupString, PROJECT_SOURCE_DIR + "/cry_v1.7/data");
+            CRYSetup *cry_setup = new CRYSetup(cry_setupString, PROJECT_SOURCE_DIR + "/third_party/cry_v1.7/data");
             // Set random number generator to use GEANT4 engine
             RNGWrapper<CLHEP::HepRandomEngine>::set(CLHEP::HepRandom::getTheEngine(), &CLHEP::HepRandomEngine::flat);
             cry_setup->setRandomFunction(RNGWrapper<CLHEP::HepRandomEngine>::rng);
@@ -246,6 +257,9 @@ namespace MuGenerators
             fCRY_additional_setup["ekin_cut_low"] = _ui_ekin_low->GetNewDoubleValue(value);
         else if (command == _ui_ekin_high)
             fCRY_additional_setup["ekin_cut_high"] = _ui_ekin_high->GetNewDoubleValue(value);
+        else if (command == _ui_particle)
+            fCRY_additional_setup["particle_pdgid"] = _ui_particle->GetNewDoubleValue(value);            
+
     }
 
 }

@@ -11,9 +11,13 @@ project(Mu)
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
-## Enable profiling for debug build
-# Run the simulation, then use `gprof my_program gmon.out > analysis.txt` to check the result
+
+## Build type: Debug or Release
+# set (CMAKE_BUILD_TYPE Release)
 set (CMAKE_BUILD_TYPE Debug)
+
+## Enable profiling for Debug build
+# Run the simulation, then use `gprof my_program gmon.out > analysis.txt` to check the result
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "Profile")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
@@ -34,9 +38,9 @@ else()
 endif()
 
 # Find CRY package
-find_library(CRY NAMES CRY PATHS ${PROJECT_SOURCE_DIR}/cry_v1.7/lib NO_DEFAULT_PATH )
-set(CRY_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/cry_v1.7/src)
-set(CRY_LIBRARIES ${PROJECT_SOURCE_DIR}/cry_v1.7/lib/libCRY.a)
+find_library(CRY NAMES CRY PATHS ${PROJECT_SOURCE_DIR}/third_party/cry_v1.7/lib NO_DEFAULT_PATH )
+set(CRY_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/third_party/cry_v1.7/src)
+set(CRY_LIBRARIES ${PROJECT_SOURCE_DIR}/third_party/cry_v1.7/lib/libCRY.a)
 MESSAGE ("CRY installed at: " ${CRY_INCLUDE_DIRS} )
 
 # ROOT package. Only used for digitizer and metadata

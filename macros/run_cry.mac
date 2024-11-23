@@ -14,7 +14,10 @@
 
 ## Setup CRY generator
 /gen/select cry
+#/gen/cry/pathname ../macros/generators/cry_all.file
 /gen/cry/pathname ../macros/generators/cry_proton.file
+# Filter events that contains proton (2212) and is above 2.67 GeV
+/gen/cry/particle_pdgid 2212
 /gen/cry/ekin_low 2.67 GeV
 
 /tracking/verbose 0
