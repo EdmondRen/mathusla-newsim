@@ -63,10 +63,64 @@ namespace MuGenerators
     }
     //--------------------------------------------------------------------------
 
+    // Helper function to find intersection range
+    bool intersectSlab(double p0, double d, double min, double max, double &tmin, double &tmax)
+    {
+        if (std::abs(d) < 1e-8)
+        {
+            // Line is parallel to the slab
+            return p0 >= min && p0 <= max;
+        }
+        double t1 = (min - p0) / d;
+        double t2 = (max - p0) / d;
+        if (t1 > t2)
+            std::swap(t1, t2);
+        tmin = std::max(tmin, t1);
+        tmax = std::min(tmax, t2);
+        return tmin <= tmax;
+    }
+
+    bool doesLineIntersectBox(const Vec3 &p0, const Vec3 &d, const Vec3 &boxMin, const Vec3 &boxMax)
+    {
+        double tmin = -INFINITY, tmax = INFINITY;
+
+        // Check x-axis slab
+        if (!intersectSlab(p0.x, d.x, boxMin.x, boxMax.x, tmin, tmax))
+            return false;
+
+        // Check y-axis slab
+        if (!intersectSlab(p0.y, d.y, boxMin.y, boxMax.y, tmin, tmax))
+            return false;
+
+        // Check z-axis slab
+        if (!intersectSlab(p0.z, d.z, boxMin.z, boxMax.z, tmin, tmax))
+            return false;
+
+        return true;
+    }
+
     MuCRY::MuCRY(const std::string &name,
                  const std::string &description,
                  const std::string &project_source_dir) : Generator(name, description), PROJECT_SOURCE_DIR(project_source_dir)
     {
+        // Initialize Other parameters that is not part of CRY, but are needed to generate particle at correct points
+        fCRY_additional_setup["use_shape"] = 0; // 0: rect, 1: box, 2: sphere
+
+        fCRY_additional_setup["rect_lenx"] = 40 * m;
+        fCRY_additional_setup["rect_leny"] = 4 * m;
+        fCRY_additional_setup["rect_lenz"] = 10 * m;
+        fCRY_additional_setup["sphere_r"] = 1 * m;
+
+        fCRY_additional_setup["offset_x"] = 0 * m;
+        fCRY_additional_setup["offset_y"] = 0 * m;
+        fCRY_additional_setup["offset_z"] = fCRY_additional_setup["rect_lenz"];
+        fCRY_additional_setup["offset_t_low"] = -1000 * ns;
+        fCRY_additional_setup["offset_t_high"] = 1000 * ns;
+
+        fCRY_additional_setup["ekin_cut_low"] = 0.1 * GeV;
+        fCRY_additional_setup["ekin_cut_high"] = 100 * TeV;
+        fCRY_additional_setup["particle_pdgid"] = 0;
+
         // A particle gun to use with CRY
         G4int nofParticles = 1;
         fParticleGun = new G4ParticleGun(nofParticles);
@@ -76,10 +130,20 @@ namespace MuGenerators
         fParticleGun->SetParticleMomentumDirection(G4ThreeVector(0., 0., -1.));
         fParticleGun->SetParticleEnergy(50. * MeV);
 
-        // CRY initialization
-        auto cry_setupString = util::io::readFileToString_CRY(PROJECT_SOURCE_DIR + "/macros/generators/cry_default.file");
+        // CRY initialization, using default cry config file
+        auto cry_defaultConfig = "/macros/generators/cry_default.file";
+        auto cry_setupString = util::io::readFileToString_CRY(PROJECT_SOURCE_DIR + cry_defaultConfig);
         // G4cout << cry_setupString;
         CRYSetup *cry_setup = new CRYSetup(cry_setupString, PROJECT_SOURCE_DIR + "/third_party/cry_v1.7/data");
+
+        // Find the box width / sphere radius from the cry config file
+        this->samplingShape = static_cast<GEOTYPE>(static_cast<int>(fCRY_additional_setup["use_shape"]));
+        this->subBoxMin = {fCRY_additional_setup["offset_x"] - fCRY_additional_setup["rect_lenx"] / 2,
+                           fCRY_additional_setup["offset_y"] - fCRY_additional_setup["rect_leny"] / 2,
+                           fCRY_additional_setup["offset_z"] - fCRY_additional_setup["rect_lenz"]};
+        this->subBoxMax = {fCRY_additional_setup["offset_x"] + fCRY_additional_setup["rect_lenx"] / 2,
+                           fCRY_additional_setup["offset_y"] + fCRY_additional_setup["rect_leny"] / 2,
+                           fCRY_additional_setup["offset_z"]};
 
         // Set random number generator to use GEANT4 engine
         RNGWrapper<CLHEP::HepRandomEngine>::set(CLHEP::HepRandom::getTheEngine(), &CLHEP::HepRandomEngine::flat);
@@ -91,16 +155,6 @@ namespace MuGenerators
 
         // Create the table containing all particle names
         this->fparticleTable = G4ParticleTable::GetParticleTable();
-
-        // Initialize Other parameters that is not part of CRY, but are needed to generate particle at correct points
-        fCRY_additional_setup["offset_x"] = 0 * m;
-        fCRY_additional_setup["offset_y"] = 0 * m;
-        fCRY_additional_setup["offset_z"] = 4 * m;
-        fCRY_additional_setup["offset_t_low"] = -1000 * ns;
-        fCRY_additional_setup["offset_t_high"] = 1000 * ns;
-        fCRY_additional_setup["ekin_cut_low"] = 0.1 * GeV;
-        fCRY_additional_setup["ekin_cut_high"] = 100 * TeV;
-        fCRY_additional_setup["particle_pdgid"] = 0;
 
         // Make messenger commands
         _ui_pathname = CreateCommand<G4UIcmdWithAString>("pathname", "Set pathname of CRY parameters file.");
@@ -123,7 +177,7 @@ namespace MuGenerators
         _ui_ekin_high->AvailableForStates(G4State_PreInit, G4State_Idle);
         _ui_particle = CreateCommand<G4UIcmdWithADouble>("particle_pdgid", "Select the PDG ID of the particle to apply the cut on. Default is all particles. If this command is set, then only events CONTAINING the selected particle will be kept. To undo it, set the value to 0");
         _ui_particle->SetParameterName("particle_pdgid", false, false);
-        _ui_particle->AvailableForStates(G4State_PreInit, G4State_Idle);        
+        _ui_particle->AvailableForStates(G4State_PreInit, G4State_Idle);
     }
 
     // Core function 1: GeneratePrimaryVertex()
@@ -136,7 +190,8 @@ namespace MuGenerators
         G4String particleName;
         double kinEnergy = 0;
         int pdgid = 0;
-        bool pass_cuts = false;
+        bool pass_cuts1 = false;
+        bool pass_cuts2 = false;
 
         int countAttempt = 0;
         double tmin = 1e100;
@@ -151,22 +206,39 @@ namespace MuGenerators
                 // particleName = CRYUtils::partName((*cry_generated)[j]->id());
                 kinEnergy = (*cry_generated)[j]->ke() * MeV;
                 pdgid = (*cry_generated)[j]->PDGid();
-                
-                // Select particles in the given energy range
+
+                // Cuts
+                // 1. Select particles in the given energy range and with certain PDG id
                 // If "particle_pdgid" is set, cut on that as well.
-                if ((fCRY_additional_setup["particle_pdgid"]==0 || fCRY_additional_setup["particle_pdgid"]==pdgid) 
-                    && (kinEnergy >= fCRY_additional_setup["ekin_cut_low"] && kinEnergy <= fCRY_additional_setup["ekin_cut_high"]))
-                    pass_cuts = true; 
+                if ((fCRY_additional_setup["particle_pdgid"] == 0 || fCRY_additional_setup["particle_pdgid"] == pdgid) && (kinEnergy >= fCRY_additional_setup["ekin_cut_low"] && kinEnergy <= fCRY_additional_setup["ekin_cut_high"]))
+                    pass_cuts1 = true;
                 else
                     countAttempt++;
 
+                // 2. Only select events with tracks that intersect with the box
+                if (this->samplingShape == box)
+                {
+                    G4double fParticlePosX = (*cry_generated)[j]->x() * m + fCRY_additional_setup["offset_x"];
+                    G4double fParticlePosY = (*cry_generated)[j]->y() * m + fCRY_additional_setup["offset_y"];
+                    G4double fParticlePosZ = (*cry_generated)[j]->z() * m + fCRY_additional_setup["offset_z"];
+                    G4double fParticlePu = (*cry_generated)[j]->u();
+                    G4double fParticlePv = (*cry_generated)[j]->v();
+                    G4double fParticlePw = (*cry_generated)[j]->w();
+
+                    Vec3 line_point = {fParticlePosX, fParticlePosY, fParticlePosZ};
+                    Vec3 line_direction = {fParticlePu, fParticlePv, fParticlePw};
+                    if (((*cry_generated)[j]->x() * m < ) || doesLineIntersectBox(line_point, line_direction, this->subBoxMin, this->subBoxMax))
+                        pass_cuts2 = true;
+                }
+                else
+                    pass_cuts2=true;
+
                 // Find the time of the first particle
                 if ((*cry_generated)[j]->t() < tmin)
-                    tmin = (*cry_generated)[j]->t();                    
+                    tmin = (*cry_generated)[j]->t();
             }
 
-        } while (pass_cuts == false);
-
+        } while (pass_cuts1 == false || pass_cuts2 == false );
 
         //....debug output
         // G4cout << "\nEvent=" << anEvent->GetEventID() << " "
@@ -198,7 +270,8 @@ namespace MuGenerators
             G4double fParticleMomentumZ = fParticleMomentum * fParticleMomentumDirectionW;
             G4double fParticleTime = t0 + ((*cry_generated)[j]->t() - tmin);
 
-            // You can continue using particle gun, 
+            // Generate the particle.
+            // You can continue using particle gun,
             // fParticleGun->SetParticleDefinition(particleDefinition);
             // fParticleGun->SetParticlePosition(G4ThreeVector(fParticlePosX, fParticlePosY, fParticlePosZ));
             // fParticleGun->SetParticleMomentum(G4ThreeVector(fParticleMomentumX, fParticleMomentumY, fParticleMomentumZ));
@@ -218,7 +291,7 @@ namespace MuGenerators
 
             const auto vertex = new G4PrimaryVertex(newParticle.x, newParticle.y, newParticle.z, newParticle.t);
             vertex->SetPrimary(new G4PrimaryParticle(newParticle.pdgid, newParticle.px, newParticle.py, newParticle.pz));
-            anEvent->AddPrimaryVertex(vertex);            
+            anEvent->AddPrimaryVertex(vertex);
 
             genParticles.push_back(newParticle);
         }
@@ -258,8 +331,32 @@ namespace MuGenerators
         else if (command == _ui_ekin_high)
             fCRY_additional_setup["ekin_cut_high"] = _ui_ekin_high->GetNewDoubleValue(value);
         else if (command == _ui_particle)
-            fCRY_additional_setup["particle_pdgid"] = _ui_particle->GetNewDoubleValue(value);            
-
+            fCRY_additional_setup["particle_pdgid"] = _ui_particle->GetNewDoubleValue(value);
     }
 
+    float MuCRY::extractSubBoxLength(const std::string &filename)
+    {
+        std::ifstream file(filename); // Open the file
+        if (!file.is_open())
+        {
+            std::cerr << "Error: Unable to open file " << filename << std::endl;
+            return -1; // Return -1 to indicate an error
+        }
+
+        std::string line;
+        while (std::getline(file, line))
+        { // Read the file line by line
+            std::istringstream iss(line);
+            std::string key;
+            int value;
+            iss >> key >> value; // Extract key and value
+            if (key == "subboxLength")
+            {                 // Check if the key matches
+                return value; // Return the extracted value
+            }
+        }
+
+        std::cerr << "Error: 'subboxLength' not found in the file." << std::endl;
+        return -1; // Return -1 to indicate the key was not found
+    }
 }

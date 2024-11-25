@@ -66,7 +66,7 @@ int main(int argc, const char *argv[])
   options.add_options()
       ("h,help", "Print help")
       ("s,setup", "setup file name", cxxopts::value<std::string>()->default_value("../macros/generators/cry_all.file"))
-      ("n,nevents", "Number of events", cxxopts::value<int>()->default_value("1000"))
+      ("n,nevents", "Number of events (after energy cut, if energy cut is enabled)", cxxopts::value<int>()->default_value("1000"))
       ("e,ekin", "Kinetic energy cut. Positive value means above, and negative means below. Set to 0 to disable", cxxopts::value<int>()->default_value("0"))
       ("c,contains", "Select only events that contains specific PDG-ids, separated by commas. Eg, --contains=13,-13. All supported: e(+-11), mu(+-13), neutron(2112), proton(2212), gamma(22), pion(+-211,111), kaon(+-321,311,310,130). Set to 0 to disable", cxxopts::value<std::vector<int>>()->default_value("0"));
   auto args = options.parse(argc, argv);
@@ -98,7 +98,7 @@ int main(int argc, const char *argv[])
     setupString.append(" ");
   }
   CRYSetup *setup = new CRYSetup(setupString,
-                                 PROJECT_SOURCE_DIR + "/cry_v1.7/data"); // Use absolute path to CRY data files
+                                 PROJECT_SOURCE_DIR + "/third_party/cry_v1.7/data"); // Use absolute path to CRY data files
 
   // Make a generator
   CRYGenerator gen(setup);
@@ -111,7 +111,7 @@ int main(int argc, const char *argv[])
   out << "# nEvent nSecondary PDG-id KE[MeV] x[m] y[m] z[m] u v w t[s]\n";
 
   std::vector<CRYParticle *> *ev = new std::vector<CRYParticle *>;
-  for (int i = 0; i < nEv; i++)
+  for (int i = 0; i < nEv; )
   {
     ev->clear();
     gen.genEvent(ev);
@@ -139,6 +139,8 @@ int main(int argc, const char *argv[])
 
     if (!selected)
       continue;
+    else
+      i++;
 
     for (unsigned j = 0; j < ev->size(); j++)
     {

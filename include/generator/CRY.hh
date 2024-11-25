@@ -16,6 +16,19 @@
 
 namespace MuGenerators
 {
+    enum GEOTYPE
+    {
+        rect,
+        box,
+        sphere,
+    };
+
+    struct Vec3
+    {
+        double x, y, z;
+    };        
+
+
     /// The primary generator action class with particle gum.
     ///
     /// It defines a single particle which hits the calorimeter
@@ -38,11 +51,15 @@ namespace MuGenerators
         // This is used to set generator parameters
         void SetNewValue(G4UIcommand *command,
                          G4String value) override;
+        float extractSubBoxLength(const std::string& filename);
 
         // Other helper functions
         // std::ostream &Print(std::ostream &os = std::cout) const override;
 
     private:
+
+
+
         G4ParticleGun *fParticleGun;
         G4ParticleTable *fparticleTable;
         
@@ -51,6 +68,10 @@ namespace MuGenerators
         std::map<std::string, float> fCRY_additional_setup;
         
         std::string PROJECT_SOURCE_DIR;
+
+        // Two corners of the box
+        Vec3 subBoxMin,subBoxMax;
+        GEOTYPE samplingShape;
 
         // Messenger commands
         G4UIcmdWithAString *_ui_pathname;

@@ -67,7 +67,7 @@ int main(int argc, char **argv)
   G4int run_number = args["run"].as<G4int>();
   (void)run_number;
   G4int run_seed = args["seed"].as<G4int>();
-  // Tom: Do not change the engine! EventAction is only able to record status of RanecuEngine.
+  // Tom 2024-11-25: Do not change the engine! RanecuEngine is the only one supported by our EventAction.
   G4Random::setTheEngine(new CLHEP::RanecuEngine);
   if (run_seed == -1)
     G4Random::setTheSeed(time(nullptr));
@@ -99,8 +99,10 @@ int main(int argc, char **argv)
   //
   auto detConstruction = new MuDetectorConstruction(args["detector"].as<G4String>(), args["export"].as<G4String>());
   runManager->SetUserInitialization(detConstruction);
-
+  
+  // Set physics list
   auto physicsList = new FTFP_BERT;
+  // physicsList->RegisterPhysics(new ElectronEarthCutBuilder()); // Electron cuts
   runManager->SetUserInitialization(physicsList);
 
   auto actionInitialization = new MuActionInitialization(detConstruction, args);

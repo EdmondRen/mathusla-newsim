@@ -16,6 +16,7 @@
 #include <map>
 
 
+
 namespace util
 {
     namespace globals
@@ -104,7 +105,7 @@ namespace util
             // Print the result with the specified ending
             output += end;
             return output;
-        }        
+        }
 
         // Python-like dictionary class
         /*
@@ -279,7 +280,7 @@ namespace util
             Column &operator[](int key_ind)
             {
                 return Get(key_ind);
-            }            
+            }
 
             Column &Get(std::string key_name)
             {
@@ -289,16 +290,14 @@ namespace util
             Column &Get(int key_ind)
             {
                 return *this->data[keys_map[key_ind]];
-            }            
+            }
 
             void Add(std::string key_name, KEYTYPE key_type, DTYPE data_type)
             {
                 this->data[key_name] = new Column(key_name, ncolumns, key_type, data_type);
                 this->keys_map.push_back(key_name);
-                ncolumns +=1;
+                ncolumns += 1;
             }
-
-            
 
             // clang-format off
             // DictVariant Get(std::string key)
@@ -346,7 +345,118 @@ namespace util
 
     } // namespace io
 
+    namespace notstd
+    {
+        namespace ca_helper
+        {
+            template <template <class...> class, class, class...>
+            struct can_apply : std::false_type
+            {
+            };
+            template <class...>
+            struct voider
+            {
+                using type = void;
+            };
+            template <class... Ts>
+            using void_t = typename voider<Ts...>::type;
+
+            template <template <class...> class Z, class... Ts>
+            struct can_apply<Z, void_t<Z<Ts...>>, Ts...> : std::true_type
+            {
+            };
+        }
+        template <template <class...> class Z, class... Ts>
+        using can_apply = ca_helper::can_apply<Z, void, Ts...>;
+
+        namespace find_helper
+        {
+            template <class C, class T>
+            using dot_find_r = decltype(std::declval<C>().find(std::declval<T>()));
+            template <class C, class T>
+            using can_dot_find = can_apply<dot_find_r, C, T>;
+            template <class C, class T>
+            constexpr std::enable_if_t<can_dot_find<C &, T>{}, bool>
+            find(C &&c, T &&t)
+            {
+                using std::end;
+                return c.find(std::forward<T>(t)) != end(c);
+            }
+            template <class C, class T>
+            constexpr std::enable_if_t<!can_dot_find<C &, T>{}, bool>
+            find(C &&c, T &&t)
+            {
+                using std::begin;
+                using std::end;
+                return std::find(begin(c), end(c), std::forward<T>(t)) != end(c);
+            }
+            template <class C, class T>
+            constexpr bool finder(C &&c, T &&t)
+            {
+                return find(std::forward<C>(c), std::forward<T>(t));
+            }
+        }
+        template <class C, class T>
+        constexpr bool find(C &&c, T &&t)
+        {
+            return find_helper::finder(std::forward<C>(c), std::forward<T>(t));
+        }
+        struct finder_t
+        {
+            template <class C, class T>
+            constexpr bool operator()(C &&c, T &&t) const
+            {
+                return find(std::forward<C>(c), std::forward<T>(t));
+            }
+            constexpr finder_t() {}
+        };
+        constexpr finder_t finder{};
+        namespace named_operator
+        {
+            template <class D>
+            struct make_operator
+            {
+                make_operator() {}
+            };
+
+            template <class T, char, class O>
+            struct half_apply
+            {
+                T &&lhs;
+            };
+
+            template <class Lhs, class Op>
+            half_apply<Lhs, '*', Op> operator*(Lhs &&lhs, make_operator<Op>)
+            {
+                return {std::forward<Lhs>(lhs)};
+            }
+
+            template <class Lhs, class Op, class Rhs>
+            auto operator*(half_apply<Lhs, '*', Op> &&lhs, Rhs &&rhs)
+                -> decltype(named_invoke(std::forward<Lhs>(lhs.lhs), Op{}, std::forward<Rhs>(rhs)))
+            {
+                return named_invoke(std::forward<Lhs>(lhs.lhs), Op{}, std::forward<Rhs>(rhs));
+            }
+        }
+        namespace in_helper
+        {
+            struct in_t : notstd::named_operator::make_operator<in_t>
+            {
+            };
+            template <class T, class C>
+            bool named_invoke(T &&t, in_t, C &&c)
+            {
+                return notstd::find(std::forward<C>(c), std::forward<T>(t));
+            }
+        }
+        // in_helper::in_t in;
+        extern const in_helper::in_t in; // Declare `in` here as extern, and define it in util.cc
+    }
+
 }
+
+using  util::notstd::in;
+using  util::py::print;
 
 #endif // UTIL_H
 

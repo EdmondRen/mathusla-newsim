@@ -27,12 +27,21 @@
 /// \file MuSteppingAction.cc
 /// \brief Implementation of the MuSteppingAction class
 
+#include "G4Step.hh"
+#include "G4RunManager.hh"
+
+
+#include "G4Gamma.hh"
+#include "G4Electron.hh"
+#include "G4Positron.hh"
+
 #include "MuSteppingAction.hh"
 #include "MuEventAction.hh"
 #include "MuDetectorConstruction.hh"
+#include "MuActionInitialization.hh"
 
-#include "G4Step.hh"
-#include "G4RunManager.hh"
+// #include "util.hh"
+
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -56,6 +65,60 @@ void MuSteppingAction::UserSteppingAction(const G4Step* step)
   // get volume of the current step
   // auto volume = step->GetPreStepPoint()->GetTouchableHandle()->GetVolume();
   (void)step;
+
+  const auto step_point = step->GetPreStepPoint();
+  // const auto momentum   = G4LorentzVector(step_point->GetTotalEnergy(), step_point->GetMomentum());  
+  G4Track* track = (G4Track*)(step->GetTrack());
+  G4double Ekin = track->GetKineticEnergy();
+  // auto _pdg = track->GetParticleDefinition()->GetPDGEncoding();
+  // auto _trackID = track->GetTrackID();
+  const G4ParticleDefinition* particleDefinition = track->GetParticleDefinition();
+
+
+
+  // if (MuActionInitialization::DEBUG)
+  // {
+  //   // const auto step_point = step->GetPreStepPoint();
+  //   // const auto momentum   = G4LorentzVector(step_point->GetTotalEnergy(), step_point->GetMomentum());
+
+  //   // const auto post_step_point = step->GetPostStepPoint();
+  //   // const auto position   = G4LorentzVector(step_point->GetGlobalTime(), step_point->GetPosition());
+  //   // const auto position_end   = G4LorentzVector(post_step_point->GetGlobalTime(), post_step_point->GetPosition());
+  //   // auto _pdg = step->GetTrack()->GetParticleDefinition()->GetPDGEncoding();
+
+
+  //   auto _trackid_status = step->GetTrack()->GetTrackStatus();
+
+  //   auto status_to_print = {fStopAndKill};
+  //   if (_trackid_status *in* status_to_print)
+  //   {
+  //     // util::py::print(_pdg,momentum.px(),momentum.py(),momentum.pz(),momentum.e());
+  //   }
+
+  // }
+
+  if ((particleDefinition == G4Electron::Electron() || particleDefinition == G4Positron::Positron()) && Ekin < 10) 
+  {
+    // print("Kill track", _trackID, _pdg, Ekin, step_point->GetTotalEnergy());
+    track->SetTrackStatus(fStopAndKill);
+  }
+
+  else if (particleDefinition == G4Gamma::Gamma() && Ekin < 2) 
+  {
+    // print("Kill track", _trackID, _pdg, Ekin, step_point->GetTotalEnergy());
+    track->SetTrackStatus(fStopAndKill);
+  }  
+
+  // if (_trackID>10) 
+  // {
+  //   // print("Kill track", _trackID, _pdg, Ekin, step_point->GetTotalEnergy());
+  //   track->SetTrackStatus(fStopAndKill);
+  // }  
+
+
+
+  // else
+  //   print(_trackID, _pdg, Ekin);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

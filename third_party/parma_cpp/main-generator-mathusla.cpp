@@ -38,14 +38,14 @@ int main(int argc, char *argv[])
     // Set condition
     int nevent = 1000;    // number of particles to be generated
     int ip = 1;           // Particle ID (Particle ID, 0:neutron, 1-28:H-Ni, 29-30:muon+-, 31:e-, 32:e+, 33:photon)
-    int iyear = 2019;     // Year
+    int iyear = 2023;     // Year
     int imonth = 2;       // Month
     int iday = 1;         // Day
-    double glat = 30.5;   // Latitude (deg), -90 =< glat =< 90
-    double glong = -76.2; // Longitude (deg), -180 =< glong =< 180
+    double glat = 46.2330; // Cern Latitude (deg), -90 =< glat =< 90
+    double glong = 6.0557; // Cern Longitude (deg), -180 =< glong =< 180
     double alti = 0.0;    // Altitude (km)
     double g = 0.15;      // Local geometry parameter, 0=< g =< 1: water weight fraction, 10:no-earth, 100:blackhole, -10< g < 0: pilot, g < -10: cabin
-    double radi = 100.0;  // radius of the target area in cm (put your target inside this area)
+    double radi = 35.0*100;  // [35 meter radius could cover the 40x40m mathusla geometry] radius of the target area in cm (put your target inside this area)
 
     // Set energy and angle ranges for generation
     double emin = 1.0e0; // Minimum energy of particle

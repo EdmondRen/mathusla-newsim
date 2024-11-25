@@ -98,14 +98,14 @@ namespace util
             return _mkdir(dir.c_str());
 #else
             // Get current directory. If it is relative, use the  directory of the executable
-            auto testDir = newDirPath[0]=='/'? newDirPath  : path::getExecutablePath().string();
+            auto testDir = newDirPath[0] == '/' ? newDirPath : path::getExecutablePath().string();
             // So that we can make new directory with same permissions
             auto path_current = std::filesystem::path(testDir);
             auto path_parent = path_current.parent_path().string();
             // Get the parent's status
             struct stat parentStat;
             if (stat(path_parent.c_str(), &parentStat) != 0)
-            {   
+            {
                 std::cout << "Error getting parent directory status: " << strerror(errno) << std::endl;
                 return false;
             }
@@ -125,4 +125,12 @@ namespace util
 
     } // namespace io
 
+    namespace notstd
+    {
+        const in_helper::in_t in{}; // Define `in` here
+    }
+
 } // namespace util
+
+// using  util::notstd::in;
+// using  util::py::print;

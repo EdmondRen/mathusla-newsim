@@ -56,4 +56,4 @@ Usage:
 
 Example: Generate 1 million events, save the ones that contains neutrons above 2600 MeV.
 
-    ./cry_ascii -c 2112 -e 2600 -n 1000000
+    ./cry -c 2112 -e 2600 -n 1000

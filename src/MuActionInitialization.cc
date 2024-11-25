@@ -36,6 +36,8 @@
 
 #include "util.hh"
 
+bool MuActionInitialization::DEBUG = false;
+
 
 MuActionInitialization::MuActionInitialization(MuDetectorConstruction *detConstruction, cxxopts::ParseResult &uargs)
     : G4VUserActionInitialization(),
@@ -44,6 +46,9 @@ MuActionInitialization::MuActionInitialization(MuDetectorConstruction *detConstr
 {
   // Make new directory for output
   util::io::create_directory(args["output"].as<G4String>());
+
+  // Set static flags
+  DEBUG = args.count("debug");
 }
 
 
