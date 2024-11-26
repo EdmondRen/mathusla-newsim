@@ -7,6 +7,7 @@
 #include "G4RunManagerFactory.hh"
 #include "G4VisExecutive.hh"
 #include "G4UIExecutive.hh"
+#include "G4StepLimiterPhysics.hh"
 #include "FTFP_BERT.hh"
 #include "Randomize.hh"
 
@@ -103,6 +104,7 @@ int main(int argc, char **argv)
   // Set physics list
   auto physicsList = new FTFP_BERT;
   // physicsList->RegisterPhysics(new ElectronEarthCutBuilder()); // Electron cuts
+  physicsList->RegisterPhysics(new G4StepLimiterPhysics());
   runManager->SetUserInitialization(physicsList);
 
   auto actionInitialization = new MuActionInitialization(detConstruction, args);

@@ -67,7 +67,7 @@ int main(int argc, const char *argv[])
       ("h,help", "Print help")
       ("s,setup", "setup file name", cxxopts::value<std::string>()->default_value("../macros/generators/cry_all.file"))
       ("n,nevents", "Number of events (after energy cut, if energy cut is enabled)", cxxopts::value<int>()->default_value("1000"))
-      ("e,ekin", "Kinetic energy cut. Positive value means above, and negative means below. Set to 0 to disable", cxxopts::value<int>()->default_value("0"))
+      ("e,ekin", "Kinetic energy cut. Positive value means above, and negative means below. Set to 0 to disable", cxxopts::value<float>()->default_value("0"))
       ("c,contains", "Select only events that contains specific PDG-ids, separated by commas. Eg, --contains=13,-13. All supported: e(+-11), mu(+-13), neutron(2112), proton(2212), gamma(22), pion(+-211,111), kaon(+-321,311,310,130). Set to 0 to disable", cxxopts::value<std::vector<int>>()->default_value("0"));
   auto args = options.parse(argc, argv);
   // clang-format on
@@ -80,7 +80,7 @@ int main(int argc, const char *argv[])
   }
 
   int nEv = args["nevents"].as<int>();
-  int ekin_cut = args["ekin"].as<int>();
+  float ekin_cut = args["ekin"].as<float>();
   int ekin_cut_sign = ekin_cut >= 0 ? 1 : -1;
   auto setup_filename = args["setup"].as<std::string>();
   auto selections = args["contains"].as<std::vector<int>>();
@@ -114,7 +114,12 @@ int main(int argc, const char *argv[])
   for (int i = 0; i < nEv; )
   {
     ev->clear();
-    gen.genEvent(ev);
+      // gen.genEvent(ev);
+
+    if (ekin_cut==0)
+      gen.genEvent(ev);
+    else
+      gen.genEvent(ev, ekin_cut);
 
     // If cut is enabled, check if the result contains the specified particle
     bool selected = false;
@@ -147,7 +152,7 @@ int main(int argc, const char *argv[])
       CRYParticle *p = (*ev)[j];
       //      std::cout
       out
-          << " " << i          // event
+          << i                 // event entry number
           << " " << j          // secondary
           << " " << p->PDGid() // particle type
           << " " << p->ke()    // KE

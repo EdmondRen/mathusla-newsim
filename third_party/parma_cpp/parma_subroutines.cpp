@@ -13,7 +13,6 @@ using namespace std;
 namespace PARMA
 {
 
-     using namespace std;
 
      // **********************************************************
      double getRfromECpp(int iz, int ia, double Ek, double Em) // get Rigidity in MV from Kinetic Energy (MeV/n)

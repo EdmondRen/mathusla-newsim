@@ -34,6 +34,7 @@
 #include "G4Gamma.hh"
 #include "G4Electron.hh"
 #include "G4Positron.hh"
+#include "G4Neutron.hh"
 
 #include "MuSteppingAction.hh"
 #include "MuEventAction.hh"
@@ -70,44 +71,30 @@ void MuSteppingAction::UserSteppingAction(const G4Step* step)
   // const auto momentum   = G4LorentzVector(step_point->GetTotalEnergy(), step_point->GetMomentum());  
   G4Track* track = (G4Track*)(step->GetTrack());
   G4double Ekin = track->GetKineticEnergy();
-  // auto _pdg = track->GetParticleDefinition()->GetPDGEncoding();
-  // auto _trackID = track->GetTrackID();
+  auto _pdg = track->GetParticleDefinition()->GetPDGEncoding();
+  auto _trackID = track->GetTrackID();
   const G4ParticleDefinition* particleDefinition = track->GetParticleDefinition();
 
 
 
   // if (MuActionInitialization::DEBUG)
+  // {}
+
+  // if ((particleDefinition == G4Electron::Electron() || particleDefinition == G4Positron::Positron()) && Ekin < 10) 
   // {
-  //   // const auto step_point = step->GetPreStepPoint();
-  //   // const auto momentum   = G4LorentzVector(step_point->GetTotalEnergy(), step_point->GetMomentum());
-
-  //   // const auto post_step_point = step->GetPostStepPoint();
-  //   // const auto position   = G4LorentzVector(step_point->GetGlobalTime(), step_point->GetPosition());
-  //   // const auto position_end   = G4LorentzVector(post_step_point->GetGlobalTime(), post_step_point->GetPosition());
-  //   // auto _pdg = step->GetTrack()->GetParticleDefinition()->GetPDGEncoding();
-
-
-  //   auto _trackid_status = step->GetTrack()->GetTrackStatus();
-
-  //   auto status_to_print = {fStopAndKill};
-  //   if (_trackid_status *in* status_to_print)
-  //   {
-  //     // util::py::print(_pdg,momentum.px(),momentum.py(),momentum.pz(),momentum.e());
-  //   }
-
+  //   // print("Kill track", _trackID, _pdg, Ekin, step_point->GetTotalEnergy());
+  //   track->SetTrackStatus(fStopAndKill);
   // }
-
-  if ((particleDefinition == G4Electron::Electron() || particleDefinition == G4Positron::Positron()) && Ekin < 10) 
-  {
-    // print("Kill track", _trackID, _pdg, Ekin, step_point->GetTotalEnergy());
-    track->SetTrackStatus(fStopAndKill);
-  }
-
-  else if (particleDefinition == G4Gamma::Gamma() && Ekin < 2) 
-  {
-    // print("Kill track", _trackID, _pdg, Ekin, step_point->GetTotalEnergy());
-    track->SetTrackStatus(fStopAndKill);
-  }  
+  // else if (particleDefinition == G4Gamma::Gamma() && Ekin < 2) 
+  // {
+  //   // print("Kill track", _trackID, _pdg, Ekin, step_point->GetTotalEnergy());
+  //   track->SetTrackStatus(fStopAndKill);
+  // }  
+  // else if (particleDefinition == G4Neutron::Neutron() && Ekin < 1) 
+  // {
+  //   // print("Kill track", _trackID, _pdg, Ekin, step_point->GetTotalEnergy());
+  //   track->SetTrackStatus(fStopAndKill);
+  // }  
 
   // if (_trackID>10) 
   // {
@@ -118,7 +105,7 @@ void MuSteppingAction::UserSteppingAction(const G4Step* step)
 
 
   // else
-  //   print(_trackID, _pdg, Ekin);
+    // print(_trackID, _pdg, Ekin, step_point->GetGlobalTime());
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

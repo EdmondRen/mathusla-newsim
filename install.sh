@@ -42,6 +42,20 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+
+
+
+# Build CRY first
+echo "------------------------------------------------"
+echo "  Building CRY"
+cd third_party/cry_v1.7
+make clean
+make -j8
+cd ../..
+echo "  Finished building CRY"
+echo "------------------------------------------------"
+
+
 if [[ "$CONFIG_CMAKE" -eq 1 && "$CLEAN_BUILD" -eq 1 ]]; then
     rm -rf build;
     rm simulation;

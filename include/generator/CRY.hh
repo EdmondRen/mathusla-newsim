@@ -18,7 +18,7 @@ namespace MuGenerators
 {
     enum GEOTYPE
     {
-        rect,
+        square,
         box,
         sphere,
     };
@@ -51,11 +51,12 @@ namespace MuGenerators
         // This is used to set generator parameters
         void SetNewValue(G4UIcommand *command,
                          G4String value) override;
-        float extractSubBoxLength(const std::string& filename);
 
         // Other helper functions
         // std::ostream &Print(std::ostream &os = std::cout) const override;
-
+        float extractSubBoxLength(const std::string& filename);
+        void startCRY(const std::string& cry_config, const std::string& cry_data);
+        void resetDimensions();
     private:
 
 
@@ -70,11 +71,14 @@ namespace MuGenerators
         std::string PROJECT_SOURCE_DIR;
 
         // Two corners of the box
+        double subboxLength;
         Vec3 subBoxMin,subBoxMax;
         GEOTYPE samplingShape;
 
         // Messenger commands
         G4UIcmdWithAString *_ui_pathname;
+        G4UIcmdWithAnInteger *_ui_shape;
+        G4UIcmdWith3VectorAndUnit *_ui_box;
         G4UIcmdWith3VectorAndUnit *_ui_offset;
         G4UIcmdWithADoubleAndUnit *_ui_offset_t_low;
         G4UIcmdWithADoubleAndUnit *_ui_offset_t_high;

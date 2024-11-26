@@ -1,13 +1,13 @@
 returnMuons 0
- returnNeutrons 0
- returnProtons 1
+ returnNeutrons 1
+ returnProtons 0
  returnGammas 0
  returnPions 0
  returnKaons 0
  returnElectrons 0
- nParticlesMax 100
- date 2-22-2024
- latitude 46
+ nParticlesMax 10
+ date 2-21-2023
+ latitude 46.233
  altitude 0
  subboxLength 70
 

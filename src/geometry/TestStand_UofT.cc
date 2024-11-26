@@ -12,7 +12,8 @@
 #include "G4PhysicalVolumeStore.hh"
 #include "G4LogicalVolumeStore.hh"
 #include "G4SolidStore.hh"
-#include <G4SubtractionSolid.hh>
+#include "G4SubtractionSolid.hh"
+#include "G4UserLimits.hh"
 
 // G4 visualization
 #include "G4VisAttributes.hh"
@@ -65,7 +66,8 @@ namespace MuGeoBuilder
     std::vector<double> detector_modules_yoffset = detector_modules_xoffset;
     std::vector<double> detector_ground_offset = {0, 0, 0}; // x and y offsets are relative to detector box center, z offset is from the bottom.
     // Surroundings
-    double env_earth_depth = 10 * m;
+    double env_earth_depth_top = 0.1 * m;
+    double env_earth_depth_mid = 40 * m;
     double env_air_depth = 10 * m;
     double env_ceiling_lenx = detector_lenx + 5 * m;
     double env_ceiling_leny = detector_lenx + 5 * m;
@@ -75,7 +77,7 @@ namespace MuGeoBuilder
     // World
     double world_lenx = 100 * m;
     double world_leny = 100 * m;
-    double world_lenz = 50 * m;
+    double world_lenz = 100 * m;
   }
 
   // Geometry Builder Class
@@ -259,8 +261,8 @@ namespace MuGeoBuilder
     auto detector = new G4Box("detector", uoftdims::detector_lenx / 2, uoftdims::detector_leny / 2, uoftdims::detector_lenz / 2);
 
     //
-    // Earth
-    auto earth = new G4Box("earth", uoftdims::world_lenx / 2, uoftdims::world_leny / 2, uoftdims::env_earth_depth / 2);
+    // Earth - top
+    auto earth = new G4Box("earth", uoftdims::world_lenx / 2, uoftdims::world_leny / 2, uoftdims::env_earth_depth_top / 2);
     // Subtract detector from earth (in case we want to excavate a little bit)
     auto earth_excavated =
         new G4SubtractionSolid("earth_excavated",
@@ -269,7 +271,7 @@ namespace MuGeoBuilder
                                G4Transform3D(G4RotationMatrix(), // rotation
                                              G4ThreeVector(uoftdims::detector_ground_offset[0],
                                                            uoftdims::detector_ground_offset[1],
-                                                           0.5 * uoftdims::env_earth_depth + 0.5 * uoftdims::detector_lenz + uoftdims::detector_ground_offset[2])));
+                                                           0.5 * uoftdims::env_earth_depth_top + 0.5 * uoftdims::detector_lenz + uoftdims::detector_ground_offset[2])));
     G4LogicalVolume *earthLV = new G4LogicalVolume(
         earth_excavated,     // its solid
         Material::GroundMix, // its material
@@ -280,14 +282,52 @@ namespace MuGeoBuilder
     auto earthPV = new G4PVPlacement(
         G4Transform3D(G4RotationMatrix(), // rotation
                       G4ThreeVector(0, 0,
-                                    -0.5 * uoftdims::env_earth_depth)), // offset
-        earthLV,                                                        // its logical volume
-        "earth",                                                        // its name
-        _worldLV,                                                        // its mother volume
-        false,                                                          // no boolean operation
-        0,                                                              // copy number (layer number within a module)
-        fCheckOverlaps);                                                // checking overlaps
+                                    -0.5 * uoftdims::env_earth_depth_top)), // offset
+        earthLV,                                                            // its logical volume
+        "earth",                                                            // its name
+        _worldLV,                                                           // its mother volume
+        false,                                                              // no boolean operation
+        0,                                                                  // copy number (layer number within a module)
+        fCheckOverlaps);                                                    // checking overlaps
     (void)earthPV;
+
+    // earth - mid
+    auto earth_mid = new G4Box("earth", uoftdims::world_lenx / 2, uoftdims::world_leny / 2, uoftdims::env_earth_depth_mid / 2);
+    // Subtract detector from earth (in case we want to excavate a little bit)
+    auto earth_excavated_mid =
+        new G4SubtractionSolid("earth_excavated",
+                               earth_mid,
+                               detector,
+                               G4Transform3D(G4RotationMatrix(), // rotation
+                                             G4ThreeVector(uoftdims::detector_ground_offset[0],
+                                                           uoftdims::detector_ground_offset[1],
+                                                           uoftdims::env_earth_depth_top + 0.5 * uoftdims::env_earth_depth_mid + 0.5 * uoftdims::detector_lenz + uoftdims::detector_ground_offset[2])));
+    G4LogicalVolume *earthLV_mid = new G4LogicalVolume(
+        earth_excavated_mid, // its solid
+        Material::GroundMix, // its material
+        "earth");            // its name
+    earthLV_mid->SetVisAttributes(Vis::styles["TransparentBrown"]);
+
+    // Place earth in world
+    auto earthPV_mid = new G4PVPlacement(
+        G4Transform3D(G4RotationMatrix(), // rotation
+                      G4ThreeVector(0, 0,
+                                    -uoftdims::env_earth_depth_top - 0.5 * uoftdims::env_earth_depth_mid)), // offset
+        earthLV_mid,                                                                                        // its logical volume
+        "earth",                                                                                            // its name
+        _worldLV,                                                                                           // its mother volume
+        false,                                                                                              // no boolean operation
+        0,                                                                                                  // copy number (layer number within a module)
+        fCheckOverlaps);                                                                                    // checking overlaps
+    (void)earthPV_mid;
+
+    // Limit the step in earth mid logical volume
+    // G4double minEkin = 1 * MeV;
+    // G4double minRange = 100 * mm;
+    // auto fStepLimit = new G4UserLimits();
+    // fStepLimit->SetUserMinEkine(minEkin);
+    // fStepLimit->SetUserMinRange(minRange);
+    // earthLV_mid->SetUserLimits(fStepLimit);
 
     //
     // ceiling

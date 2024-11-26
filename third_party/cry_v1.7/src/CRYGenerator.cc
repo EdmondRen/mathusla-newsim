@@ -337,3 +337,104 @@ void CRYGenerator::genEvent(std::vector<CRYParticle*> *retList) {
   }  while(static_cast<int>(retList->size()) < _minParticles);
 
 }
+
+
+
+void CRYGenerator::genEvent(std::vector<CRYParticle*> *retList, double EkinMin) {
+  if ( retList==0 ) retList=new std::vector<CRYParticle*>;
+
+  int pBin=0,sBin=0;
+
+  std::vector<double> keSecondaries;
+  std::vector<double> temps;
+
+  do {
+    delete _primaryPart;
+    _primaryPart=_primary->getPrimary();
+    pBin=_primaryBinning->bin(_primaryPart->ke());
+    int nSecondary=int(_nParticlesPDF->draw(_utils,pBin));
+
+    if ( nSecondary == 0 ) { continue;}
+
+    // // ------------------------------------------
+    bool ekin_cut_passed=false;
+    keSecondaries.clear();
+    temps.clear();
+    for ( int i=0; i< nSecondary; i++ ) {
+      double temp=_particleFractionsPDF->draw(_utils,pBin);
+      int pType=int(temp);
+      CRYParticle::CRYId idSec=_idDict[pType];
+
+      //stop -- do we want to tally this type of particle???
+      // if ( !(_tallyList[idSec]) ) continue;
+
+      double keSecondary=_kePdfs[idSec]->draw(_utils,pBin);
+      if (keSecondary>EkinMin)
+        ekin_cut_passed=true;
+
+      keSecondaries.push_back(keSecondary);
+      temps.push_back(temp);        
+    }
+    if (!ekin_cut_passed)
+      continue;
+    // ------------------------------------------
+
+    for ( int i=0; i< nSecondary; i++ ) {
+      double temp=  temps[i];//_particleFractionsPDF->draw(_utils,pBin);
+      int pType=int(temp);
+      CRYParticle::CRYId idSec=_idDict[pType];
+
+      //stop -- do we want to tally this type of particle???
+      if ( !(_tallyList[idSec]) ) continue;
+
+      double keSecondary=keSecondaries[i];//_kePdfs[idSec]->draw(_utils,pBin);
+
+      // Now sample lateral distribution, for now is just flat inside the box
+      //   boxSize is size of box in data files that is just big enough to enclose subboxSize
+      //   subboxSize is the user selected output box size
+      //
+      // could use this, which uses the latPdf to generate flat distribution
+      //
+      double xPosSecondary= _latPdfs[idSec]->draw(_utils,pBin);
+      double yPosSecondary= _latPdfs[idSec]->draw(_utils,pBin);;
+      //
+      // instead just sample directly
+      //
+      //double xPosSecondary=_utils->randomFlat(-0.5*_boxSize,0.5*_boxSize);
+      //double yPosSecondary=_utils->randomFlat(-0.5*_boxSize,0.5*_boxSize);
+
+      //....only keep this secondary if it is inside the user-selected box
+      if ( fabs(xPosSecondary)>0.5*_subboxSize) continue;
+      if ( fabs(yPosSecondary)>0.5*_subboxSize) continue;
+
+      //....sample the time distribution
+      sBin=_secondaryBinning->bin(keSecondary);
+      double timeSecondary=_primary->timeSimulated() + _timePdfs[idSec]->draw(_utils,sBin);
+
+      int charge=(int)_chargePdfs[idSec]->draw(_utils,sBin);
+
+      double u,v,w;
+      w=_cosThetaPdfs[idSec]->draw(_utils,sBin);
+
+      double maxV=sqrt(1.0-w*w);
+      double tphi=_utils->randomFlat()*2.0*M_PI;
+      v=maxV*sin(tphi);
+      u=maxV*cos(tphi);
+      
+      // make secondary and add it to the list
+      CRYParticle *daug=new CRYParticle(idSec,charge,keSecondary);
+      daug->setPosition(xPosSecondary,yPosSecondary,0.);
+      daug->setTime(timeSecondary);
+      daug->setDirection(u,v,w);
+
+      // if the user has set a limit in the number of particles
+      if (static_cast<int>(retList->size()) < _maxParticles-1 )
+        retList->push_back(daug);
+      else
+        delete daug;
+    }
+
+  }  while(static_cast<int>(retList->size()) < _minParticles);
+
+}
+

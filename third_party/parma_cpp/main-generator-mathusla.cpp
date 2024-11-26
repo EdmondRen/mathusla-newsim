@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <unistd.h>
 
 using namespace std;
 
@@ -16,9 +17,9 @@ double getSpecAngFinalCpp(int, double, double, double, double, double, double);
 double getGenerationCpp(double, double, int *, int, double *, double *);
 double get511fluxCpp(double, double, double);
 
-int main(int argc, char *argv[])
-{
 
+int main(int argc, char **argv)
+{
     const int npart = 33;
     static int IangPart[npart + 1] = {1, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 5, 5, 6};
     const int nebin = 1000;                          // number of energy mesh (divided by log)
@@ -52,6 +53,27 @@ int main(int argc, char *argv[])
     double emax = 1.0e5; // Maximum energy of particle
     double amin = -1.0;  // Minimum cosine of particle
     double amax = 1.0;   // Maximum cosine of particle
+    
+    
+    //---------------------------------------------------
+    // Handel the input arguments
+    int opt;
+    string outdir="GeneOut";
+    while ((opt = getopt (argc, argv, "p:n:d:")) != -1)
+        switch (opt)
+          {
+          case 'p':
+            ip = atoi(optarg);
+          case 'n':
+            nevent = atoi(optarg);
+          case 'd':
+            outdir = optarg;
+          default:
+            break;
+      }
+
+    
+    
 
     // calculate parameters
     double s = getHPcpp(iyear, imonth, iday); // solar modulation potential
@@ -143,10 +165,11 @@ int main(int argc, char *argv[])
     }
 
     // Particle Generation
-    mt19937 engine;                                     // Mersenne Twister
+    std::random_device rd;
+    mt19937 engine(rd());                                     // Mersenne Twister
     uniform_real_distribution<double> rand01(0.0, 1.0); // random number between 0 to 1
 
-    ofstream sf("GeneOut/generation.out", ios::out);
+    ofstream sf(outdir+"/generation.out", ios::out);
     sf << "ip= " << ip << " ,W-index= " << s << " ,Rc(GV)= " << r << " ,depth(g/cm2)= " << d << " ,g= " << g << "\n";
     sf << "Total Flux (/cm2/s)= " << TotalFlux << "\n";
     sf << "  Energy(MeV/n)              u              v              w              x              y              z\n";

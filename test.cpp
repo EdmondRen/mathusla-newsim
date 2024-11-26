@@ -36,8 +36,8 @@ bool doesLineIntersectBox(const Vec3& p0, const Vec3& d, const Vec3& boxMin, con
 }
 
 int main() {
-    Vec3 p0 = {0, 0, 0}; // Line point
-    Vec3 d = {1, 1, 1};  // Line direction
+    Vec3 p0 = {2, 2, 1}; // Line point
+    Vec3 d = {-1,-1,-1};  // Line direction
     Vec3 boxMin = {-1, -1, -1}; // Box min corner
     Vec3 boxMax = {1, 1, 1};    // Box max corner
 

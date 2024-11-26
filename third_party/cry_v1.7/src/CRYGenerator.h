@@ -73,6 +73,7 @@ public:
   //Ownership _IS_ returned 
   std::vector<CRYParticle*>* genEvent();
   void genEvent(std::vector<CRYParticle*> *retList);
+  void genEvent(std::vector<CRYParticle*> *retList, double EkinMin);
 
   //Time that has been simulated by this instance
   double timeSimulated() {return _primary->timeSimulated();}
