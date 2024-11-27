@@ -142,7 +142,7 @@ namespace util
 
                     if (!(iss >> par >> value)) { continue; } // error
 
-                    par_map[par] = value;
+                    config[par] = value;
                 }
             } else {
                 file_opened = false;

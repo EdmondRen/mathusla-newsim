@@ -6,34 +6,38 @@
 #include <sstream>
 #include <iomanip>
 #include <map>
+#include <filesystem>
 
 #include "parma_util.hh"
 
 using namespace std;
 
 namespace PARMA
-{
-    // std::string parma_installed_path = std::string(__FILE__) + "/../../../third_party/parma_cpp/";
-    std::string parma_installed_path = "/../third_party/parma_cpp/";
+{   
+    // Get the path of current folder, and locate PARMA relative to it.
+    auto path_current_folder = std::filesystem::path(std::string(__FILE__)).parent_path().string();
+    std::string parma_installed_path = path_current_folder + "/../../../third_party/parma_cpp/";
 
     const int ParmaGen::IangPart[] = {1, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 5, 5, 6};
 
+    // Particle ID (Particle ID, 0:neutron, 1-28:H-Ni, 29-30:muon+-, 31:e-, 32:e+, 33:photon)
     std::map<int,int> id_to_pdgid = 
        {{0, 2112},
         {1, 2212},
-        {29, 13},
-        {30, -13},
+        {29, -13},
+        {30, 13},
         {31, 11},
         {32, -11},
         {33, 22}};
     std::map<int,int> pdgid_to_id = 
        {{2112, 0},
         {2212, 1},
-        {13, 29},
-        {-13, 30},
+        {-13, 29},
+        {13, 30},
         {11, 31},
         {-11, 32},
         {22, 33}};
+
     std::map<int,float> pdgid_to_mass = 
         {{11,0.51099895}, {-11,0.51099895},
          {13,105.6583755},{-13,105.6583755},
@@ -45,6 +49,42 @@ namespace PARMA
 
     ParmaGen::ParmaGen()
     {
+        UpdateParameters();
+        std::cout<< " - PARMA installed at: " << parma_installed_path<<std::endl;
+    }
+
+    void ParmaGen::configure(std::map<std::string, double> config)
+    {
+        std::cout << " ===== PARMA settings ============\n";
+        for (auto item:config){
+            std::cout<< "  " << item.first<<": " << item.second <<std::endl;
+            if (item.first == "particle_pdgid")
+                this->ip = pdgid_to_id[static_cast<int>(item.second)];
+            else if (item.first == "year")
+                this->iyear = static_cast<int>(item.second);
+            else if (item.first == "month")
+                this->imonth = static_cast<int>(item.second);
+            else if (item.first == "day")
+                this->iday = static_cast<int>(item.second);
+            else if (item.first == "latitude")
+                this->glat = item.second;
+            else if (item.first == "longitude")
+                this->glong = item.second;
+            else if (item.first == "altitude")
+                this->alti = item.second / 1000; // m to km
+            else if (item.first == "water_fraction")
+                this->g = item.second;
+            else if (item.first == "subboxLength")
+                this->subboxlength = item.second * 1000; // m to cm
+            else if (item.first == "emin")
+                this->emin = item.second;
+            else if (item.first == "emax")
+                this->emax = item.second;
+            else if (item.first == "seed")
+                this->seed = item.second;
+        }
+        std::cout << " ===== END of PARMA settings =====\n";
+
         UpdateParameters();
     }
 

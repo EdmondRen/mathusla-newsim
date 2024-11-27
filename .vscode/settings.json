@@ -137,6 +137,13 @@
         "rbuf": "cpp",
         "streamer_fac": "cpp",
         "action": "cpp",
-        "free_seg": "cpp"
+        "free_seg": "cpp",
+        "axis": "cpp",
+        "b1": "cpp",
+        "b2": "cpp",
+        "b3": "cpp",
+        "base_histo": "cpp",
+        "p1": "cpp",
+        "p2": "cpp"
     }
 }

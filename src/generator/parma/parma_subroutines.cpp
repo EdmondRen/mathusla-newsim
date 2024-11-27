@@ -1972,7 +1972,7 @@ namespace PARMA
           if ((cido < -90.01 || cido > 90.01) || iMSIS == 0)
           { //! US standard atmosphere 1976 mode
                for (ia = 1; ia <= maxUS; ia++)
-               {
+               {    
                     if (altUS[ia] > alti)
                     {
                          break;

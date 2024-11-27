@@ -1,6 +1,7 @@
 #ifndef parma_util_hh
 #define parma_util_hh
 
+#include <map>
 
 namespace PARMA
 {   
@@ -55,6 +56,7 @@ namespace PARMA
 
         // Calculate the internal tables again
         void UpdateParameters();
+        void configure(std::map<std::string, double> config);
 
         // Generate one new particle
         ParmaParticle Generate();
@@ -77,7 +79,7 @@ namespace PARMA
         double alti = 0.0;    // Altitude (km)
         double g = 0.15;      // Local geometry parameter, 0=< g =< 1: water weight fraction, 10:no-earth, 100:blackhole, -10< g < 0: pilot, g < -10: cabin
         // double radi = 100.0;  // radius of the target area in cm (put your target inside this area)
-        double subboxlength = 100; // Length of the square target area in [meter]
+        double subboxlength = 100; // Length of the square target area in [cm]
 
         // Set energy and angle ranges for generation
         double emin = 1.0e0; // Minimum energy of particle
@@ -86,6 +88,7 @@ namespace PARMA
         double amax = 1.0;   // Maximum cosine of particle        
 
         double TotalFlux;
+        long long int seed = -1;
 
     private:
         double (*rngdptr)(void);        

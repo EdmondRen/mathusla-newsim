@@ -21,7 +21,7 @@ int main(int argc, const char *argv[])
     options.add_options()
         ("h,help", "Print help")
         ("o,output", "output filename", cxxopts::value<std::string>()->default_value("parma_genparticles.out"))
-        ("s,setup", "setup file name", cxxopts::value<std::string>()->default_value("../macros/generators/parma_default.file"))
+        ("s,setup", "setup file name", cxxopts::value<std::string>()->default_value("../macros/generators/parma_default.conf"))
         ("n,nevents", "Number of events (after energy cut, if energy cut is enabled)", cxxopts::value<int>()->default_value("1000"));
     auto args = options.parse(argc, argv);
     // clang-format on
@@ -45,33 +45,29 @@ int main(int argc, const char *argv[])
 
     // Get the configuration file
     auto parcard = util::io::ParHandler(setup_filename);
-    auto config = parcard.par_map;
-    std::cout << " ===== PARMA settings ============\n";
-    for (auto item:config){
-        std::cout<< "  " << item.first<<": " << item.second <<std::endl;
-    }
-    std::cout << " ===== END of PARMA settings =====\n";
+    auto config = parcard.GetConfig();
+
 
 
     // Instantiate and config the PARMA generator
     auto generator = PARMA::ParmaGen();
 
     // Setup the generator with the config map
-
+    generator.configure(config);
 
     // , or you can manually set all the parameters
-    generator.ip = 1;             // Particle ID (Particle ID, 0:neutron, 1-28:H-Ni, 29-30:muon+-, 31:e-, 32:e+, 33:photon)
-    generator.iyear = 2019;       // Year
-    generator.imonth = 2;         // Month
-    generator.iday = 1;           // Day
-    generator.glat = 30.5;        // Latitude (deg), -90 =< glat =< 90
-    generator.glong = -76.2;      // Longitude (deg), -180 =< glong =< 180
-    generator.alti = 0.1;         // Altitude (km)
-    generator.g = 0.15;           // Local geometry parameter, 0=< g =< 1: water weight fraction, 10:no-earth, 100:blackhole, -10< g < 0: pilot, g < -10: cabin
-    generator.subboxlength = 100; // Length of the square target area in [meter]
-    generator.emin = 26;        // Minimum energy of particle
-    generator.emax = 2.0e5;       // Maximum energy of particle
-    //generator.UpdateParameters();
+    // generator.ip = 1;             // Particle ID (Particle ID, 0:neutron, 1-28:H-Ni, 29-30:muon+-, 31:e-, 32:e+, 33:photon)
+    // generator.iyear = 2019;       // Year
+    // generator.imonth = 2;         // Month
+    // generator.iday = 1;           // Day
+    // generator.glat = 30.5;        // Latitude (deg), -90 =< glat =< 90
+    // generator.glong = -76.2;      // Longitude (deg), -180 =< glong =< 180
+    // generator.alti = 0.0;         // Altitude (km)
+    // generator.g = 0.15;           // Local geometry parameter, 0=< g =< 1: water weight fraction, 10:no-earth, 100:blackhole, -10< g < 0: pilot, g < -10: cabin
+    // generator.subboxlength = 100; // Length of the square target area in [cm]
+    // generator.emin = 26;        // Minimum energy of particle
+    // generator.emax = 1.0e5;       // Maximum energy of particle
+    // generator.UpdateParameters();
 
     for (int i = 0; i < nEv; i++)
     {

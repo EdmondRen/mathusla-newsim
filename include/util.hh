@@ -346,13 +346,15 @@ namespace util
         class ParHandler {
 
         public:
-            std::map<std::string, double> par_map;
+            std::map<std::string, double> config;
             bool file_opened;
             ParHandler(std::string filename);
 
+            std::map<std::string, double> & GetConfig() {return config;};
+
             double &operator[](const std::string &key_name)
             {
-                return this->par_map[key_name];
+                return this->config[key_name];
             }            
 
         };        

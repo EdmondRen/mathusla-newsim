@@ -41,7 +41,7 @@ Usage:
 
   -h, --help          Print help   
   -s, --setup arg     setup file name (default:   
-                      ../macros/generators/cry_all.file)   
+                      ../macros/generators/cry_all.conf)   
   -n, --nevents arg   Number of events (default: 1000)   
   -e, --ekin arg      Kinetic energy cut. Positive value means above, and   
                       negative means below. Set to 0 to disable (default:   
@@ -61,5 +61,5 @@ Example: Generate 1 million events, save the ones that contains neutrons above 2
 
 
 ./simulation -m ../macros/run_cry.mac -s 1
-./cry -c 2212 -n 10000 -s ../macros/generators/cry_proton.file
-./cry -n 10000 -s ../macros/generators/cry_proton.file
+./cry -c 2212 -n 10000 -s ../macros/generators/cry_proton.conf
+./cry -n 10000 -s ../macros/generators/cry_proton.conf

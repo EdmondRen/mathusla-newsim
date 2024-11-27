@@ -65,7 +65,7 @@ int main(int argc, const char *argv[])
   cxxopts::Options options("CRY cosmic generator", "CRY cosmic generator with text output");
   options.add_options()
       ("h,help", "Print help")
-      ("s,setup", "setup file name", cxxopts::value<std::string>()->default_value("../macros/generators/cry_all.file"))
+      ("s,setup", "setup file name", cxxopts::value<std::string>()->default_value("../macros/generators/cry_all.conf"))
       ("o,output", "output filename", cxxopts::value<std::string>()->default_value("cry_genparticles.out"))
       ("n,nevents", "Number of events (after energy cut, if energy cut is enabled)", cxxopts::value<int>()->default_value("1000"))
       ("e,ekin", "Kinetic energy cut. Positive value means above, and negative means below. Set to 0 to disable", cxxopts::value<float>()->default_value("0"))

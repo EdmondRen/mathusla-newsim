@@ -133,7 +133,7 @@ namespace MuGenerators
         fParticleGun->SetParticleEnergy(50. * MeV);
 
         // CRY initialization, using default cry config file
-        auto cry_defaultConfig = "/macros/generators/cry_default.file";
+        auto cry_defaultConfig = "/macros/generators/cry_default.conf";
         startCRY(PROJECT_SOURCE_DIR + cry_defaultConfig, PROJECT_SOURCE_DIR + "/third_party/cry_v1.7/data");
 
         // Create the table containing all particle names
