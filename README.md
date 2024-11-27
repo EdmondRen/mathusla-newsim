@@ -57,3 +57,9 @@ Usage:
 Example: Generate 1 million events, save the ones that contains neutrons above 2600 MeV.
 
     ./cry -c 2112 -e 2600 -n 1000
+
+
+
+./simulation -m ../macros/run_cry.mac -s 1
+./cry -c 2212 -n 10000 -s ../macros/generators/cry_proton.file
+./cry -n 10000 -s ../macros/generators/cry_proton.file

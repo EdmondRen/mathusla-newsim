@@ -123,6 +123,33 @@ namespace util
 #endif
         }
 
+        ParHandler::ParHandler(std::string par_card_str) {
+
+            std::string par_path = std::string(__FILE__);
+
+            std::ifstream infile(par_card_str);
+
+            if (infile.is_open()) {
+                file_opened = true;
+
+                std::string line;
+                while (std::getline(infile, line)) {	
+                    if (line[0]=='#') continue;
+
+                    std::istringstream iss(line);
+                    std::string par;
+                    double value;
+
+                    if (!(iss >> par >> value)) { continue; } // error
+
+                    par_map[par] = value;
+                }
+            } else {
+                file_opened = false;
+                std::cout << "Error opening parameter card file" << std::endl;
+            }
+        }        
+
     } // namespace io
 
     namespace notstd

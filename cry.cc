@@ -66,6 +66,7 @@ int main(int argc, const char *argv[])
   options.add_options()
       ("h,help", "Print help")
       ("s,setup", "setup file name", cxxopts::value<std::string>()->default_value("../macros/generators/cry_all.file"))
+      ("o,output", "output filename", cxxopts::value<std::string>()->default_value("cry_genparticles.out"))
       ("n,nevents", "Number of events (after energy cut, if energy cut is enabled)", cxxopts::value<int>()->default_value("1000"))
       ("e,ekin", "Kinetic energy cut. Positive value means above, and negative means below. Set to 0 to disable", cxxopts::value<float>()->default_value("0"))
       ("c,contains", "Select only events that contains specific PDG-ids, separated by commas. Eg, --contains=13,-13. All supported: e(+-11), mu(+-13), neutron(2112), proton(2212), gamma(22), pion(+-211,111), kaon(+-321,311,310,130). Set to 0 to disable", cxxopts::value<std::vector<int>>()->default_value("0"));
@@ -104,7 +105,7 @@ int main(int argc, const char *argv[])
   CRYGenerator gen(setup);
 
   // Open output file to write shower particles
-  std::ofstream out("shower.out");
+  std::ofstream out(args["output"].as<std::string>());
   if (!out || out.bad())
     return 1;
   std::cout << "Output sent to shower.out\n";

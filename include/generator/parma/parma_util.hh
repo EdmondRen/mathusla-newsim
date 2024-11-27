@@ -3,7 +3,9 @@
 
 
 namespace PARMA
-{
+{   
+    extern std::string parma_installed_path;
+
     double getHPcpp(int, int, int);
     double getrcpp(double, double);
     double getdcpp(double, double);
@@ -19,7 +21,8 @@ namespace PARMA
         int pdgid; // PDG identifier
         double px, py, pz;
         double u, v, w;
-        double x, y, z, t;
+        double x, y, z, t; // [mm] and [s]
+        double ke; // kinetic energy in MeV
 
         // Optional parameters
         int index; // A counter, can be initialized to the value you want
@@ -50,7 +53,12 @@ namespace PARMA
     public:
         ParmaGen();
 
+        // Calculate the internal tables again
+        void UpdateParameters();
+
+        // Generate one new particle
         ParmaParticle Generate();
+
 
         // Random number generator
         double randomFlat(double min=0., double max=1.);
@@ -60,7 +68,6 @@ namespace PARMA
 
 
         // Set condition
-        int nevent = 1000;    // number of particles to be generated
         int ip = 1;           // Particle ID (Particle ID, 0:neutron, 1-28:H-Ni, 29-30:muon+-, 31:e-, 32:e+, 33:photon)
         int iyear = 2019;     // Year
         int imonth = 2;       // Month
@@ -69,7 +76,8 @@ namespace PARMA
         double glong = -76.2; // Longitude (deg), -180 =< glong =< 180
         double alti = 0.0;    // Altitude (km)
         double g = 0.15;      // Local geometry parameter, 0=< g =< 1: water weight fraction, 10:no-earth, 100:blackhole, -10< g < 0: pilot, g < -10: cabin
-        double radi = 100.0;  // radius of the target area in cm (put your target inside this area)
+        // double radi = 100.0;  // radius of the target area in cm (put your target inside this area)
+        double subboxlength = 100; // Length of the square target area in [meter]
 
         // Set energy and angle ranges for generation
         double emin = 1.0e0; // Minimum energy of particle

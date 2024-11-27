@@ -52,7 +52,8 @@ find_package(ROOT    REQUIRED)
 #
 include(${Geant4_USE_FILE})
 include_directories(${PROJECT_SOURCE_DIR}/include
-                  ${CRY_INCLUDE_DIRS})
+                    ${PROJECT_SOURCE_DIR}/include/generator/parma
+                    ${CRY_INCLUDE_DIRS})
 
 #----------------------------------------------------------------------------
 # Locate sources and headers for this project
@@ -60,7 +61,8 @@ include_directories(${PROJECT_SOURCE_DIR}/include
 #
 file(GLOB_RECURSE  sources ${PROJECT_SOURCE_DIR}/src/*.cc)
 file(GLOB_RECURSE  headers ${PROJECT_SOURCE_DIR}/include/*.hh
-                  ${PROJECT_SOURCE_DIR}/include/*.hpp)
+                           ${PROJECT_SOURCE_DIR}/include/*.hpp
+                           ${PROJECT_SOURCE_DIR}/include/*.hh)
 
 #----------------------------------------------------------------------------
 # Add the executable, and link it to the Geant4 libraries
@@ -74,6 +76,13 @@ target_link_libraries(simulation PUBLIC
 ## Standalone CRY cosmic generator
 add_executable(cry cry.cc src/util.cc ${headers})
 target_link_libraries(cry ${CRY_LIBRARIES})
+
+## Standalone parma cosmic generator
+add_executable(parma parma.cc 
+                  ${PROJECT_SOURCE_DIR}/src/util.cc 
+                  ${PROJECT_SOURCE_DIR}/src/generator/parma/parma_util.cpp
+                  ${PROJECT_SOURCE_DIR}/src/generator/parma/parma_subroutines.cpp
+                  ${PROJECT_SOURCE_DIR}/include/generator/parma/parma_util.hh)
 
 
 #----------------------------------------------------------------------------

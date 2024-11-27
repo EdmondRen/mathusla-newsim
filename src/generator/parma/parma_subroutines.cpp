@@ -65,27 +65,27 @@ namespace PARMA
                {
                     if (i <= 2)
                     { // neutron, proton alpha
-                         dname = "input/" + pname[i] + "/solar-dep.inp";
+                         dname = parma_installed_path + "/input/" + pname[i] + "/solar-dep.inp";
                     }
                     else if (i == 3)
                     {
-                         dname = "input/" + pname[i] + "/solar-dep-EL.inp";
+                         dname = parma_installed_path + "/input/" + pname[i] + "/solar-dep-EL.inp";
                     }
                     else if (i == 4)
                     {
-                         dname = "input/" + pname[i] + "/solar-dep-PO.inp";
+                         dname = parma_installed_path + "/input/" + pname[i] + "/solar-dep-PO.inp";
                     }
                     else if (i == 5)
                     {
-                         dname = "input/" + pname[i] + "/solar-dep-PH.inp";
+                         dname = parma_installed_path + "/input/" + pname[i] + "/solar-dep-PH.inp";
                     }
                     else if (i == 6)
                     {
-                         dname = "input/" + pname[i] + "/solar-dep.plus";
+                         dname = parma_installed_path + "/input/" + pname[i] + "/solar-dep.plus";
                     }
                     else if (i == 7)
                     {
-                         dname = "input/" + pname[i] + "/solar-dep.mins";
+                         dname = parma_installed_path + "/input/" + pname[i] + "/solar-dep.mins";
                     }
                     ifstream ifs(dname, ios::in);
                     getline(ifs, str); // Kara-yomi
@@ -99,7 +99,7 @@ namespace PARMA
                          }
                     }
                }
-               dname = "input/ions/solar-dep.inp";
+               dname = parma_installed_path + "/input/ions/solar-dep.inp";
                ifstream ifs1(dname, ios::in);
                getline(ifs1, str); // Kara-yomi
                for (i = npart - 5; i <= npart; i++)
@@ -152,7 +152,7 @@ namespace PARMA
           if (ifirst == 0)
           { // Initialization
                ifirst = 1;
-               dname = "input/neutro/correction-depth-rigid.inp";
+               dname = parma_installed_path + "/input/neutro/correction-depth-rigid.inp";
                ifstream ifs(dname, ios::in);
                getline(ifs, str); // Kara-yomi
                for (ih = 1; ih <= nhensu; ih++)
@@ -226,13 +226,13 @@ namespace PARMA
 
           if (p[1] == 0)
           { // Initialization
-               dname = "input/neutro/Geo-Dep.inp";
+               dname = parma_installed_path + "/input/neutro/Geo-Dep.inp";
                ifstream ifs1(dname, ios::in);
                getline(ifs1, str); // Kara-yomi
                getline(ifs1, str); // Read p(1)-p(3)
                istringstream s1(str);
                s1 >> p[1] >> p[2] >> p[3];
-               dname = "input/neutro/Water-Dep.inp";
+               dname = parma_installed_path + "/input/neutro/Water-Dep.inp";
                ifstream ifs2(dname, ios::in);
                getline(ifs2, str); // Kara-yomi
                getline(ifs2, str); // Read data
@@ -244,7 +244,7 @@ namespace PARMA
                getline(ifs2, str); // Read data
                istringstream s22(str);
                s22 >> chatmp >> p[10] >> p[11] >> p[12] >> p[13] >> p[14];
-               dname = "input/neutro/Aircraft-Dep.inp";
+               dname = parma_installed_path + "/input/neutro/Aircraft-Dep.inp";
                ifstream ifs3(dname, ios::in);
                getline(ifs3, str); // Kara-yomi
                getline(ifs3, str); // Read data
@@ -305,14 +305,14 @@ namespace PARMA
 
           if (B[2] == 0.0)
           { // first time
-               dname = "input/neutro/Depth-Dep-mid.out";
+               dname = parma_installed_path + "/input/neutro/Depth-Dep-mid.out";
                ifstream ifs(dname, ios::in);
                getline(ifs, str); // Kara-yomi
                getline(ifs, str); // Kara-yomi
                getline(ifs, str);
                istringstream s(str);
                s >> tmp1 >> tmp2 >> B[2] >> B[3] >> B[4];
-               dname = "input/neutro/Rigid-Dep.inp";
+               dname = parma_installed_path + "/input/neutro/Rigid-Dep.inp";
                ifstream ifs1(dname, ios::in);
                getline(ifs1, str); // Kara-yomi
                getline(ifs1, str); // Kara-yomi
@@ -353,14 +353,14 @@ namespace PARMA
 
           if (B[4] == 0.0)
           { // first time
-               dname = "input/neutro/Depth-Dep-hig.out";
+               dname = parma_installed_path + "/input/neutro/Depth-Dep-hig.out";
                ifstream ifs(dname, ios::in);
                getline(ifs, str); // Kara-yomi
                getline(ifs, str); // Kara-yomi
                getline(ifs, str);
                istringstream s(str);
                s >> tmp0 >> tmp1 >> tmp2 >> tmp3 >> B[4];
-               dname = "input/neutro/Rigid-Dep.inp";
+               dname = parma_installed_path + "/input/neutro/Rigid-Dep.inp";
                ifstream ifs1(dname, ios::in);
                getline(ifs1, str); // Kara-yomi
                getline(ifs1, str); // Kara-yomi B(1)
@@ -418,11 +418,11 @@ namespace PARMA
                {
                     if (i == 0)
                     {
-                         dname = "input/neutro/bestR.inp";
+                         dname = parma_installed_path + "/input/neutro/bestR.inp";
                     }
                     else
                     {
-                         dname = "input/elemag/bestR-" + pname[i] + ".inp";
+                         dname = parma_installed_path + "/input/elemag/bestR-" + pname[i] + ".inp";
                     }
                     ifstream ifs(dname, ios::in);
                     getline(ifs, str); // Kara-yomi
@@ -506,19 +506,19 @@ namespace PARMA
                {
                     if (i <= 2)
                     {
-                         dname = "input/" + pname[i] + "/Rigid-Dep.inp"; // neutron, proton, alpha
+                         dname = parma_installed_path + "/input/" + pname[i] + "/Rigid-Dep.inp"; // neutron, proton, alpha
                     }
                     else if (i == 3)
                     {
-                         dname = "input/" + pname[i] + "/Rigid-Dep-EL.inp"; // electron
+                         dname = parma_installed_path + "/input/" + pname[i] + "/Rigid-Dep-EL.inp"; // electron
                     }
                     else if (i == 4)
                     {
-                         dname = "input/" + pname[i] + "/Rigid-Dep-PO.inp"; // positron
+                         dname = parma_installed_path + "/input/" + pname[i] + "/Rigid-Dep-PO.inp"; // positron
                     }
                     else if (i == 5)
                     {
-                         dname = "input/" + pname[i] + "/Rigid-Dep-PH.inp"; // photon
+                         dname = parma_installed_path + "/input/" + pname[i] + "/Rigid-Dep-PH.inp"; // photon
                     }
                     ifstream ifs(dname, ios::in);
                     getline(ifs, str); // Kara-yomi
@@ -533,7 +533,7 @@ namespace PARMA
                          } // A(4)&A(12) is s,r,d-dependence, so will be changed
                     }
                }
-               dname = "input/ions/Rigid-Dep.inp";
+               dname = parma_installed_path + "/input/ions/Rigid-Dep.inp";
                ifstream ifs1(dname, ios::in);
                for (i = npart - 5; i <= npart; i++)
                {
@@ -628,7 +628,7 @@ namespace PARMA
           if (ifirst == 0)
           {    // first time, get universal parameter (i.e: independent of all parameters)
                //      Read A parameter
-               dname = "input/neutro/fitting-lowspec.inp";
+               dname = parma_installed_path + "/input/neutro/fitting-lowspec.inp";
                ifstream ifs(dname, ios::in);
                getline(ifs, str); // Kara-yomi
                getline(ifs, str);
@@ -752,7 +752,7 @@ namespace PARMA
                down = 1.720313e0;
                for (ig = 1; ig <= ngroup; ig++)
                {
-                    dname = "input/ions/primary-" + gname[ig] + ".inp";
+                    dname = parma_installed_path + "/input/ions/primary-" + gname[ig] + ".inp";
                     ifstream ifs(dname, ios::in);
                     getline(ifs, str); // Kara-yomi
                     for (id = 1; id <= ndep; id++)
@@ -766,7 +766,7 @@ namespace PARMA
                          }
                     }
                }
-               dname = "input/ions/dEdx-table.inp";
+               dname = parma_installed_path + "/input/ions/dEdx-table.inp";
                ifstream ifs1(dname, ios::in);
                getline(ifs1, str); // Kara-yomi
                getline(ifs1, str); // Kara-yomi
@@ -862,23 +862,23 @@ namespace PARMA
                {
                     if (i == 1)
                     {
-                         dname = "input/proton/fitting-lowspec.inp";
+                         dname = parma_installed_path + "/input/proton/fitting-lowspec.inp";
                     }
                     else if (i == 2)
                     {
-                         dname = "input/alphaa/fitting-lowspec.inp";
+                         dname = parma_installed_path + "/input/alphaa/fitting-lowspec.inp";
                     }
                     else if (i == 3)
                     {
-                         dname = "input/elemag/fitting-lowspec-EL.inp";
+                         dname = parma_installed_path + "/input/elemag/fitting-lowspec-EL.inp";
                     }
                     else if (i == 4)
                     {
-                         dname = "input/elemag/fitting-lowspec-PO.inp";
+                         dname = parma_installed_path + "/input/elemag/fitting-lowspec-PO.inp";
                     }
                     else if (i == 5)
                     {
-                         dname = "input/elemag/fitting-lowspec-PH.inp";
+                         dname = parma_installed_path + "/input/elemag/fitting-lowspec-PH.inp";
                     }
                     ifstream ifs(dname, ios::in);
                     getline(ifs, str); // Kara-yomi
@@ -893,7 +893,7 @@ namespace PARMA
                          }
                     }
                }
-               dname = "input/ions/fitting-lowspec.inp";
+               dname = parma_installed_path + "/input/ions/fitting-lowspec.inp";
                ifstream ifs1(dname, ios::in);
                getline(ifs1, str); // Kara-yomi
                for (i = npart - 5; i <= npart; i++)
@@ -1002,7 +1002,7 @@ namespace PARMA
           if (ifirst == 0)
           { // Initialization
                ifirst = 1;
-               dname = "input/ions/Combine.inp";
+               dname = parma_installed_path + "/input/ions/Combine.inp";
                ifstream ifs(dname, ios::in);
                getline(ifs, str); // Kara-yomi
                for (i = 1; i <= ngroup; i++)
@@ -1071,7 +1071,7 @@ namespace PARMA
                ifirst = 1;
                for (ip2 = 1; ip2 <= npart; ip2++)
                {
-                    dname = "input/muon--/final135." + charge[ip2];
+                    dname = parma_installed_path + "/input/muon--/final135." + charge[ip2];
                     ifstream ifs1(dname, ios::in);
                     getline(ifs1, str); // Kara-yomi
                     for (id2 = 1; id2 <= ndep; id2++)
@@ -1080,7 +1080,7 @@ namespace PARMA
                          istringstream s1(str);
                          s1 >> dep[id2] >> Bdata[1][1][ip2][id2] >> Bdata[3][1][ip2][id2] >> Bdata[5][1][ip2][id2];
                     }
-                    dname = "input/muon--/final2467." + charge[ip2];
+                    dname = parma_installed_path + "/input/muon--/final2467." + charge[ip2];
                     ifstream ifs2(dname, ios::in);
                     getline(ifs2, str); // Kara-yomi
                     for (id2 = 1; id2 <= ndep; id2++)
@@ -1395,7 +1395,7 @@ namespace PARMA
           if (ifirst == 0)
           { // Initialization
                ifirst = 1;
-               dname = "input/angle/NeutronGround.out";
+               dname = parma_installed_path + "/input/angle/NeutronGround.out";
                ifstream ifs(dname, ios::in);
                for (i = 1; i <= maxfit; i++)
                {
@@ -1440,7 +1440,7 @@ namespace PARMA
                ifirst = 1;
                for (ip2 = 1; ip2 <= npart; ip2++)
                {
-                    dname = "input/angle/BkH-" + pname[ip2] + ".inp";
+                    dname = parma_installed_path + "/input/angle/BkH-" + pname[ip2] + ".inp";
                     ifstream ifs(dname, ios::in);
                     getline(ifs, str); // Kara-yomi
                     for (i = 1; i <= nBHpara; i++)
@@ -1543,7 +1543,7 @@ namespace PARMA
                ifirst = 1;
                for (ip1 = 1; ip1 <= npart; ip1++)
                {
-                    dname = "input/angle/" + pname[ip1] + ".out";
+                    dname = parma_installed_path + "/input/angle/" + pname[ip1] + ".out";
                     ifstream ifs1(dname, ios::in);
                     getline(ifs1, str); // Kara-yomi
                     for (i = 1; i <= maxfit; i++)
@@ -1562,7 +1562,7 @@ namespace PARMA
                               }
                          }
                     }
-                    dname = "input/angle/" + pname[ip1] + "-Eint.out";
+                    dname = parma_installed_path + "/input/angle/" + pname[ip1] + "-Eint.out";
                     ifstream ifs2(dname, ios::in);
                     getline(ifs2, str); // Kara-yomi
                     for (is = 1; is <= nsur; is++)
@@ -1774,7 +1774,7 @@ namespace PARMA
           if (ifirst == 0)
           { // Initialization
                ifirst = 1;
-               dname = "input/FFPtable.day"; // Read daily force potential
+               dname = parma_installed_path + "/input/FFPtable.day"; // Read daily force potential
                ifstream ifs(dname, ios::in);
                getline(ifs, str);
                istringstream s(str);
@@ -1793,7 +1793,7 @@ namespace PARMA
                          // for (int iy=iystart; iy <= iyend; iy++) {cout << FFP[iy][im][id] << " ";}
                     }
                }
-               dname = "input/FFPtable.uso"; // Read annual force field potential
+               dname = parma_installed_path + "/input/FFPtable.uso"; // Read annual force field potential
                ifstream ifs1(dname, ios::in);
                getline(ifs1, str);
                istringstream s1(str);
@@ -1882,7 +1882,7 @@ namespace PARMA
           if (ifirst == 0)
           { // Initialization
                ifirst = 1;
-               dname = "input/CORdata.inp"; // Read vertical cut-off rigidity database
+               dname = parma_installed_path + "/input/CORdata.inp"; // Read vertical cut-off rigidity database
                ifstream ifs(dname, ios::in);
                getline(ifs, str);
                istringstream s(str);
@@ -1941,7 +1941,7 @@ namespace PARMA
           if (ifirst == 0)
           { // Initialization
                ifirst = 1;
-               dname = "input/AtomDepth.inp"; // Read vertical cut-off rigidity database
+               dname = parma_installed_path + "/input/AtomDepth.inp"; // Read vertical cut-off rigidity database
                ifstream ifs(dname, ios::in);
                getline(ifs, str); // kara-yomi
                for (ia = 1; ia <= maxUS; ia++)
@@ -2050,7 +2050,7 @@ namespace PARMA
           if (ifirst == 0)
           { // Initialization
                ifirst = 1;
-               dname = "input/elemag/flux511keV.inp";
+               dname = parma_installed_path + "/input/elemag/flux511keV.inp";
                ifstream ifs(dname, ios::in);
                getline(ifs, str); // Kara-yomi
                for (id = 1; id <= ndep; id++)

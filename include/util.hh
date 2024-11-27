@@ -343,6 +343,20 @@ namespace util
         // Create Directory with same permission as its parent_
         int create_directory(const std::string &newDirPath);
 
+        class ParHandler {
+
+        public:
+            std::map<std::string, double> par_map;
+            bool file_opened;
+            ParHandler(std::string filename);
+
+            double &operator[](const std::string &key_name)
+            {
+                return this->par_map[key_name];
+            }            
+
+        };        
+
     } // namespace io
 
     namespace notstd

@@ -130,6 +130,13 @@
         "visible_action": "cpp",
         "rtausmeui": "cpp",
         "span": "cpp",
-        "line": "cpp"
+        "line": "cpp",
+        "dummy_fac": "cpp",
+        "file": "cpp",
+        "key": "cpp",
+        "rbuf": "cpp",
+        "streamer_fac": "cpp",
+        "action": "cpp",
+        "free_seg": "cpp"
     }
 }

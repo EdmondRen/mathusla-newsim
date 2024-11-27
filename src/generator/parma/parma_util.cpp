@@ -13,9 +13,12 @@ using namespace std;
 
 namespace PARMA
 {
+    // std::string parma_installed_path = std::string(__FILE__) + "/../../../third_party/parma_cpp/";
+    std::string parma_installed_path = "/../third_party/parma_cpp/";
+
     const int ParmaGen::IangPart[] = {1, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 5, 5, 6};
 
-    std::map<int,int> id_to_pdgi = 
+    std::map<int,int> id_to_pdgid = 
        {{0, 2112},
         {1, 2212},
         {29, 13},
@@ -23,6 +26,14 @@ namespace PARMA
         {31, 11},
         {32, -11},
         {33, 22}};
+    std::map<int,int> pdgid_to_id = 
+       {{2112, 0},
+        {2212, 1},
+        {13, 29},
+        {-13, 30},
+        {11, 31},
+        {-11, 32},
+        {22, 33}};
     std::map<int,float> pdgid_to_mass = 
         {{11,0.51099895}, {-11,0.51099895},
          {13,105.6583755},{-13,105.6583755},
@@ -33,6 +44,11 @@ namespace PARMA
 
 
     ParmaGen::ParmaGen()
+    {
+        UpdateParameters();
+    }
+
+    void ParmaGen::UpdateParameters()
     {
         rngdptr = 0;
         setRandomFunction(tmpRandom);
@@ -125,7 +141,7 @@ namespace PARMA
             {
                 atable[ia][ie] = atable[ia][ie] / atable[nabin][ie];
             }
-        }
+        }        
     }
 
     ParmaParticle ParmaGen::Generate()
@@ -146,29 +162,40 @@ namespace PARMA
             atable2[ia2] = atable[ia2][ie];
         }
         cx = getGenerationCpp(randomFlat(), randomFlat(), &ia, nabin, ahigh, atable2); // z direction, -1.0:upward, 0.0:horizontal, 1.0:downward
-        do
-        {
-            xd = (randomFlat() - 0.5) * 2.0 * radi;
-            yd = (randomFlat() - 0.5) * 2.0 * radi;
-        } while (sqrt(xd * xd + yd * yd) > radi);
-        zd = radi;
+        // Sampling position in a circle
+        // do
+        // {
+        //     xd = (randomFlat() - 0.5) * 2.0 * radi;
+        //     yd = (randomFlat() - 0.5) * 2.0 * radi;
+        // } while (sqrt(xd * xd + yd * yd) > radi);
+        // zd = radi;
 
-        sx = sqrt(1 - cx * cx); // sin(theta)
+        // sx = sqrt(1 - cx * cx); // sin(theta)
 
-        x = xd * cx * cos(phi) - yd * sin(phi) + zd * sx * cos(phi);
-        y = xd * cx * sin(phi) + yd * cos(phi) + zd * sx * sin(phi);
-        z = -xd * sx + zd * cx;
+        // x = xd * cx * cos(phi) - yd * sin(phi) + zd * sx * cos(phi);
+        // y = xd * cx * sin(phi) + yd * cos(phi) + zd * sx * sin(phi);
+        // z = -xd * sx + zd * cx;
+        // u = -sx * cos(phi);
+        // v = -sx * sin(phi);
+        // w = -cx;
+
+        // sampling position in a square
+        x = (randomFlat() - 0.5) * 2.0 * subboxlength;
+        y = (randomFlat() - 0.5) * 2.0 * subboxlength;
+        z = alti * 1000; // zd in [meter] 
         u = -sx * cos(phi);
         v = -sx * sin(phi);
         w = -cx;
 
-        particle.pdgid = id_to_pdgi[ip];
+        particle.pdgid = id_to_pdgid[ip];
+        particle.ke = e;
         particle.u = u;
         particle.v = v;
         particle.w = w;
         particle.x = x;
         particle.y = y;
-        particle.z = z;        
+        particle.z = z;
+        particle.t = 0;
 
         return particle;
     }

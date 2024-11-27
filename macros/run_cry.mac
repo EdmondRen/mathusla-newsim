@@ -13,7 +13,7 @@
 /run/printProgress 1000
 
 
-/run/setCut 100 mm
+/run/setCut 10 mm
 
 
 ## Setup CRY generator
@@ -22,12 +22,12 @@
 /gen/cry/pathname ../macros/generators/cry_proton.file
 # Filter events that contains proton (2212) and is above 2.67 GeV
 #/gen/cry/particle_pdgid 2212
-/gen/cry/ekin_low 1 GeV
+# /gen/cry/ekin_low 2.67 GeV
 
 /gen/cry/shape 1
 /gen/cry/box 40. 40. 10. m
 
 
 /tracking/verbose 0
-/run/beamOn 10000
+/run/beamOn 100000
 #/run/dumpCouples
