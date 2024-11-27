@@ -6,6 +6,8 @@
 namespace PARMA
 {   
     extern std::string parma_installed_path;
+    extern std::map<int,int> id_to_pdgid;
+    extern std::map<int,int> pdgid_to_id;
 
     double getHPcpp(int, int, int);
     double getrcpp(double, double);

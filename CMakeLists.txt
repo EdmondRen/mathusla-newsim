@@ -38,9 +38,9 @@ else()
 endif()
 
 # Find CRY package
-find_library(CRY NAMES CRY PATHS ${PROJECT_SOURCE_DIR}/third_party/cry_v1.7/lib NO_DEFAULT_PATH )
-set(CRY_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/third_party/cry_v1.7/src)
-set(CRY_LIBRARIES ${PROJECT_SOURCE_DIR}/third_party/cry_v1.7/lib/libCRY.a)
+find_library(CRY NAMES CRY PATHS ${PROJECT_SOURCE_DIR}/external/cry_v1.7/lib NO_DEFAULT_PATH )
+set(CRY_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/external/cry_v1.7/src)
+set(CRY_LIBRARIES ${PROJECT_SOURCE_DIR}/external/cry_v1.7/lib/libCRY.a)
 MESSAGE ("CRY installed at: " ${CRY_INCLUDE_DIRS} )
 
 # ROOT package. Only used for digitizer and metadata

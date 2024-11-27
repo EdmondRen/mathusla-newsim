@@ -4,7 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/third_party/cry_v1.7/**",
+                "${workspaceFolder}/external/cry_v1.7/**",
                 "/usr/local/include/Geant4",
                 "~/geant_projects/include"
             ],

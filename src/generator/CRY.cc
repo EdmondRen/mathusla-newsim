@@ -134,7 +134,7 @@ namespace MuGenerators
 
         // CRY initialization, using default cry config file
         auto cry_defaultConfig = "/macros/generators/cry_default.conf";
-        startCRY(PROJECT_SOURCE_DIR + cry_defaultConfig, PROJECT_SOURCE_DIR + "/third_party/cry_v1.7/data");
+        startCRY(PROJECT_SOURCE_DIR + cry_defaultConfig, PROJECT_SOURCE_DIR + "/external/cry_v1.7/data");
 
         // Create the table containing all particle names
         this->fparticleTable = G4ParticleTable::GetParticleTable();
@@ -377,7 +377,7 @@ namespace MuGenerators
         if (command == _ui_pathname)
         {
             // CRY initialization
-            startCRY(value, PROJECT_SOURCE_DIR + "/third_party/cry_v1.7/data");
+            startCRY(value, PROJECT_SOURCE_DIR + "/external/cry_v1.7/data");
         }
         else if (command == _ui_offset)
         {

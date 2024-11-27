@@ -48,7 +48,7 @@ done
 # Build CRY first
 echo "------------------------------------------------"
 echo "  Building CRY"
-cd third_party/cry_v1.7
+cd external/cry_v1.7
 make clean
 make -j8
 cd ../..

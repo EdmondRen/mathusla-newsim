@@ -99,7 +99,7 @@ int main(int argc, const char *argv[])
     setupString.append(" ");
   }
   CRYSetup *setup = new CRYSetup(setupString,
-                                 PROJECT_SOURCE_DIR + "/third_party/cry_v1.7/data"); // Use absolute path to CRY data files
+                                 PROJECT_SOURCE_DIR + "/external/cry_v1.7/data"); // Use absolute path to CRY data files
 
   // Make a generator
   CRYGenerator gen(setup);

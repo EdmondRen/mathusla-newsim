@@ -22,6 +22,9 @@ int main(int argc, const char *argv[])
         ("h,help", "Print help")
         ("o,output", "output filename", cxxopts::value<std::string>()->default_value("parma_genparticles.out"))
         ("s,setup", "setup file name", cxxopts::value<std::string>()->default_value("../macros/generators/parma_default.conf"))
+        ("p,particle", "PDG ID of the particle. Supports n(2112), p(2212), mu+-(-+13), e+-(-+11), gamma(22)", cxxopts::value<int>())
+        ("L,ekin_low", "Kinetic energy low end (1 - 2e5)", cxxopts::value<float>())
+        ("H,ekin_high", "Kinetic energy high end (1 - 2e5)", cxxopts::value<float>())
         ("n,nevents", "Number of events (after energy cut, if energy cut is enabled)", cxxopts::value<int>()->default_value("1000"));
     auto args = options.parse(argc, argv);
     // clang-format on
@@ -68,6 +71,15 @@ int main(int argc, const char *argv[])
     // generator.emin = 26;        // Minimum energy of particle
     // generator.emax = 1.0e5;       // Maximum energy of particle
     // generator.UpdateParameters();
+
+    // Override some parameter though command line arguments
+    if (args.count("ekin_low"))
+        generator.emin =  args["ekin_low"].as<float>();        // Minimum energy of particle
+    if (args.count("ekin_high"))
+        generator.emax =  args["ekin_high"].as<float>();        // Minimum energy of particle  
+    if (args.count("particle"))
+        generator.ip =  PARMA::pdgid_to_id[args["particle"].as<int>()];        // Minimum energy of particle        
+    generator.UpdateParameters();
 
     for (int i = 0; i < nEv; i++)
     {

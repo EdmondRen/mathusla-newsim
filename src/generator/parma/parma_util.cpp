@@ -16,7 +16,7 @@ namespace PARMA
 {   
     // Get the path of current folder, and locate PARMA relative to it.
     auto path_current_folder = std::filesystem::path(std::string(__FILE__)).parent_path().string();
-    std::string parma_installed_path = path_current_folder + "/../../../third_party/parma_cpp/";
+    std::string parma_installed_path = path_current_folder + "/../../../external/parma_cpp/";
 
     const int ParmaGen::IangPart[] = {1, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 5, 5, 6};
 
