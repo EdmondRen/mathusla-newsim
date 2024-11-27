@@ -1,0 +1,34 @@
+# Macro file for example Mu
+# 
+# Can be run in batch, without graphic
+# or interactively: Idle> /control/execute run1.mac
+#
+# Change the default number of workers (in multi-threading mode) 
+#/run/numberOfThreads 4
+#
+# Initialize kernel
+/vis/disable
+/tracking/verbose 0
+/run/initialize
+/run/printProgress 1000
+
+# Special run setting - cut for charged particle range, global setting.
+/run/setCut 10 mm
+
+
+## Setup PARMA generator
+/gen/select parma
+/gen/parma/pathname ../macros/generators/parma_default.conf
+/gen/parma/particle_pdgid 2212
+/gen/parma/ekin_low 2.67 GeV
+/gen/parma/ekin_high 100 GeV
+/gen/parma/shape 1
+/gen/parma/box 40. 40. 10. m
+
+# Update the PARMA generator settings
+/gen/parma/update
+
+
+/tracking/verbose 0
+/run/beamOn 100000
+#/run/dumpCouples

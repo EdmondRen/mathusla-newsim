@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <cmath>
 
-#include "parma_util.hh"
+#include "generator/parma/parma_util.hh"
 
 using namespace std;
 
@@ -160,13 +160,13 @@ namespace PARMA
                     for (id = 1; id <= ndep; id++)
                     {
                          getline(ifs, str); // read data
-                         istringstream s(str);
-                         s >> itmp >> dep[id];
+                         istringstream _s(str);
+                         _s >> itmp >> dep[id];
                          for (is = 1; is <= nsol; is++)
                          {
                               for (ip = 1; ip <= mpara; ip++)
                               {
-                                   s >> ainp[ip][ih][id][is];
+                                   _s >> ainp[ip][ih][id][is];
                               }
                          }
                     }
@@ -525,11 +525,11 @@ namespace PARMA
                     for (ib = 1; ib <= nBdata; ib++)
                     {
                          getline(ifs, str);
-                         istringstream s(str);
-                         s >> chatmp;
+                         istringstream _s(str);
+                         _s >> chatmp;
                          for (ia = 1; ia <= nAdata; ia++)
                          {
-                              s >> A[i][ib][ia];
+                              _s >> A[i][ib][ia];
                          } // A(4)&A(12) is s,r,d-dependence, so will be changed
                     }
                }
@@ -632,10 +632,10 @@ namespace PARMA
                ifstream ifs(dname, ios::in);
                getline(ifs, str); // Kara-yomi
                getline(ifs, str);
-               istringstream s(str);
+               istringstream _s(str);
                for (ia = 1; ia <= nA; ia++)
                {
-                    s >> a[ia];
+                    _s >> a[ia];
                } // A(4)&A(12) is s,r,d-dependence, so will be changed
                ifirst = 1;
           }
@@ -758,11 +758,11 @@ namespace PARMA
                     for (id = 1; id <= ndep; id++)
                     {
                          getline(ifs, str);
-                         istringstream s(str);
-                         s >> dep[id];
+                         istringstream _s(str);
+                         _s >> dep[id];
                          for (i = 1; i <= nAdata; i++)
                          {
-                              s >> a[i][ig][id];
+                              _s >> a[i][ig][id];
                          }
                     }
                }
@@ -885,11 +885,11 @@ namespace PARMA
                     for (id = 1; id <= ndep; id++)
                     {
                          getline(ifs, str);
-                         istringstream s(str);
-                         s >> dep[id];
+                         istringstream _s(str);
+                         _s >> dep[id];
                          for (ib = 1; ib <= nBdata; ib++)
                          {
-                              s >> a[ib][i][id];
+                              _s >> a[ib][i][id];
                          }
                     }
                }
@@ -1008,10 +1008,10 @@ namespace PARMA
                for (i = 1; i <= ngroup; i++)
                {
                     getline(ifs, str);
-                    istringstream s(str);
+                    istringstream _s(str);
                     for (ia = 1; ia <= nAdata; ia++)
                     {
-                         s >> a[ia][i];
+                         _s >> a[ia][i];
                     } // A(4)&A(12) is s,r,d-dependence, so will be changed
                }
           }
@@ -1784,11 +1784,11 @@ namespace PARMA
                     for (int id = 1; id <= nday; id++)
                     {
                          getline(ifs, str);
-                         istringstream s(str);
-                         s >> itmp >> itmp;
+                         istringstream _s(str);
+                         _s >> itmp >> itmp;
                          for (int iy = iystart; iy <= iyend; iy++)
                          {
-                              s >> FFP[iy][im][id];
+                              _s >> FFP[iy][im][id];
                          }
                          // for (int iy=iystart; iy <= iyend; iy++) {cout << FFP[iy][im][id] << " ";}
                     }
@@ -1801,8 +1801,8 @@ namespace PARMA
                for (int iy = iysUs; iy <= iyeUs; iy++)
                {
                     getline(ifs1, str);
-                    istringstream s1(str);
-                    s1 >> itmp >> FFPuso[iy];
+                    istringstream _s1(str);
+                    _s1 >> itmp >> FFPuso[iy];
                     // cout << iy << " " << FFPuso[iy] << "\n";
                }
           }
@@ -1895,8 +1895,8 @@ namespace PARMA
                     for (int ik = mkei; ik >= 1; ik--)
                     {
                          getline(ifs, str);
-                         istringstream s(str);
-                         s >> dpkei[ik] >> dpido[id] >> cordata[id][ik]; // read vertical cut-off rigidity data
+                         istringstream _s(str);
+                         _s >> dpkei[ik] >> dpido[id] >> cordata[id][ik]; // read vertical cut-off rigidity data
                     }
                }
           }
@@ -1960,11 +1960,11 @@ namespace PARMA
                for (ia = 1; ia <= maxMSIS; ia++)
                { // read NRLMSISE-00 data
                     getline(ifs, str);
-                    istringstream s(str);
-                    s >> altMSIS[ia];
+                    istringstream _s(str);
+                    _s >> altMSIS[ia];
                     for (ido = 1; ido <= maxlat; ido++)
                     {
-                         s >> depMSIS[ia][ido];
+                         _s >> depMSIS[ia][ido];
                     }
                }
           }
@@ -2056,8 +2056,8 @@ namespace PARMA
                for (id = 1; id <= ndep; id++)
                {
                     getline(ifs, str); // read data
-                    istringstream s(str);
-                    s >> dep[id] >> F511[id];
+                    istringstream _s(str);
+                    _s >> dep[id] >> F511[id];
                }
           }
 

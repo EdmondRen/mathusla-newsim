@@ -1,5 +1,8 @@
 {
     "files.associations": {
+        "*.mac": "properties",
+        "*.thor": "ruby",
+        "*.jsx": "javascript",
         "plotNtuple.C": "cpp",
         "plotHisto.C": "cpp",
         "cstring": "cpp",

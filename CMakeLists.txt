@@ -62,7 +62,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include
 file(GLOB_RECURSE  sources ${PROJECT_SOURCE_DIR}/src/*.cc)
 file(GLOB_RECURSE  headers ${PROJECT_SOURCE_DIR}/include/*.hh
                            ${PROJECT_SOURCE_DIR}/include/*.hpp
-                           ${PROJECT_SOURCE_DIR}/include/*.hh)
+                           ${PROJECT_SOURCE_DIR}/include/generator/parma/*.hh)
 
 #----------------------------------------------------------------------------
 # Add the executable, and link it to the Geant4 libraries

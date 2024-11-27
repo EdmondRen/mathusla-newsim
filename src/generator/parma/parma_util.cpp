@@ -8,7 +8,7 @@
 #include <map>
 #include <filesystem>
 
-#include "parma_util.hh"
+#include "generator/parma/parma_util.hh"
 
 using namespace std;
 
