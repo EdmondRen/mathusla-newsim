@@ -23,8 +23,7 @@
 
 // Project include
 #include "generator/_Generator.hh"
-#include "generator/ParticleGun.hh"
-#include "generator/CRY.hh"
+
 
 
 class MuPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction, public G4UImessenger

@@ -71,11 +71,11 @@ namespace PARMA
             else if (item.first == "longitude")
                 this->glong = item.second;
             else if (item.first == "altitude")
-                this->alti = item.second / 1000; // m to km
+                this->alti = item.second *0.001; // m to km
             else if (item.first == "water_fraction")
                 this->g = item.second;
             else if (item.first == "subboxLength")
-                this->subboxlength = item.second * 1000; // m to cm
+                this->subboxlength = item.second * 100; // m to cm
             else if (item.first == "emin")
                 this->emin = item.second;
             else if (item.first == "emax")
@@ -202,6 +202,8 @@ namespace PARMA
             atable2[ia2] = atable[ia2][ie];
         }
         cx = getGenerationCpp(randomFlat(), randomFlat(), &ia, nabin, ahigh, atable2); // z direction, -1.0:upward, 0.0:horizontal, 1.0:downward
+        sx = sqrt(1 - cx * cx); // sin(theta)
+        
         // Sampling position in a circle
         // do
         // {
@@ -209,8 +211,6 @@ namespace PARMA
         //     yd = (randomFlat() - 0.5) * 2.0 * radi;
         // } while (sqrt(xd * xd + yd * yd) > radi);
         // zd = radi;
-
-        // sx = sqrt(1 - cx * cx); // sin(theta)
 
         // x = xd * cx * cos(phi) - yd * sin(phi) + zd * sx * cos(phi);
         // y = xd * cx * sin(phi) + yd * cos(phi) + zd * sx * sin(phi);
@@ -220,8 +220,8 @@ namespace PARMA
         // w = -cx;
 
         // sampling position in a square
-        x = (randomFlat() - 0.5) * 2.0 * subboxlength;
-        y = (randomFlat() - 0.5) * 2.0 * subboxlength;
+        x = (randomFlat() - 0.5) * subboxlength;
+        y = (randomFlat() - 0.5) * subboxlength;
         z = alti * 1000; // zd in [meter] 
         u = -sx * cos(phi);
         v = -sx * sin(phi);

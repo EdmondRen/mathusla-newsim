@@ -61,8 +61,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include
 #
 file(GLOB_RECURSE  sources ${PROJECT_SOURCE_DIR}/src/*.cc)
 file(GLOB_RECURSE  headers ${PROJECT_SOURCE_DIR}/include/*.hh
-                           ${PROJECT_SOURCE_DIR}/include/*.hpp
-                           ${PROJECT_SOURCE_DIR}/include/generator/parma/*.hh)
+                           ${PROJECT_SOURCE_DIR}/include/*.hpp)
 
 #----------------------------------------------------------------------------
 # Add the executable, and link it to the Geant4 libraries
@@ -80,8 +79,8 @@ target_link_libraries(cry ${CRY_LIBRARIES})
 ## Standalone parma cosmic generator
 add_executable(parma parma.cc 
                   ${PROJECT_SOURCE_DIR}/src/util.cc 
-                  ${PROJECT_SOURCE_DIR}/src/generator/parma/parma_util.cpp
-                  ${PROJECT_SOURCE_DIR}/src/generator/parma/parma_subroutines.cpp
+                  ${PROJECT_SOURCE_DIR}/src/generator/parma/parma_util.cc
+                  ${PROJECT_SOURCE_DIR}/src/generator/parma/parma_subroutines.cc
                   ${PROJECT_SOURCE_DIR}/include/generator/parma/parma_util.hh)
 
 

@@ -91,7 +91,7 @@ namespace MuGenerators
 
         // Setup the generator with the config map
         fPARMAgenerator->configure(config);
-        subboxLength = fPARMAgenerator->subboxlength;
+        subboxLength = fPARMAgenerator->subboxlength * cm;
 
         // Set random number generator to use GEANT4 engine
         RNGWrapper<CLHEP::HepRandomEngine>::set(CLHEP::HepRandom::getTheEngine(), &CLHEP::HepRandomEngine::flat);
@@ -162,11 +162,7 @@ namespace MuGenerators
         if (!pass_cuts2)
             return;
 
-        //....debug output
-        // G4cout << "\nEvent=" << anEvent->GetEventID() << " "
-        //        << "CRY generated nparticles=" << cry_generated->size()
-        //        << " pass Ekin threshold: " << pass_cuts << G4endl;
-        // util::py::print(cry_generated->size());
+        print("----------------------test2-------------------------");
 
         // Sample a time for this event
         G4double t0 = GenerateRandomInRange(fPARMA_additional_config["offset_t_low"], fPARMA_additional_config["offset_t_high"]);
@@ -176,9 +172,9 @@ namespace MuGenerators
 
         G4double fParticleEkin = parma_generated.ke * MeV;
         G4double fParticleMass = particleDefinition->GetPDGMass() * MeV;
-        G4double fParticlePosX = parma_generated.x * m + fPARMA_additional_config["offset_x"];
-        G4double fParticlePosY = parma_generated.y * m + fPARMA_additional_config["offset_y"];
-        G4double fParticlePosZ = parma_generated.z * m + fPARMA_additional_config["offset_z"];
+        G4double fParticlePosX = parma_generated.x * cm + fPARMA_additional_config["offset_x"];
+        G4double fParticlePosY = parma_generated.y * cm + fPARMA_additional_config["offset_y"];
+        G4double fParticlePosZ = parma_generated.z * cm + fPARMA_additional_config["offset_z"];
         G4double fParticleMomentumDirectionU = parma_generated.u;
         G4double fParticleMomentumDirectionV = parma_generated.v;
         G4double fParticleMomentumDirectionW = parma_generated.w;
@@ -187,6 +183,7 @@ namespace MuGenerators
         G4double fParticleMomentumY = fParticleMomentum * fParticleMomentumDirectionV;
         G4double fParticleMomentumZ = fParticleMomentum * fParticleMomentumDirectionW;
         G4double fParticleTime = t0 + parma_generated.t;
+        print("----------------------test3-------------------------");
 
         // or you can make a particle, then add it to the event and the particle store.
         Particle newParticle = Particle(pdgID,
@@ -198,6 +195,16 @@ namespace MuGenerators
                                         fParticleMomentumY,
                                         fParticleMomentumZ,
                                         0);
+
+        print("Parma generated", pdgID,
+              fParticlePosX,
+              fParticlePosY,
+              fParticlePosZ,
+              fParticleTime,
+              fParticleMomentumX,
+              fParticleMomentumY,
+              fParticleMomentumZ, parma_generated.u,parma_generated.v,parma_generated.w,
+              0);
 
         const auto vertex = new G4PrimaryVertex(newParticle.x, newParticle.y, newParticle.z, newParticle.t);
         vertex->SetPrimary(new G4PrimaryParticle(newParticle.pdgid, newParticle.px, newParticle.py, newParticle.pz));

@@ -10,6 +10,10 @@
 #include "MuPrimaryGeneratorAction.hh"
 #include "util.hh"
 
+#include "generator/ParticleGun.hh"
+#include "generator/CRY.hh"
+#include "generator/PARMA.hh"
+
 
 MuGenerators::Generator*  _gen_; 
 std::string _gen_name_;
@@ -22,7 +26,7 @@ MuPrimaryGeneratorAction::MuPrimaryGeneratorAction(std::string _gen_default_)
   // Make a map of all available generators
   _gen_map_["gun"] = new MuGenerators::ParticleGun("gun", "ParticleGun");
   _gen_map_["cry"] = new MuGenerators::MuCRY("cry", "CRY cosmic generator", util::globals::PROJECT_SOURCE_DIR);
-  _gen_map_["parma"] = new MuGenerators::MuCRY("parma", "PARMA cosmic generator", util::globals::PROJECT_SOURCE_DIR);
+  _gen_map_["parma"] = new MuGenerators::MuPARMA("parma", "PARMA cosmic generator", util::globals::PROJECT_SOURCE_DIR);
   _gen_name_ = _gen_default_;
   _gen_ = _gen_map_[_gen_name_];
 
