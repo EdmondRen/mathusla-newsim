@@ -10,7 +10,7 @@
 /vis/disable
 /tracking/verbose 0
 /run/initialize
-/run/printProgress 1000
+/run/printProgress 100
 
 
 /run/setCut 10 mm
@@ -29,5 +29,5 @@
 
 
 /tracking/verbose 0
-/run/beamOn 100000
+/run/beamOn 1000
 #/run/dumpCouples

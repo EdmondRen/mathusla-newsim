@@ -147,6 +147,7 @@
         "b3": "cpp",
         "base_histo": "cpp",
         "p1": "cpp",
-        "p2": "cpp"
+        "p2": "cpp",
+        "hplot": "cpp"
     }
 }

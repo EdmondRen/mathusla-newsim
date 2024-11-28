@@ -48,7 +48,10 @@ namespace PARMA
 
 
     ParmaGen::ParmaGen()
-    {
+    {   
+        rngdptr = 0;
+        setRandomFunction(tmpRandom);
+
         UpdateParameters();
         std::cout<< " - PARMA installed at: " << parma_installed_path<<std::endl;
     }
@@ -90,8 +93,6 @@ namespace PARMA
 
     void ParmaGen::UpdateParameters()
     {
-        rngdptr = 0;
-        setRandomFunction(tmpRandom);
 
         // calculate parameters
         s = getHPcpp(iyear, imonth, iday); // solar modulation potential
@@ -184,9 +185,9 @@ namespace PARMA
         }        
     }
 
-    ParmaParticle ParmaGen::Generate()
+    ParmaParticle & ParmaGen::Generate()
     {   
-        ParmaParticle particle;
+        // ParmaParticle particle;
 
         e = getGenerationCpp(randomFlat(), randomFlat(), &ie, nebin, ehigh, etable); // energy
         if (ip == npart && ie == ie511)
@@ -227,17 +228,17 @@ namespace PARMA
         v = -sx * sin(phi);
         w = -cx;
 
-        particle.pdgid = id_to_pdgid[ip];
-        particle.ke = e;
-        particle.u = u;
-        particle.v = v;
-        particle.w = w;
-        particle.x = x;
-        particle.y = y;
-        particle.z = z;
-        particle.t = 0;
+        particle_generated.pdgid = id_to_pdgid[ip];
+        particle_generated.ke = e;
+        particle_generated.u = u;
+        particle_generated.v = v;
+        particle_generated.w = w;
+        particle_generated.x = x;
+        particle_generated.y = y;
+        particle_generated.z = z;
+        particle_generated.t = 0;
 
-        return particle;
+        return particle_generated;
     }
 
     double ParmaGen::tmpRandom()

@@ -83,7 +83,7 @@ int main(int argc, const char *argv[])
 
     for (int i = 0; i < nEv; i++)
     {
-        PARMA::ParmaParticle p = generator.Generate();
+        auto p = generator.Generate();
         //      std::cout
         out << i              // event entry number
             << " " << 0       // secondary number, not used here for PARMA

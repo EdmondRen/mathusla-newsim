@@ -37,7 +37,7 @@ namespace MuGenerators
 
         G4ParticleTable *fparticleTable;
         
-        PARMA::ParmaGen *fPARMAgenerator;
+        PARMA::ParmaGen fPARMAgenerator;
         PARMA::ParmaParticle parma_generated;
         std::map<std::string, float> fPARMA_additional_config;
         

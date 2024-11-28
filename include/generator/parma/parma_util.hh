@@ -61,7 +61,8 @@ namespace PARMA
         void configure(std::map<std::string, double> config);
 
         // Generate one new particle
-        ParmaParticle Generate();
+        ParmaParticle & Generate();
+        ParmaParticle particle_generated;
 
 
         // Random number generator

@@ -22,7 +22,7 @@ namespace MuGenerators
                      const std::string &description,
                      const std::string &project_source_dir) : Generator(name, description), PROJECT_SOURCE_DIR(project_source_dir)
     {
-        // Initialize Other parameters that is not part of CRY, but are needed to generate particle at correct points
+        // Initialize Other parameters that is not part of PARMA, but are needed to generate particle at correct points
         fPARMA_additional_config["use_shape"] = 0; // 0: square, 1: box, 2: sphere
 
         fPARMA_additional_config["box_lenx"] = 2 * m;
@@ -40,9 +40,17 @@ namespace MuGenerators
         fPARMA_additional_config["ekin_cut_high"] = 100 * TeV;
         fPARMA_additional_config["particle_pdgid"] = 0;
 
-        // PARMA initialization, using default cry config file
+        // PARMA initialization, using default  config file
         auto parma_defaultConfig = "/macros/generators/parma_default.conf";
         G4cout<< "Start PARMA using configuration file: "<< PROJECT_SOURCE_DIR + parma_defaultConfig << G4endl;
+
+        // Instantiate and config the PARMA generator
+        this->fPARMAgenerator = PARMA::ParmaGen();
+
+        // Set random number generator to use GEANT4 engine
+        RNGWrapper<CLHEP::HepRandomEngine>::set(CLHEP::HepRandom::getTheEngine(), &CLHEP::HepRandomEngine::flat);
+        fPARMAgenerator.setRandomFunction(RNGWrapper<CLHEP::HepRandomEngine>::rng);
+
         startPARMA(PROJECT_SOURCE_DIR + parma_defaultConfig);
 
         // Create the table containing all particle names
@@ -86,16 +94,25 @@ namespace MuGenerators
         auto parcard = util::io::ParHandler(config_filename);
         auto config = parcard.GetConfig();
 
-        // Instantiate and config the PARMA generator
-        this->fPARMAgenerator = new PARMA::ParmaGen();
 
         // Setup the generator with the config map
-        fPARMAgenerator->configure(config);
-        subboxLength = fPARMAgenerator->subboxlength * cm;
+        fPARMAgenerator.configure(config);
+        subboxLength = fPARMAgenerator.subboxlength * cm;
 
-        // Set random number generator to use GEANT4 engine
-        RNGWrapper<CLHEP::HepRandomEngine>::set(CLHEP::HepRandom::getTheEngine(), &CLHEP::HepRandomEngine::flat);
-        fPARMAgenerator->setRandomFunction(RNGWrapper<CLHEP::HepRandomEngine>::rng);
+        // Debug print
+        // print("Parma config 0",
+        //         fPARMAgenerator.amin,
+        //         fPARMAgenerator.amax,
+        //         fPARMAgenerator.emin,
+        //         fPARMAgenerator.emax,
+        //         fPARMAgenerator.alti,
+        //         fPARMAgenerator.glat,
+        //         fPARMAgenerator.glong,
+        //         fPARMAgenerator.ip,
+        //         fPARMAgenerator.iyear,
+        //         fPARMAgenerator.imonth,
+        //         fPARMAgenerator.iday
+        //         );
     }
 
     void MuPARMA::resetDimensions()
@@ -129,7 +146,7 @@ namespace MuGenerators
         int pdgid = 0;
         bool pass_cuts2 = false;
 
-        parma_generated = fPARMAgenerator->Generate();
+        parma_generated = fPARMAgenerator.Generate();
 
         // 2. Reject events whose tracks do not intersect with the box
         if (this->samplingShape == box)
@@ -162,12 +179,13 @@ namespace MuGenerators
         if (!pass_cuts2)
             return;
 
-        print("----------------------test2-------------------------");
 
         // Sample a time for this event
         G4double t0 = GenerateRandomInRange(fPARMA_additional_config["offset_t_low"], fPARMA_additional_config["offset_t_high"]);
 
         auto pdgID = parma_generated.pdgid;
+
+
         auto particleDefinition = fparticleTable->FindParticle(pdgID);
 
         G4double fParticleEkin = parma_generated.ke * MeV;
@@ -183,7 +201,6 @@ namespace MuGenerators
         G4double fParticleMomentumY = fParticleMomentum * fParticleMomentumDirectionV;
         G4double fParticleMomentumZ = fParticleMomentum * fParticleMomentumDirectionW;
         G4double fParticleTime = t0 + parma_generated.t;
-        print("----------------------test3-------------------------");
 
         // or you can make a particle, then add it to the event and the particle store.
         Particle newParticle = Particle(pdgID,
@@ -196,15 +213,6 @@ namespace MuGenerators
                                         fParticleMomentumZ,
                                         0);
 
-        print("Parma generated", pdgID,
-              fParticlePosX,
-              fParticlePosY,
-              fParticlePosZ,
-              fParticleTime,
-              fParticleMomentumX,
-              fParticleMomentumY,
-              fParticleMomentumZ, parma_generated.u,parma_generated.v,parma_generated.w,
-              0);
 
         const auto vertex = new G4PrimaryVertex(newParticle.x, newParticle.y, newParticle.z, newParticle.t);
         vertex->SetPrimary(new G4PrimaryParticle(newParticle.pdgid, newParticle.px, newParticle.py, newParticle.pz));
@@ -220,7 +228,7 @@ namespace MuGenerators
     {
         if (command == _ui_pathname)
         {
-            // CRY initialization
+            // initialization
             startPARMA(value);
         }
         else if (command == _ui_offset)
@@ -252,21 +260,21 @@ namespace MuGenerators
         else if (command == _ui_ekin_low)
         {
             fPARMA_additional_config["ekin_cut_low"] = _ui_ekin_low->GetNewDoubleValue(value);
-            fPARMAgenerator->emin = static_cast<int>(fPARMA_additional_config["ekin_cut_low"]);
+            fPARMAgenerator.emin = static_cast<int>(fPARMA_additional_config["ekin_cut_low"]);
         }
         else if (command == _ui_ekin_high)
         {
             fPARMA_additional_config["ekin_cut_high"] = _ui_ekin_high->GetNewDoubleValue(value);
-            fPARMAgenerator->emax = static_cast<int>(fPARMA_additional_config["ekin_cut_high"]);
+            fPARMAgenerator.emax = static_cast<int>(fPARMA_additional_config["ekin_cut_high"]);
         }
         else if (command == _ui_particle)
         {
             fPARMA_additional_config["particle_pdgid"] = _ui_particle->GetNewDoubleValue(value);
-            fPARMAgenerator->ip = static_cast<int>(fPARMA_additional_config["particle_pdgid"]);
+            fPARMAgenerator.ip = PARMA::pdgid_to_id[static_cast<int>(fPARMA_additional_config["particle_pdgid"])];
         }
         else if (command == _ui_update)
         {
-            fPARMAgenerator->UpdateParameters();
+            fPARMAgenerator.UpdateParameters();
         }        
     }
 }
