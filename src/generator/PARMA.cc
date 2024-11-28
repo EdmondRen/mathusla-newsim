@@ -119,8 +119,8 @@ namespace MuGenerators
     {
         this->samplingShape = static_cast<GEOTYPE>(static_cast<int>(fPARMA_additional_config["use_shape"]));
         if (samplingShape == box &&
-            (subboxLength < fPARMA_additional_config["box_lenx"] + fPARMA_additional_config["box_lenz"] ||
-             subboxLength < fPARMA_additional_config["box_leny"] + fPARMA_additional_config["box_lenz"]))
+            (subboxLength < fPARMA_additional_config["box_lenx"] ||
+             subboxLength < fPARMA_additional_config["box_leny"] ))
         {
             print(subboxLength, fPARMA_additional_config["box_lenx"]);
             print("ERROR [Generator PARMA]: subboxLength in the config file does not cover the requested box length in GEANT4");
@@ -141,14 +141,11 @@ namespace MuGenerators
         // Clear the store of generated particles
         this->genParticles.clear();
 
-        G4String particleName;
-        double kinEnergy = 0;
-        int pdgid = 0;
-        bool pass_cuts2 = false;
-
+        // Generate one event
         parma_generated = fPARMAgenerator.Generate();
 
-        // 2. Reject events whose tracks do not intersect with the box
+        // Reject events whose tracks do not intersect with the box
+        bool pass_cuts2 = false;
         if (this->samplingShape == box)
         {
             G4double fParticlePosX = parma_generated.x * cm + fPARMA_additional_config["offset_x"];
@@ -166,13 +163,14 @@ namespace MuGenerators
             {
                 pass_cuts2 = true;
             }
-            // else{
-            //     print(subBoxMin.x,subBoxMin.y,subBoxMin.z);
-            //     print(subBoxMax.x,subBoxMax.y,subBoxMax.z);
-            //     print(line_point.x,line_point.y,line_point.z);
-            //     print(line_direction.x,line_direction.y,line_direction.z);
-            //     print("failed");
-            // }
+            else{
+                // // Some debug information
+                // print(subBoxMin.x,subBoxMin.y,subBoxMin.z);
+                // print(subBoxMax.x,subBoxMax.y,subBoxMax.z);
+                // print(line_point.x,line_point.y,line_point.z);
+                // print(line_direction.x,line_direction.y,line_direction.z);
+                // print("failed");
+            }
         }
         else
             pass_cuts2 = true;
@@ -214,10 +212,12 @@ namespace MuGenerators
                                         0);
 
 
+        // Generate the particle
         const auto vertex = new G4PrimaryVertex(newParticle.x, newParticle.y, newParticle.z, newParticle.t);
         vertex->SetPrimary(new G4PrimaryParticle(newParticle.pdgid, newParticle.px, newParticle.py, newParticle.pz));
         anEvent->AddPrimaryVertex(vertex);
 
+        // Save all generated particles of the current event
         genParticles.push_back(newParticle);
     }
 

@@ -29,6 +29,7 @@
 
 #include "G4Step.hh"
 #include "G4RunManager.hh"
+#include "G4SystemOfUnits.hh"
 
 
 #include "G4Gamma.hh"
@@ -80,7 +81,7 @@ void MuSteppingAction::UserSteppingAction(const G4Step* step)
   // if (MuActionInitialization::DEBUG)
   // {}
 
-  // if ((particleDefinition == G4Electron::Electron() || particleDefinition == G4Positron::Positron()) && Ekin < 10) 
+  // if ((particleDefinition == G4Electron::Electron() || particleDefinition == G4Positron::Positron()) && Ekin < 10 * MeV) 
   // {
   //   // print("Kill track", _trackID, _pdg, Ekin, step_point->GetTotalEnergy());
   //   track->SetTrackStatus(fStopAndKill);
@@ -90,11 +91,11 @@ void MuSteppingAction::UserSteppingAction(const G4Step* step)
   //   // print("Kill track", _trackID, _pdg, Ekin, step_point->GetTotalEnergy());
   //   track->SetTrackStatus(fStopAndKill);
   // }  
-  // else if (particleDefinition == G4Neutron::Neutron() && Ekin < 1) 
-  // {
-  //   // print("Kill track", _trackID, _pdg, Ekin, step_point->GetTotalEnergy());
-  //   track->SetTrackStatus(fStopAndKill);
-  // }  
+  if (particleDefinition == G4Neutron::Neutron() && Ekin < 1 * MeV) 
+  {
+    // print("Kill track", _trackID, _pdg, Ekin, step_point->GetTotalEnergy());
+    track->SetTrackStatus(fStopAndKill);
+  }  
 
   // if (_trackID>10) 
   // {

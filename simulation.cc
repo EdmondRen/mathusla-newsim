@@ -14,6 +14,7 @@
 // Project include
 #include "MuDetectorConstruction.hh"
 #include "MuActionInitialization.hh"
+#include "MuPrimaryGeneratorAction.hh"
 #include "util.hh"
 #include "libs/cxxopts.hpp"
 
@@ -57,12 +58,14 @@ int main(int argc, char **argv)
   // ------------------------------
 
   // Read and process arguments
-  // * macro: need to separate the macro name and forwarding arguments
+  // * macro: need to separate the macro_path and forwarding arguments
+  //   The first element of macro_commands is the macro path, the rest are key,value pairs.
+  //   For example, a macro_commands could be {run1.mac, Ek, 10, theta, 20}
   std::vector<std::string> macro_commands;
-  std::string macro;
+  std::string macro_path;
   macro_commands = args["macro"].count() ? args["macro"].as<std::vector<std::string>>() : macro_commands;
   if (macro_commands.size())
-    macro = macro_commands[0];
+    macro_path = macro_commands[0];
 
   // Setup random number generator
   G4int run_number = args["run"].as<G4int>();
@@ -78,7 +81,7 @@ int main(int argc, char **argv)
   // Detect interactive mode (if no macro provided) and define UI session
   //
   G4UIExecutive *ui = nullptr;
-  if (!macro.size())
+  if (!macro_path.size())
     ui = new G4UIExecutive(argc, argv, args["session"].as<G4String>());
 
   // Optionally: choose a different Random engine...
@@ -122,20 +125,30 @@ int main(int argc, char **argv)
 
   // Run in Batch mode / Interactive mode (Process macro or start UI session)
   //
-  if (macro.size())
+  if (macro_path.size())
   {
     // batch mode
-    G4String command = "/control/execute ";
-    UImanager->ApplyCommand(command + macro);
+    // Setup aliases first (if there is any)
+    for (std::size_t i = 1; i < macro_commands.size(); i += 2)
+      UImanager->ApplyCommand("/control/alias " + macro_commands[i] + " " + macro_commands[i + 1]);
+    UImanager->ApplyCommand("/control/execute " + macro_path);
   }
   else
   {
     // interactive mode : define UI session, with gui/vis setup macros
     UImanager->ApplyCommand("/control/execute " + PROJECT_SOURCE_DIR + "/macros/init_vis.mac");
-    if (ui->IsGUI())
-      UImanager->ApplyCommand("/control/execute  " + PROJECT_SOURCE_DIR + "/macros/init_gui.mac");
+    // if (ui->IsGUI())
+    UImanager->ApplyCommand("/control/execute  " + PROJECT_SOURCE_DIR + "/macros/init_gui.mac");
     ui->SessionStart();
     delete ui;
+  }
+
+  // ** Interactive mode will not reach here **
+  // For `recreate` and `filereader` generator in batch mode, run on all available events
+  if (MuPrimaryGeneratorAction::GetName()=="recreate" || MuPrimaryGeneratorAction::GetName()=="filereader")
+  {
+    int numberOfEvent = (MuPrimaryGeneratorAction::GetGenerator())->GetEntries();
+    runManager->BeamOn(numberOfEvent);
   }
 
   // Job termination

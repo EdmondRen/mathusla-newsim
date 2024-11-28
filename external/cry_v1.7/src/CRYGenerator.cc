@@ -369,7 +369,7 @@ void CRYGenerator::genEvent(std::vector<CRYParticle*> *retList, double EkinMin) 
       // if ( !(_tallyList[idSec]) ) continue;
 
       double keSecondary=_kePdfs[idSec]->draw(_utils,pBin);
-      if (keSecondary>EkinMin)
+      if (keSecondary>EkinMin && _tallyList[idSec])
         ekin_cut_passed=true;
 
       keSecondaries.push_back(keSecondary);

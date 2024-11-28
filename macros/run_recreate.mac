@@ -18,18 +18,12 @@
 /run/setCut 10 mm
 
 
-## Setup PARMA generator
-/gen/select parma
+## Setup recreate generator
+/gen/select recreate
+## Specify the ROOT file to recreate
 /gen/parma/pathname ../macros/generators/parma_default.conf
-/gen/parma/particle_pdgid 2112
-/gen/parma/ekin_low 1 GeV
-# /gen/parma/ekin_high 100 GeV
-/gen/parma/shape 1
-/gen/parma/box 40. 40. 10. m
-# Update the PARMA generator settings
-/gen/parma/update
 
 
-/tracking/verbose 0
-/run/beamOn 10000
-#/run/dumpCouples
+## !! NO NEED TO CALL /run/beamOn !!
+## ALL EVENTS WITHIN THE ROOT FILE WILL AUTOMATICALLY BE GENERATED
+# /run/beamOn 100

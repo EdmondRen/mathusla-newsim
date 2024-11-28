@@ -27,6 +27,10 @@ namespace MuGenerators
     // Other helper functions
     std::ostream &Generator::Print(std::ostream &os) const { return os; }
 
+    int Generator::GetEntries() const
+    {
+        return -1;
+    }
 
     // Wrapper for random number generator
     double GenerateRandomInRange(double min, double max)

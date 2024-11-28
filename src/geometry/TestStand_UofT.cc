@@ -322,12 +322,12 @@ namespace MuGeoBuilder
     (void)earthPV_mid;
 
     // Limit the step in earth mid logical volume
-    // G4double minEkin = 1 * MeV;
-    // G4double minRange = 100 * mm;
-    // auto fStepLimit = new G4UserLimits();
-    // fStepLimit->SetUserMinEkine(minEkin);
-    // fStepLimit->SetUserMinRange(minRange);
-    // earthLV_mid->SetUserLimits(fStepLimit);
+    G4double minEkin = 1 * MeV; // min kinetic energy (only for charged particles)
+    G4double minRange = 100 * mm; // min remaining energy (only for charged particles)
+    auto fStepLimit = new G4UserLimits();
+    fStepLimit->SetUserMinEkine(minEkin);
+    fStepLimit->SetUserMinRange(minRange);
+    earthLV_mid->SetUserLimits(fStepLimit);
 
     //
     // ceiling

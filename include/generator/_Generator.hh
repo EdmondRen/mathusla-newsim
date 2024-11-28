@@ -110,7 +110,7 @@ namespace MuGenerators
 
         // Other helper functions
         virtual std::ostream &Print(std::ostream &os = std::cout) const;
-
+        virtual int GetEntries() const;
         static const std::string MessengerDirectory;
     };
 

@@ -1,6 +1,6 @@
-# mathusla-newsim
+# MATHUSLA simulation V2
 
-## General controls
+## 1. General controls
 
 ### About random number generator
 
@@ -13,24 +13,33 @@ Notes:
   * Seed are saved as integer in the ROOT file, but they need to be converted to unsigned int before using it.
   * Example: `*reinterpret_cast<unsigned int*>(&seed)`
 
-## Event generator
+## 2. Event generator
 
-### For user
+### 2.1. Geant4 prticle gun (gun)
 
-### For developer
+### 2.2. PARMA cosmic generator (parma)
 
-## Geometry
+### 2.3. CRY cosmic generator (cry)
 
-### For user
+### 2.4. FileReader generator (filereader)
 
-### For developer
+### 2.5. Generator for recreating previous events (recreate)
+
+This generator is able to re-generate previous events, based on the saved random number generator status (two integers) and primary vertex information in the ROOT file.
+It takes in a list of event records. Each line contains a {filename, entry} pair, where filename is the ROOT file to take the information, and entry is the event entry in the ROOT file.
 
 
-## Reproducing an event based on saved status
+
+## 3. Geometry
 
 
 
-# Digitizer
+
+
+
+
+
+# Event Digitizer
 
 # Standalone generator: CRY
 
@@ -63,3 +72,6 @@ Example: Generate 1 million events, save the ones that contains neutrons above 2
 ./simulation -m ../macros/run_cry.mac -s 1
 ./cry -c 2212 -n 10000 -s ../macros/generators/cry_proton.conf
 ./cry -n 10000 -s ../macros/generators/cry_proton.conf
+
+
+# Standalone generator: PARMA

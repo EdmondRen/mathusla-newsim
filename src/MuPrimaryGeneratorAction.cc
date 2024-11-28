@@ -13,6 +13,7 @@
 #include "generator/ParticleGun.hh"
 #include "generator/CRY.hh"
 #include "generator/PARMA.hh"
+#include "generator/Recreate.hh"
 
 
 MuGenerators::Generator*  _gen_; 
@@ -27,6 +28,7 @@ MuPrimaryGeneratorAction::MuPrimaryGeneratorAction(std::string _gen_default_)
   _gen_map_["gun"] = new MuGenerators::ParticleGun("gun", "ParticleGun");
   _gen_map_["cry"] = new MuGenerators::MuCRY("cry", "CRY cosmic generator", util::globals::PROJECT_SOURCE_DIR);
   _gen_map_["parma"] = new MuGenerators::MuPARMA("parma", "PARMA cosmic generator", util::globals::PROJECT_SOURCE_DIR);
+  _gen_map_["recreate"] = new MuGenerators::MuPARMA("recreate", "Recreate generator, rerun previous events", util::globals::PROJECT_SOURCE_DIR);
   _gen_name_ = _gen_default_;
   _gen_ = _gen_map_[_gen_name_];
 
