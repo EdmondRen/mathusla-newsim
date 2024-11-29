@@ -1,12 +1,18 @@
 #ifndef MU__recreate_hh
 #define MU__recreate_hh
 
+// ROOT
+#include <TTree.h>
+#include <TFile.h>
+#include <TROOT.h>
 // Geant4
 #if (G4VERSION_NUMBER < 1100)
 #include "g4root.hh"
 #else
 #include "G4AnalysisManager.hh "
 #endif
+
+#include "G4RootAnalysisReader.hh"
 
 // Project includes
 #include "_Generator.hh"
@@ -41,19 +47,22 @@ namespace MuGenerators
 
         int EVENTS_TOTAL, EVENTS_COUNTER;
         std::string root_filename;
-        G4AnalysisReader* analysisReader;
+        // G4AnalysisReader* analysisReader; // Tom: have to switch to pure ROOT approach.
+        TTree *InputTree;
+        TFile *InputFile;
 
         // Raw data holder
+        int data_seed_init;
         int data_seed_0_raw;
         int data_seed_1_raw;
-        std::vector<double> data_pdgid;
-        std::vector<float> data_x;
-        std::vector<float> data_y;
-        std::vector<float> data_z;
-        std::vector<float> data_t;
-        std::vector<float> data_px;
-        std::vector<float> data_py;
-        std::vector<float> data_pz;
+        std::vector<double> *data_pdgid = nullptr;
+        std::vector<float> *data_x = nullptr;
+        std::vector<float> *data_y = nullptr;
+        std::vector<float> *data_z = nullptr;
+        std::vector<float> *data_t = nullptr;
+        std::vector<float> *data_px = nullptr;
+        std::vector<float> *data_py = nullptr;
+        std::vector<float> *data_pz = nullptr;
         std::vector<unsigned long> seed_combined;
 
         // Messenger commands

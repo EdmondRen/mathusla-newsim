@@ -17,7 +17,8 @@
 
 
 MuGenerators::Generator*  _gen_; 
-std::string _gen_name_;
+// static std::string _gen_name_;
+std::string MuPrimaryGeneratorAction::_gen_name_ = "gun";
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -28,7 +29,7 @@ MuPrimaryGeneratorAction::MuPrimaryGeneratorAction(std::string _gen_default_)
   _gen_map_["gun"] = new MuGenerators::ParticleGun("gun", "ParticleGun");
   _gen_map_["cry"] = new MuGenerators::MuCRY("cry", "CRY cosmic generator", util::globals::PROJECT_SOURCE_DIR);
   _gen_map_["parma"] = new MuGenerators::MuPARMA("parma", "PARMA cosmic generator", util::globals::PROJECT_SOURCE_DIR);
-  _gen_map_["recreate"] = new MuGenerators::MuPARMA("recreate", "Recreate generator, rerun previous events", util::globals::PROJECT_SOURCE_DIR);
+  _gen_map_["recreate"] = new MuGenerators::MuRecreate("recreate", "Recreate generator, rerun previous events", util::globals::PROJECT_SOURCE_DIR);
   _gen_name_ = _gen_default_;
   _gen_ = _gen_map_[_gen_name_];
 
@@ -61,9 +62,31 @@ void MuPrimaryGeneratorAction::SetNewValue(G4UIcommand *command,
                                            G4String value)
 {
   if (command == cmd_select){
+    _gen_name_ = value;
     _gen_ = _gen_map_[value];
+    print("_gen_name_ is: ", _gen_name_);
+    print("MuPrimaryGeneratorAction::GetName() is: ", MuPrimaryGeneratorAction::GetName());
+
+    // if (_gen_name_=="recreate")
+    // {
+    // G4UImanager* UImanager = G4UImanager::GetUIpointer();
+    // if(UImanager->GetUIpointer()) {
+    //     UImanager->ApplyCommand("/run/beamOn 1000");
+    // }
+    // }
+
   }
 }
+
+G4String MuPrimaryGeneratorAction::GetCurrentValue(G4UIcommand* command)
+{
+  if (command == cmd_select){
+    return _gen_name_;
+  }
+  
+  return "";
+}
+
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 

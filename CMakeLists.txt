@@ -51,6 +51,7 @@ find_package(ROOT    REQUIRED)
 # Setup include directory for this project
 #
 include(${Geant4_USE_FILE})
+# include(${ROOT_USE_FILE})
 include_directories(${PROJECT_SOURCE_DIR}/include
                     ${PROJECT_SOURCE_DIR}/include/generator/parma
                     ${CRY_INCLUDE_DIRS})

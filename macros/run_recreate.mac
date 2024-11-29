@@ -11,17 +11,19 @@
 /tracking/verbose 0
 /run/initialize
 /run/printProgress 1000
+# /run/numberOfThreads 1
+
 
 # Special run setting - production cut for charged particle range, global setting.
 # Secondaries with range less than this nunmber will not be generated.
 # Primary particle just goes through continuous energy loss
 /run/setCut 10 mm
 
-
+## Specify the ROOT file to recreate
+/gen/recreate/pathname data/backup_run_0.root
 ## Setup recreate generator
 /gen/select recreate
-## Specify the ROOT file to recreate
-/gen/parma/pathname ../macros/generators/parma_default.conf
+
 
 
 ## !! NO NEED TO CALL /run/beamOn !!

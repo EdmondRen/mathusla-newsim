@@ -143,12 +143,24 @@ int main(int argc, char **argv)
     delete ui;
   }
 
+
   // ** Interactive mode will not reach here **
   // For `recreate` and `filereader` generator in batch mode, run on all available events
-  if (MuPrimaryGeneratorAction::GetName()=="recreate" || MuPrimaryGeneratorAction::GetName()=="filereader")
+  if (macro_path.size())
   {
-    int numberOfEvent = (MuPrimaryGeneratorAction::GetGenerator())->GetEntries();
-    runManager->BeamOn(numberOfEvent);
+    runManager->Initialize();
+    // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    auto generator_name = MuPrimaryGeneratorAction::GetName();
+    if (generator_name =="recreate" || generator_name =="filereader")
+    { 
+      // const MuPrimaryGeneratorAction * generatoraction = static_cast<const MuPrimaryGeneratorAction*> (runManager->GetUserPrimaryGeneratorAction());
+      // int numberOfEvent = generatoraction->GetGenerator()->GetEntries();
+      int numberOfEvent = (MuPrimaryGeneratorAction::GetGenerator())->GetEntries();
+      print(" [Generator] using recreate generator", generator_name,"with", numberOfEvent, "events");
+      // runManager->BeamOn(numberOfEvent);
+      UImanager->ApplyCommand("/run/beamOn " + std::to_string(numberOfEvent));
+
+    }
   }
 
   // Job termination
