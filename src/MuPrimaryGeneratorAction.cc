@@ -17,8 +17,7 @@
 
 
 MuGenerators::Generator*  _gen_; 
-// static std::string _gen_name_;
-std::string MuPrimaryGeneratorAction::_gen_name_ = "gun";
+std::string _gen_name_;
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -64,8 +63,8 @@ void MuPrimaryGeneratorAction::SetNewValue(G4UIcommand *command,
   if (command == cmd_select){
     _gen_name_ = value;
     _gen_ = _gen_map_[value];
-    print("_gen_name_ is: ", _gen_name_);
-    print("MuPrimaryGeneratorAction::GetName() is: ", MuPrimaryGeneratorAction::GetName());
+    // print("_gen_name_ is: ", _gen_name_);
+    // print("MuPrimaryGeneratorAction::GetName() is: ", MuPrimaryGeneratorAction::GetName());
 
     // if (_gen_name_=="recreate")
     // {

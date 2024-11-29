@@ -467,6 +467,8 @@ namespace util
         }
         // in_helper::in_t in;
         extern const in_helper::in_t in; // Declare `in` here as extern, and define it in util.cc
+
+        bool strfind(const std::string &substring, const std::string &str);
     }
 
 }

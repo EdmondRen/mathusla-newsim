@@ -46,7 +46,7 @@ int main(int argc, char **argv)
       ("r,run", "Run number", cxxopts::value<G4int>()->default_value("0"))
       ("s,seed", "Seed of random number generator, a positive integer. Default to -1 for random seed. Events in the same run share the same seed.", cxxopts::value<G4int>()->default_value("-1"))
       ("S,session", "Session name", cxxopts::value<G4String>()->default_value("MathuslaSim"))
-      ("t,threads", "Number of threads", cxxopts::value<G4int>()->default_value("1"));
+      ("t,threads", "[NOT IMPLEMENTED] Number of threads. Only works with single (1) thread at this moment.", cxxopts::value<G4int>()->default_value("1"));
   auto args = options.parse(argc, argv);
   // Show help if the user asks for it
   if (args.count("help"))
@@ -71,8 +71,10 @@ int main(int argc, char **argv)
   G4int run_number = args["run"].as<G4int>();
   (void)run_number;
   G4int run_seed = args["seed"].as<G4int>();
+  // Optionally: choose a different Random engine (default is MixMaxRng)
   // Tom 2024-11-25: Do not change the engine! RanecuEngine is the only one supported by our EventAction.
   G4Random::setTheEngine(new CLHEP::RanecuEngine);
+  // G4Random::setTheEngine(new CLHEP::MTwistEngine);
   if (run_seed == -1)
     G4Random::setTheSeed(time(nullptr));
   else
@@ -84,18 +86,15 @@ int main(int argc, char **argv)
   if (!macro_path.size())
     ui = new G4UIExecutive(argc, argv, args["session"].as<G4String>());
 
-  // Optionally: choose a different Random engine...
-  //
-  // G4Random::setTheEngine(new CLHEP::MTwistEngine);
-
   // Construct the default run manager
   //
   auto *runManager = G4RunManagerFactory::CreateRunManager(G4RunManagerType::Default);
-  // auto *runManager = new G4RunManager();
+  int threads = args["threads"].as<G4int>();
 #ifdef G4MULTITHREADED
-  if (args["threads"].as<G4int>() > 0)
+  if (threads > 0)
   {
-    runManager->SetNumberOfThreads(args["threads"].as<G4int>());
+    G4cout << " [GEANT4] setting: running with " << threads << " threads" << G4endl;
+    runManager->SetNumberOfThreads(threads);
   }
 #endif
 
@@ -143,23 +142,27 @@ int main(int argc, char **argv)
     delete ui;
   }
 
-
-  // ** Interactive mode will not reach here **
-  // For `recreate` and `filereader` generator in batch mode, run on all available events
+  // ** Interactive mode should never reach here **
+  // Some special treatment in batch mode
   if (macro_path.size())
   {
-    runManager->Initialize();
-    // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    auto generator_name = MuPrimaryGeneratorAction::GetName();
-    if (generator_name =="recreate" || generator_name =="filereader")
-    { 
-      // const MuPrimaryGeneratorAction * generatoraction = static_cast<const MuPrimaryGeneratorAction*> (runManager->GetUserPrimaryGeneratorAction());
-      // int numberOfEvent = generatoraction->GetGenerator()->GetEntries();
-      int numberOfEvent = (MuPrimaryGeneratorAction::GetGenerator())->GetEntries();
-      print(" [Generator] using recreate generator", generator_name,"with", numberOfEvent, "events");
-      // runManager->BeamOn(numberOfEvent);
-      UImanager->ApplyCommand("/run/beamOn " + std::to_string(numberOfEvent));
+    // For `recreate` and `filereader` generator in batch mode, run on all available events
+    auto macro_string = util::io::readFileToString(macro_path);
+    if ((util::notstd::strfind("recreate", macro_string) || util::notstd::strfind("filereader", macro_string)) && !util::notstd::strfind("/run/beamOn", macro_string))
+    {
 
+      runManager->Initialize();
+      // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      auto generator_name = MuPrimaryGeneratorAction::GetName();
+      if (generator_name == "recreate" || generator_name == "filereader")
+      {
+        // const MuPrimaryGeneratorAction * generatoraction = static_cast<const MuPrimaryGeneratorAction*> (runManager->GetUserPrimaryGeneratorAction());
+        // int numberOfEvent = generatoraction->GetGenerator()->GetEntries();
+        int numberOfEvent = (MuPrimaryGeneratorAction::GetGenerator())->GetEntries();
+        print(" [Generator] using recreate generator", generator_name, "with", numberOfEvent, "events");
+        // runManager->BeamOn(numberOfEvent);
+        UImanager->ApplyCommand("/run/beamOn " + std::to_string(numberOfEvent));
+      }
     }
   }
 

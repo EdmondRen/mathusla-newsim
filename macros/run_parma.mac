@@ -11,6 +11,8 @@
 /tracking/verbose 0
 /run/initialize
 /run/printProgress 1000
+# /run/numberOfThreads 1
+
 
 # Special run setting - production cut for charged particle range, global setting.
 # Secondaries with range less than this nunmber will not be generated.

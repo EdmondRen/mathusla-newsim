@@ -155,6 +155,13 @@ namespace util
     namespace notstd
     {
         const in_helper::in_t in{}; // Define `in` here
+
+        bool strfind(const std::string &substring, const std::string &str)
+        {
+            // Use std::string::find to check if the substring exists
+            std::size_t found = str.find(substring);
+            return found!=std::string::npos;
+        }        
     }
 
 } // namespace util

@@ -44,9 +44,6 @@ public:
   static const MuGenerators::Generator* GetGenerator();
   static const MuGenerators::ParticleVector GetLastEvent(); 
 
-  static std::string _gen_name_;
-
-
 
 private:
   // Store all common commands to generator
