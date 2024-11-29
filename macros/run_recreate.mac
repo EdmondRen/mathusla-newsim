@@ -10,7 +10,7 @@
 /vis/disable
 /tracking/verbose 0
 /run/initialize
-/run/printProgress 1000
+/run/printProgress 100
 # /run/numberOfThreads 1
 
 
@@ -26,6 +26,5 @@
 
 
 
-## !! NO NEED TO CALL /run/beamOn !!
+## !! NO NEED TO CALL  run beamOn !!
 ## ALL EVENTS WITHIN THE ROOT FILE WILL AUTOMATICALLY BE GENERATED
-# /run/beamOn 100

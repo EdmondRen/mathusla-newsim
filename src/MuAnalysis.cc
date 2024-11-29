@@ -122,6 +122,10 @@ namespace Analysis
         // Get the event index
         const auto event_id = G4RunManager::GetRunManager()->GetCurrentEvent()->GetEventID();
 
+        // Don't write down anything if there are less than 4 hits.
+        if (fHitsCollection->GetSize()<4)
+            return;
+
         // Set single values
         data["Entry_generated"] = event_id;
         data["Seed_init"] = *reinterpret_cast<int *>(&seedInfo[0]); // Cast the address of the unsigned long to an int pointer

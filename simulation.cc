@@ -71,10 +71,9 @@ int main(int argc, char **argv)
   G4int run_number = args["run"].as<G4int>();
   (void)run_number;
   G4int run_seed = args["seed"].as<G4int>();
-  // Optionally: choose a different Random engine (default is MixMaxRng)
-  // Tom 2024-11-25: Do not change the engine! RanecuEngine is the only one supported by our EventAction.
+  // Optionally: choose a different Random engine (default is MixMaxRng which is fastest)
+  // Tom 2024-11-25: Do not change the engine from RanecuEngine! RanecuEngine is the only one supported by our EventAction.
   G4Random::setTheEngine(new CLHEP::RanecuEngine);
-  // G4Random::setTheEngine(new CLHEP::MTwistEngine);
   if (run_seed == -1)
     G4Random::setTheSeed(time(nullptr));
   else

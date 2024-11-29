@@ -92,7 +92,7 @@ void MuEventAction::BeginOfEventAction(const G4Event *event)
   // 3. The recorded status is AFTER the generator finished!
   //    So that it can be used to restore the run with recorded generated particles.
   std::vector<unsigned long> engienStatus = CLHEP::HepRandom::getTheEngine()->put();
-  // util::py::print("RanecuEngine status [address, init_seed, seed[0], seed[1]]", engienStatus);
+  // util::py::print(" Begin of event seed RanecuEngine status [address, init_seed, seed[0], seed[1]]", engienStatus);
 
   auto *eventInfo = new MyEventInformation(engienStatus[1], engienStatus[2], engienStatus[3]);
   const_cast<G4Event *>(event)->SetUserInformation(eventInfo);

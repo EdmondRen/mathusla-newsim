@@ -34,7 +34,8 @@ namespace MuGenerators
         // print("*************Total Entries", EVENTS_TOTAL);
 
         // if (this->analysisReader->GetNtupleRow())
-        if (this->InputTree->GetEntry(this->EVENTS_COUNTER))
+        this->InputTree->GetEntry(this->EVENTS_COUNTER);
+        if (EVENTS_COUNTER<EVENTS_TOTAL)
         {
             // Generate all particles in this event
             for (u_int i = 0; i < (*data_x).size(); i++)
@@ -61,16 +62,25 @@ namespace MuGenerators
             // Restore the random number generator status
             //  * make a state vector for random engine. Need to cast from int to unsigned int
             //  * RanecuEngine state has 4 values {pointer, theSeed, seed0, seed1}
+            //  Two steps: set the seed (to update the internal seed table), the set the state
             seed_combined.push_back(0);
             seed_combined.push_back(data_seed_init);
             seed_combined.push_back(data_seed_0_raw);
             seed_combined.push_back(data_seed_1_raw);
-            // print("Engien state len", seed_combined.size(), seed_combined, data_seed_init, data_seed_0_raw, data_seed_1_raw);
+            // print("Engine state len", seed_combined.size(), seed_combined, data_seed_init, data_seed_0_raw, data_seed_1_raw);
+            // if (data_seed_init != CLHEP::HepRandom::getTheSeed())
+            //     CLHEP::HepRandom::setTheSeed(data_seed_init); //Only set seed if seed is different because it is time consuming.
             CLHEP::HepRandom::getTheEngine()->getState(seed_combined);
+
+            // print("Engine state len", CLHEP::HepRandom::getTheSeed(), CLHEP::HepRandom::getTheEngine()->put(), seed_combined, data_seed_init, data_seed_0_raw, data_seed_1_raw);
+            // CLHEP::HepRandom::getTheEngine()->flat();
+            // print("Engine state len", CLHEP::HepRandom::getTheSeed(), CLHEP::HepRandom::getTheEngine()->put());
+
         }
         else
         {
             G4cout << " ERROR [Generator: Recreate] Reached the end of the input file, no more events to generate. Please change the number in /run/beamOn X to match the number of entries of the input ROOT file." << G4endl;
+            exit(0);
         }
 
         this->EVENTS_COUNTER += 1;

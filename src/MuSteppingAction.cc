@@ -106,7 +106,9 @@ void MuSteppingAction::UserSteppingAction(const G4Step* step)
 
 
   // else
-    // print(_trackID, _pdg, Ekin, step_point->GetGlobalTime());
+  // std::vector<unsigned long> engienStatus = CLHEP::HepRandom::getTheEngine()->put();
+  // util::py::print("  --step RanecuEngine status [address, init_seed, seed[0], seed[1]]", engienStatus);
+  // print(_trackID, _pdg, Ekin, step_point->GetGlobalTime());
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
