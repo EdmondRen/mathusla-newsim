@@ -64,17 +64,10 @@ namespace MuGenerators
             //  * RanecuEngine state has 4 values {pointer, theSeed, seed0, seed1}
             //  Two steps: set the seed (to update the internal seed table), the set the state
             seed_combined.push_back(0);
-            seed_combined.push_back(data_seed_init);
+            seed_combined.push_back(1);
             seed_combined.push_back(data_seed_0_raw);
             seed_combined.push_back(data_seed_1_raw);
-            // print("Engine state len", seed_combined.size(), seed_combined, data_seed_init, data_seed_0_raw, data_seed_1_raw);
-            // if (data_seed_init != CLHEP::HepRandom::getTheSeed())
-            //     CLHEP::HepRandom::setTheSeed(data_seed_init); //Only set seed if seed is different because it is time consuming.
             CLHEP::HepRandom::getTheEngine()->getState(seed_combined);
-
-            // print("Engine state len", CLHEP::HepRandom::getTheSeed(), CLHEP::HepRandom::getTheEngine()->put(), seed_combined, data_seed_init, data_seed_0_raw, data_seed_1_raw);
-            // CLHEP::HepRandom::getTheEngine()->flat();
-            // print("Engine state len", CLHEP::HepRandom::getTheSeed(), CLHEP::HepRandom::getTheEngine()->put());
 
         }
         else
@@ -128,7 +121,6 @@ namespace MuGenerators
 
             this->EVENTS_TOTAL = InputTree->GetEntries();
 
-            InputTree->SetBranchAddress("Seed_init", &data_seed_init);
             InputTree->SetBranchAddress("Seed_0", &data_seed_0_raw);
             InputTree->SetBranchAddress("Seed_1", &data_seed_1_raw);
             InputTree->SetBranchAddress("Gen_pdgID", &data_pdgid);

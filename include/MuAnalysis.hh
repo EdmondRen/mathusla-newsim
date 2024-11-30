@@ -41,9 +41,9 @@
 #include "G4Allocator.hh"
 #include "G4THitsCollection.hh"
 
+// Project
 #include "util.hh"
-// #include "g4csv.hh"
-// #include "g4xml.hh"
+#include "MuRunAction.hh"
 
 // #include "G4GenericAnalysisManager.hh"
 // using G4AnalysisManager = G4GenericAnalysisManager;
@@ -116,6 +116,9 @@ namespace Analysis
     private:
         HitsCollection *fHitsCollection;
         util::py::Dict *fdata;
+        const MuRunAction *fMuRunAction;
+        int run_number;
+        // G4RunManager::GetRunManager()->GetUserRunAction()
     };
 
 }

@@ -77,7 +77,7 @@ std::string _get_datetime()
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-MuRunAction::MuRunAction(std::string OutDir, std::string RunNumber)
+MuRunAction::MuRunAction(std::string OutDir, int RunNumber)
     : G4UserRunAction(), output_dir(OutDir), run_number(RunNumber)
 {
   // set printing event number per each event
@@ -112,7 +112,7 @@ void MuRunAction::BeginOfRunAction(const G4Run * /*run*/)
 
   // Open an output file
   // Analysis::Open(fileName);
-  this->fileName_output = output_dir + "/run_" + run_number + ".root";
+  this->fileName_output = output_dir + "/run_" + std::to_string(run_number) + ".root";
   analysisManager->OpenFile(this->fileName_output);
 
   // Creat tuple based on the sensitive detector of a geometry

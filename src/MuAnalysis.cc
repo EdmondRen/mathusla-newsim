@@ -39,9 +39,10 @@ namespace Analysis
         // Get touchable
         const auto preStepPoint = step->GetPreStepPoint();
         const auto touchable_pre = preStepPoint->GetTouchable();
+        // Get copy number for each depth
         G4int totalDepth = touchable_pre->GetHistoryDepth();
         for (int i = 0; i < totalDepth; i++)
-            this->_copyNumber.push_back(touchable_pre->GetCopyNumber());
+            this->_copyNumber.push_back(touchable_pre->GetCopyNumber(i));
     }
 
     //  ---------------------------------------------------------------------------
@@ -51,8 +52,7 @@ namespace Analysis
         // Setup the data container
         // clang-format off
         fdata = new util::py::Dict();
-        fdata->Add("Entry_generated",   util::py::__single__, util::py::__float__);
-        fdata->Add("Seed_init",         util::py::__single__, util::py::__int__);
+        fdata->Add("UID",               util::py::__single__, util::py::__double__); // Unique ID for each event, defined as (run_number*1e9 + event_number). This means each run can have at most 1e9 events.
         fdata->Add("Seed_0",            util::py::__single__, util::py::__int__);
         fdata->Add("Seed_1",            util::py::__single__, util::py::__int__);
         fdata->Add("Hit_x",             util::py::__vector__, util::py::__float__);
@@ -93,6 +93,10 @@ namespace Analysis
         G4String hcName = SensitiveDetectorName + "HitsCollection";
         // Create a hits collection object
         fHitsCollection = new HitsCollection(SensitiveDetectorName, hcName);
+
+        // Get a pointer to runactions
+        fMuRunAction = static_cast<const MuRunAction *> (G4RunManager::GetRunManager()->GetUserRunAction());
+        this->run_number = fMuRunAction->GetRunNumber();
     }
 
     G4bool DefaultDetector::ProcessHits(G4Step *step, G4TouchableHistory *touchable)
@@ -123,12 +127,11 @@ namespace Analysis
         const auto event_id = G4RunManager::GetRunManager()->GetCurrentEvent()->GetEventID();
 
         // Don't write down anything if there are less than 4 hits.
-        if (fHitsCollection->GetSize()<4)
+        if (fHitsCollection->GetSize() < 4)
             return;
 
         // Set single values
-        data["Entry_generated"] = event_id;
-        data["Seed_init"] = *reinterpret_cast<int *>(&seedInfo[0]); // Cast the address of the unsigned long to an int pointer
+        data["UID"] = run_number * 1e9 + event_id;
         data["Seed_0"] = *reinterpret_cast<int *>(&seedInfo[1]);    // Cast the address of the unsigned long to an int pointer
         data["Seed_1"] = *reinterpret_cast<int *>(&seedInfo[2]);    // Cast the address of the unsigned long to an int pointer
 

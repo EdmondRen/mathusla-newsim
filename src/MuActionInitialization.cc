@@ -59,7 +59,7 @@ MuActionInitialization::~MuActionInitialization()
 
 void MuActionInitialization::BuildForMaster() const
 {
-  SetUserAction(new MuRunAction(args["output"].as<G4String>(), std::to_string(args["run"].as<G4int>())));
+  SetUserAction(new MuRunAction(args["output"].as<G4String>(), args["run"].as<G4int>()));
 }
 
 
@@ -67,7 +67,7 @@ void MuActionInitialization::Build() const
 { 
   auto generator_name = args["generator"].as<G4String>();
   auto output_dir = args["output"].as<G4String>();
-  auto run_number = std::to_string(args["run"].as<G4int>());
+  auto run_number = args["run"].as<G4int>();
   SetUserAction(new MuPrimaryGeneratorAction(generator_name));
   SetUserAction(new MuRunAction(output_dir,
                                 run_number));

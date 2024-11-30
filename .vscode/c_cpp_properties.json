@@ -6,13 +6,15 @@
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/external/cry_v1.7/**",
                 "/usr/local/include/Geant4",
-                "~/geant_projects/include"
+                "~/geant_projects/include",
+                "~/container/ubuntu/usr/local/include/Geant4/",
+                "~/container/ubuntu/usr/local/include/"
             ],
             "defines": [],
-            "compilerPath": "/usr/bin/clang",
+            "compilerPath": "/usr/bin/gcc",
             "cStandard": "c17",
             "cppStandard": "c++17",
-            "intelliSenseMode": "linux-clang-x64",
+            "intelliSenseMode": "linux-gcc-x64",
             "configurationProvider": "ms-vscode.cmake-tools"
         }
     ],

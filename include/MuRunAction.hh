@@ -39,15 +39,17 @@ class G4Run;
 class MuRunAction : public G4UserRunAction
 {
   public:
-    MuRunAction(std::string output_dir,  std::string run_number);
+    MuRunAction(std::string output_dir,  int run_number);
     virtual ~MuRunAction();
 
     virtual void BeginOfRunAction(const G4Run*);
     virtual void   EndOfRunAction(const G4Run*);
 
+    int GetRunNumber() const {return run_number;}
+
   private:
     std::string output_dir;
-    std::string run_number;
+    int run_number;
     std::string fileName_output;
     int tupleID_metadata;
     
