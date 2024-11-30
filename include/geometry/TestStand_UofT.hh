@@ -33,6 +33,20 @@ namespace MuGeoBuilder
     // Set the sensitive detector for this geometry
     void ConstructSD(G4VSensitiveDetector *detector) override;
 
+    // Core function 3:
+    // (For digitizer) Get a unique detector ID for each bar based on the copy number
+    // Here we define det_id as
+    // det_id = (uint64)000...00AAABBBCCCXXXXX
+    //    XXXXX:lower 5 digits are the bar copy number.  
+    //    CCC are the "layer" copy number
+    //    BBB are the "tower-module" copy number
+    //    AAA are the "detector" copy number
+    int CopynumberToDetectorID(std::vector<int> copy_numbers) override;
+
+    // Core function 4:
+    // (For digitizer) Make a map from detector ID to bar information dict
+    std::map<std::string, float> GetInfoDetectorID() override;    
+
     // Helper functions:
     // void DefineMaterials();
     // void DefineGeometry();
@@ -43,6 +57,13 @@ namespace MuGeoBuilder
 
   private:
     bool fCheckOverlaps;
+
+    // For each detector ID, store a dictionary containing at least
+    // "y_side_direction": int (one of 0,1,2)
+    // "z_side_direction": int (one of 0,1,2)
+    // "y_side_coord": float
+    // "z_side_coord": float
+    std::vector<std::map<std::string, float> *> DetectorIDMaps;
   };
 
 } // namespace MuGeoBuilder

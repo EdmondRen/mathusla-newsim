@@ -123,32 +123,41 @@ namespace util
 #endif
         }
 
-        ParHandler::ParHandler(std::string par_card_str) {
+        ParHandler::ParHandler(std::string par_card_str)
+        {
 
             std::string par_path = std::string(__FILE__);
 
             std::ifstream infile(par_card_str);
 
-            if (infile.is_open()) {
+            if (infile.is_open())
+            {
                 file_opened = true;
 
                 std::string line;
-                while (std::getline(infile, line)) {	
-                    if (line[0]=='#') continue;
+                while (std::getline(infile, line))
+                {
+                    if (line[0] == '#')
+                        continue;
 
                     std::istringstream iss(line);
                     std::string par;
                     double value;
 
-                    if (!(iss >> par >> value)) { continue; } // error
+                    if (!(iss >> par >> value))
+                    {
+                        continue;
+                    } // error
 
                     config[par] = value;
                 }
-            } else {
+            }
+            else
+            {
                 file_opened = false;
                 std::cout << "Error opening parameter card file" << std::endl;
             }
-        }        
+        }
 
     } // namespace io
 
@@ -160,8 +169,43 @@ namespace util
         {
             // Use std::string::find to check if the substring exists
             std::size_t found = str.find(substring);
-            return found!=std::string::npos;
-        }        
+            return found != std::string::npos;
+        }
+    }
+
+    namespace vector
+    {
+        std::vector<std::vector<int>> splitVectorByDelimiter(const std::vector<int> &input, int delimiter)
+        {
+            std::vector<std::vector<int>> result;
+            std::vector<int> currentSubVector;
+
+            for (int value : input)
+            {
+                if (value == delimiter)
+                {
+                    // If we encounter the delimiter, push the current sub-vector to the result.
+                    if (!currentSubVector.empty())
+                    {
+                        result.push_back(currentSubVector);
+                        currentSubVector.clear();
+                    }
+                }
+                else
+                {
+                    // Otherwise, add the value to the current sub-vector.
+                    currentSubVector.push_back(value);
+                }
+            }
+
+            // If there's anything left in the current sub-vector, push it to the result.
+            if (!currentSubVector.empty())
+            {
+                result.push_back(currentSubVector);
+            }
+
+            return result;
+        }
     }
 
 } // namespace util

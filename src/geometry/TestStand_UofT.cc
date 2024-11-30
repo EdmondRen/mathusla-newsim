@@ -30,6 +30,8 @@ namespace MuGeoBuilder
   // Use a namespace to hold all Geometry parameters
   namespace uoftdims
   {
+    size_t COPY_DEPTH = 4;
+
     // 0: bar
     double bar_lenx = 100 * cm;
     double bar_leny = 4 * cm;
@@ -80,6 +82,36 @@ namespace MuGeoBuilder
     double world_lenz = 100 * m;
   }
 
+  int Uoft1_Builder::CopynumberToDetectorID(std::vector<int> copy_numbers)
+  {
+    if (copy_numbers.size() != uoftdims::COPY_DEPTH)
+    {
+      G4cout << " [ERROR] Geometry: The geometry depth is wrong. Please check geometry implementation." << G4endl;
+      exit(0);
+    }
+    int det_id = copy_numbers[0];
+    for (size_t i = 1; i < copy_numbers.size(); i++)
+    {
+      det_id += copy_numbers[i] * std::pow(10, 5 + (i - 1) * 3); // Depth 0 takes 5 digits, the rest takes 3 digits each.
+    }
+    return det_id;
+  }
+
+  std::map<std::string, float> Uoft1_Builder::GetInfoDetectorID()
+  {
+    for (size_t i_bar = 0; i_bar < uoftdims::layer_Nbars_x * uoftdims::layer_Nbars_y; i_bar++)
+    {
+      for (size_t i_layer =0; i_layer<uoftdims::module_Nlayers; i_layer++)
+      {
+        for (size_t i_tower = 0; i_tower < uoftdims::detector_Ntowers_x * uoftdims::detector_Ntowers_y; i_tower++)
+        {
+          
+        }
+      }
+    }
+
+  }
+
   // Geometry Builder Class
   Uoft1_Builder::Uoft1_Builder() : Builder()
   {
@@ -96,9 +128,9 @@ namespace MuGeoBuilder
     auto worldS = new G4Box("World",                                                                       // its name
                             uoftdims::world_lenx / 2, uoftdims::world_leny / 2, uoftdims::world_lenz / 2); // its size
     this->worldLV = new G4LogicalVolume(
-        worldS,           // its solid
+        worldS,        // its solid
         Material::Air, // its material
-        "World");         // its name
+        "World");      // its name
     this->worldLV->SetVisAttributes(Vis::styles["TransparentBlue"]);
     this->worldPV = new G4PVPlacement(
         0,               // no rotation
@@ -118,13 +150,13 @@ namespace MuGeoBuilder
     return this->worldPV;
   }
 
-  void Uoft1_Builder::ConstructSD(G4VSensitiveDetector *detector) 
-  { 
+  void Uoft1_Builder::ConstructSD(G4VSensitiveDetector *detector)
+  {
     // Keep a copy of the pointer
     this->fdetector = detector;
 
     // Assign each physical volume the sensitive detector
-    for (auto& bar : allSensitiveDetectors)
+    for (auto &bar : allSensitiveDetectors)
     {
       bar->GetLogicalVolume()->SetSensitiveDetector(detector);
     }
@@ -218,7 +250,7 @@ namespace MuGeoBuilder
                                     0.5 * uoftdims::detector_lenz + uoftdims::detector_ground_offset[2])), // offset
         this->detectorLV,                                                                                  // its logical volume
         "layer",                                                                                           // its name
-        _worldLV,                                                                                           // its mother volume
+        _worldLV,                                                                                          // its mother volume
         false,                                                                                             // no boolean operation
         0,                                                                                                 // copy number (layer number within a module)
         fCheckOverlaps);                                                                                   // checking overlaps
@@ -322,7 +354,7 @@ namespace MuGeoBuilder
     (void)earthPV_mid;
 
     // Limit the step in earth mid logical volume
-    G4double minEkin = 1 * MeV; // min kinetic energy (only for charged particles)
+    G4double minEkin = 1 * MeV;   // min kinetic energy (only for charged particles)
     G4double minRange = 100 * mm; // min remaining energy (only for charged particles)
     auto fStepLimit = new G4UserLimits();
     fStepLimit->SetUserMinEkine(minEkin);
@@ -334,18 +366,18 @@ namespace MuGeoBuilder
     auto ceiling_out = new G4Box("ceiling_out", uoftdims::env_ceiling_lenx / 2, uoftdims::env_ceiling_leny / 2, uoftdims::env_ceiling_lenz / 2);
     auto ceiling_inside = new G4Box("ceiling_inside", uoftdims::env_ceiling_lenx / 2 - uoftdims::env_ceiling_concrete_thickness,
                                     uoftdims::env_ceiling_leny / 2 - uoftdims::env_ceiling_concrete_thickness,
-                                    uoftdims::env_ceiling_lenz / 2 - uoftdims::env_ceiling_concrete_thickness /2);
+                                    uoftdims::env_ceiling_lenz / 2 - uoftdims::env_ceiling_concrete_thickness / 2);
     // Subtract detector from earth (in case we want to excavate a little bit)
     auto ceiling =
         new G4SubtractionSolid("ceiling",
                                ceiling_out,
                                ceiling_inside,
                                G4Transform3D(G4RotationMatrix(), // rotation
-                                             G4ThreeVector(0,0, -1.*uoftdims::env_ceiling_concrete_thickness)));
+                                             G4ThreeVector(0, 0, -1. * uoftdims::env_ceiling_concrete_thickness)));
     G4LogicalVolume *ceilingLV = new G4LogicalVolume(
-        ceiling,     // its solid
+        ceiling,            // its solid
         Material::Concrete, // its material
-        "ceiling");            // its name
+        "ceiling");         // its name
     ceilingLV->SetVisAttributes(Vis::styles["TransparentBrown"]);
 
     // Place ceiling in world
@@ -353,9 +385,9 @@ namespace MuGeoBuilder
         G4Transform3D(G4RotationMatrix(), // rotation
                       G4ThreeVector(0, 0,
                                     0.5 * uoftdims::env_ceiling_lenz)), // offset
-        ceilingLV,                                                        // its logical volume
-        "ceiling",                                                        // its name
-        _worldLV,                                                        // its mother volume
+        ceilingLV,                                                      // its logical volume
+        "ceiling",                                                      // its name
+        _worldLV,                                                       // its mother volume
         false,                                                          // no boolean operation
         0,                                                              // copy number (layer number within a module)
         fCheckOverlaps);                                                // checking overlaps

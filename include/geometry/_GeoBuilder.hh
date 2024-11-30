@@ -19,23 +19,34 @@ namespace MuGeoBuilder
     class Builder
     {
     public:
-        Builder();
+        // Builder();
+        // virtual ~Builder() =0;
 
         // Core function 1:
         // Construct physics volume, should return world PV
-        virtual G4VPhysicalVolume *Construct();
+        virtual G4VPhysicalVolume *Construct() = 0;
         G4VPhysicalVolume *worldPV;
 
         // Core function 2:
         // Set the sensitive detector for this geometry
-        virtual void ConstructSD(G4VSensitiveDetector *detector);
+        virtual void ConstructSD(G4VSensitiveDetector *detector) = 0;
         G4VSensitiveDetector *fdetector;
 
-        // Messenger related
-        G4GenericMessenger *fMessenger;
+        // Core function 3:
+        // (For digitizer) Get a unique detector ID for each bar based on the copy number
+        virtual int CopynumberToDetectorID(std::vector<int> copy_numbers) = 0;
+
+        // Core function 4:
+        // (For digitizer) Make a map from detector ID to bar information dict
+        virtual std::map<std::string, float> GetInfoDetectorID() = 0;
+
+        // Varibles
         std::string DetectorName;
+        // Messenger related
+        G4GenericMessenger *fMessenger;    
 
     private:
+
     };
 
     namespace Material

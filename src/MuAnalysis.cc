@@ -154,6 +154,7 @@ namespace Analysis
             data["Hit_processID"].push_back(0); // Fix this later
 
             // Copy number is a list for each hit. Flatten it and separate by -1
+            // Start with lowest depth (for example, bar number) to highes depth (detector number)
             for (int cn : hit->_copyNumber)
                 data["Hit_copyNumber"].push_back(cn);
             data["Hit_copyNumber"].push_back(-1); // -1 is used to separate multiple hits in one event.

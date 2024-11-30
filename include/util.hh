@@ -471,6 +471,12 @@ namespace util
         bool strfind(const std::string &substring, const std::string &str);
     }
 
+    namespace vector
+    {
+        std::vector<std::vector<int>> splitVectorByDelimiter(const std::vector<int> &input, int delimiter);
+
+    }
+
 }
 
 using  util::notstd::in;

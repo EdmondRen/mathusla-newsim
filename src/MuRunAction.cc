@@ -128,7 +128,7 @@ void MuRunAction::BeginOfRunAction(const G4Run * /*run*/)
   analysisManager->CreateNtupleSColumn(tupleID_metadata, "SimulationName"); // 0
   analysisManager->CreateNtupleSColumn(tupleID_metadata, "Geometry"); // 1
   analysisManager->CreateNtupleSColumn(tupleID_metadata, "Generator"); // 2
-  analysisManager->CreateNtupleSColumn(tupleID_metadata, "Time"); // 2
+  analysisManager->CreateNtupleSColumn(tupleID_metadata, "Time"); // 3
   analysisManager->FinishNtuple(tupleID_metadata);
 
   // Write metadata
