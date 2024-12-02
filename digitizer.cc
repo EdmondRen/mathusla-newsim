@@ -133,7 +133,7 @@ public:
         }
     }
 
-    void Digitize(DigiConfig & config)
+    void Digitize(DigiConfig &config)
     {
         double e_sum = 0;
         double long_direction_sum = 0.0;
@@ -145,12 +145,10 @@ public:
             t_sum += hit->t * hit->edep;
             long_direction_sum += (*hit->pos_vec[this->x_dirc_ind]) * hit->edep;
         }
-        
 
         this->edep = e_sum;
         this->t = t_sum / e_sum;
-        *this->pos_vec[x_dirc_ind] = long_direction_sum/e_sum;
-
+        *this->pos_vec[x_dirc_ind] = long_direction_sum / e_sum;
 
         // TIME AND POSITION SMEARING
         // we see the random number generator with a number that should be completly random:
@@ -159,7 +157,6 @@ public:
         // Time smearing
         this->t += generator.Gaus(0.0, config.time_resolution);
         *this->pos_vec[x_dirc_ind] += generator.Gaus(0.0, config.position_resolution);
-
     }
 };
 
@@ -355,7 +352,7 @@ public:
 
 bool time_sort(SimHit *hit1, SimHit *hit2) { return (hit1->t < hit2->t); }
 
-std::vector<DigiHit *> Digitize(std::vector<SimHit *> hits, DigiConfig *config, MuGeoBuilder::BarPosition (*GetBarPosition)(long long))
+std::vector<DigiHit *> Digitize(std::vector<SimHit *> hits, DigiConfig & config, MuGeoBuilder::BarPosition (*GetBarPosition)(long long))
 {
     // this is the vector of digi_hits we will return at the end of the function
     std::vector<DigiHit *> digis;
@@ -400,7 +397,7 @@ std::vector<DigiHit *> Digitize(std::vector<SimHit *> hits, DigiConfig *config, 
 
             for (auto hit : current_hits)
             {
-                if (hit->t < t0 + config->time_limit)
+                if (hit->t < t0 + config.time_limit)
                 {
                     e_sum += hit->edep;
                     used_hits.push_back(hit);
@@ -411,7 +408,7 @@ std::vector<DigiHit *> Digitize(std::vector<SimHit *> hits, DigiConfig *config, 
                 }
             }
 
-            if (e_sum > config->sipm_energy_threshold)
+            if (e_sum > config.sipm_energy_threshold)
             {
                 DigiHit *current_digi = new DigiHit();
                 for (auto hit : used_hits)
@@ -484,5 +481,26 @@ int main(int argc, const char *argv[])
     std::filesystem::path output_filename = input_filename;
     output_filename.replace_extension("_digi.root");
     auto infile = new InputTreeHandeler(input_filename.string());
-    auto outfile = new InputTreeHandeler(output_filename.string());
+    auto outfile = new OutputTreeHandeler(output_filename.string());
+
+    // Build all geometries and select the one based on metadata of infile
+    MuGeoBuilder::Builder*  _det_selected_; 
+    std::unordered_map<std::string, MuGeoBuilder::Builder*> _det_map_;    
+    _det_map_["uoft1"] = new MuGeoBuilder::Uoft1_Builder();    
+    _det_selected_ = _det_map_[infile->Geometry];
+
+    // make a configuration for digitizer
+    float _time_resolution;
+    float _time_limit;
+    float _sipm_energy_threshold;
+    auto config = DigiConfig(_time_resolution, _time_limit, _sipm_energy_threshold);
+
+    for (int entry = 0; entry < (infile->entries); entry++)
+    {
+        infile->Load();
+    
+        auto digis = Digitize(infile->hits, config, _det_selected_->GetBarPosition);
+    
+    }
+
 }
