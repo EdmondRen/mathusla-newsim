@@ -14,6 +14,7 @@
 #include "G4SolidStore.hh"
 #include "G4SubtractionSolid.hh"
 #include "G4UserLimits.hh"
+// #include "Transform3D.hh"
 
 // G4 visualization
 #include "G4VisAttributes.hh"
@@ -30,7 +31,7 @@ namespace MuGeoBuilder
   // Use a namespace to hold all Geometry parameters
   namespace uoftdims
   {
-    size_t COPY_DEPTH = 4;
+    size_t GEO_DEPTH = 4;
 
     // 0: bar. x: along the bar, y: width, z: thickness
     double bar_lenx = 100 * cm;
@@ -82,14 +83,15 @@ namespace MuGeoBuilder
     double world_lenz = 100 * m;
   }
 
-  int Uoft1_Builder::CopynumberToDetectorID(std::vector<int> copy_numbers)
+  long long int Uoft1_Builder::CopynumberToDetectorID(std::vector<int> copy_numbers)
   {
-    if (copy_numbers.size() != uoftdims::COPY_DEPTH)
+    if (copy_numbers.size() != uoftdims::GEO_DEPTH)
     {
       G4cout << " [ERROR] Geometry: The geometry depth is wrong. Please check geometry implementation." << G4endl;
       exit(0);
     }
-    int det_id = copy_numbers[0];
+
+    long long int det_id = copy_numbers[0];
     for (size_t i = 1; i < copy_numbers.size(); i++)
     {
       det_id += copy_numbers[i] * std::pow(10, 5 + (i - 1) * 3); // Depth 0 takes 5 digits, the rest takes 3 digits each.
@@ -97,27 +99,9 @@ namespace MuGeoBuilder
     return det_id;
   }
 
-  std::map<std::string, float> Uoft1_Builder::GetInfoDetectorID()
+  BarPosition Uoft1_Builder::GetBarPosition(long long detector_id)
   {
-    int barcenter_x_local, barcenter_y_local, barcenter_z_local;
-    int nbars = uoftdims::layer_Nbars_x * uoftdims::layer_Nbars_y;
-    int ntowers = uoftdims::detector_Ntowers_x * uoftdims::detector_Ntowers_y;
-
-    int nbars = uoftdims::layer_Nbars_x * uoftdims::layer_Nbars_y;
-
-    for (size_t i_bar = 0; i_bar < nbars; i_bar++)
-    {
-      barcenter_x_local = (i_bar / uoftdims::layer_Nbars_y - 0.5*nbars) * uoftdims::bar_lenx;
-      barcenter_y_local = (i_bar % uoftdims::layer_Nbars_y - 0.5*nbars) * uoftdims::bar_leny;
-      for (size_t i_layer =0; i_layer<uoftdims::module_Nlayers; i_layer++)
-      {
-        for (size_t i_tower = 0; i_tower < ntowers; i_tower++)
-        {
-
-        }
-      }
-    }
-
+    return this->IDMaps_inWorld.at(detector_id);
   }
 
   // Geometry Builder Class
@@ -126,6 +110,12 @@ namespace MuGeoBuilder
     // Setup detector name and messenger
     this->DetectorName = "uoft1";
     this->fMessenger = new G4GenericMessenger(this, "/det/" + this->DetectorName + "/", "Detector is: UofT teststand 1");
+
+    // Setup the storage of bar information
+    // IDMaps_inTower = new std::map<unsigned long long int, BarPosition>;
+    // IDMaps_inDetector = new std::map<unsigned long long int, BarPosition>;
+    // IDMaps_inWorld = new std::map<unsigned long long int, BarPosition>;
+    // IDMaps_inTower = new std::map<unsigned long long int, BarPosition>;
   }
 
   // Core function 1:
@@ -184,20 +174,31 @@ namespace MuGeoBuilder
     {
       for (int j = 0; j < uoftdims::layer_Nbars_y; j++)
       {
+        int bar_copy_number = j + i * uoftdims::layer_Nbars_y;
+
+        float barcenter_x_offset = uoftdims::bar_lenx * (i - (uoftdims::layer_Nbars_x - 1) / 2.);
+        float barcenter_y_offset = uoftdims::bar_leny * (j - (uoftdims::layer_Nbars_y - 1) / 2.);
+
         auto barPV = new G4PVPlacement(
             0, // no rotation
-            G4ThreeVector(uoftdims::bar_lenx * (i - (uoftdims::layer_Nbars_x - 1) / 2.),
-                          uoftdims::bar_leny * (j - (uoftdims::layer_Nbars_y - 1) / 2.),
-                          0),                // offset it by corresponding bar width and length
-            barLV,                           // its logical volume
-            "bar",                           // its name
-            layerLV,                         // its mother  volume
-            false,                           // no boolean operation
-            j + i * uoftdims::layer_Nbars_y, // copy number (bar number within a layer)
-            fCheckOverlaps);                 // checking overlaps
+            G4ThreeVector(barcenter_x_offset,
+                          barcenter_y_offset,
+                          0), // offset it by corresponding bar width and length
+            barLV,            // its logical volume
+            "bar",            // its name
+            layerLV,          // its mother  volume
+            false,            // no boolean operation
+            bar_copy_number,  // copy number (bar number within a layer)
+            fCheckOverlaps);  // checking overlaps
 
         // Add this bar to the list of sensitive detectors
         allSensitiveDetectors.push_back(barPV);
+
+        // Add this bar to the detector position map
+        G4ThreeVector y_side_direction = G4ThreeVector(0, 1, 0);
+        G4ThreeVector z_side_direction = G4ThreeVector(0, 0, 1);
+        G4ThreeVector bar_center_coord = G4ThreeVector(barcenter_x_offset, barcenter_y_offset, 0);
+        IDMaps_inLayer.insert({bar_copy_number, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
       }
     }
     return 0;
@@ -222,20 +223,31 @@ namespace MuGeoBuilder
       e3[uoftdims::module_layers_zdirection[i]] = 1;
       e2[3 - uoftdims::module_layers_xdirection[i] - uoftdims::module_layers_zdirection[i]] = 1;
 
+      auto transform_rotate = G4RotationMatrix(G4ThreeVector(e1[0], e1[1], e1[2]),
+                                               G4ThreeVector(e2[0], e2[1], e2[2]),
+                                               G4ThreeVector(e3[0], e3[1], e3[2]));
+      auto transform_shift = G4ThreeVector(uoftdims::module_layers_xoffset[i],
+                                           uoftdims::module_layers_yoffset[i],
+                                           -uoftdims::module_lenz / 2 + uoftdims::module_layers_zoffset[i]); // offset
+
       auto layerPV = new G4PVPlacement(
-          G4Transform3D(G4RotationMatrix(G4ThreeVector(e1[0], e1[1], e1[2]),
-                                         G4ThreeVector(e2[0], e2[1], e2[2]),
-                                         G4ThreeVector(e3[0], e3[1], e3[2])), // rotation
-                        G4ThreeVector(uoftdims::module_layers_xoffset[i],
-                                      uoftdims::module_layers_yoffset[i],
-                                      -uoftdims::module_lenz / 2 + uoftdims::module_layers_zoffset[i])), // offset
-          layerLV,                                                                                       // its logical volume
-          "layer",                                                                                       // its name
-          moduleLV,                                                                                      // its mother volume
-          false,                                                                                         // no boolean operation
-          i,                                                                                             // copy number (layer number within a module)
-          fCheckOverlaps);                                                                               // checking overlaps
+          G4Transform3D(transform_rotate, transform_shift), // offset
+          layerLV,                                          // its logical volume
+          "layer",                                          // its name
+          moduleLV,                                         // its mother volume
+          false,                                            // no boolean operation
+          i,                                                // copy number (layer number within a module)
+          fCheckOverlaps);                                  // checking overlaps
       (void)layerPV;
+
+      // Add the bars in this layer to the detector position map
+      for (auto const &[key, val] : IDMaps_inLayer)
+      {
+        G4ThreeVector y_side_direction = transform_rotate * val.y_side_direction;
+        G4ThreeVector z_side_direction = transform_rotate * val.z_side_direction;
+        G4ThreeVector bar_center_coord = transform_rotate * val.bar_center_coord + transform_shift;
+        IDMaps_inTower.insert({key + i * 1e8, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
+      }
     }
     return 0;
   }
@@ -249,20 +261,6 @@ namespace MuGeoBuilder
         Material::Air, // its material
         "detector");   // its name
     // this->detectorLV->SetVisAttributes(Vis::styles["CasingAttributes"]);
-
-    // Place detector in world
-    auto detectorPV = new G4PVPlacement(
-        G4Transform3D(G4RotationMatrix(), // rotation
-                      G4ThreeVector(uoftdims::detector_ground_offset[0],
-                                    uoftdims::detector_ground_offset[1],
-                                    0.5 * uoftdims::detector_lenz + uoftdims::detector_ground_offset[2])), // offset
-        this->detectorLV,                                                                                  // its logical volume
-        "layer",                                                                                           // its name
-        _worldLV,                                                                                          // its mother volume
-        false,                                                                                             // no boolean operation
-        0,                                                                                                 // copy number (layer number within a module)
-        fCheckOverlaps);                                                                                   // checking overlaps
-    (void)detectorPV;
 
     // Place components in detector volume
     // Make a tower module
@@ -278,6 +276,7 @@ namespace MuGeoBuilder
     {
       for (int j = 0; j < uoftdims::detector_Ntowers_y; j++)
       {
+        int tower_copy_number =  j + i*uoftdims::detector_Ntowers_y;
         auto modulePV = new G4PVPlacement(
             G4Transform3D(G4RotationMatrix(), // rotation
                           G4ThreeVector(uoftdims::detector_modules_xoffset[i],
@@ -287,11 +286,45 @@ namespace MuGeoBuilder
             "layer",                         // its name
             this->detectorLV,                // its mother volume
             false,                           // no boolean operation
-            0,                               // copy number (layer number within a module)
+            tower_copy_number,               // copy number (tower number within the full detector)
             fCheckOverlaps);                 // checking overlaps
         (void)modulePV;
+
+        // Add the modules to the detector position map
+        for (auto const &[key, val] : IDMaps_inTower)
+        {
+          G4ThreeVector bar_center_coord = val.bar_center_coord + G4ThreeVector(uoftdims::detector_modules_xoffset[i],
+                                                                                uoftdims::detector_modules_yoffset[j],
+                                                                                0);
+          IDMaps_inDetector.insert({key + tower_copy_number * 1e8*1e3, BarPosition(val.y_side_direction, val.z_side_direction, bar_center_coord)});
+        }
       }
     }
+
+
+    // Place detector in world
+    int detector_copy_number = 0;
+    auto offset = G4ThreeVector(uoftdims::detector_ground_offset[0],
+                                    uoftdims::detector_ground_offset[1],
+                                    0.5 * uoftdims::detector_lenz + uoftdims::detector_ground_offset[2]);
+    auto transform = G4Transform3D(G4RotationMatrix(), // rotation
+                      offset);// offset
+    auto detectorPV = new G4PVPlacement(
+        transform, 
+        this->detectorLV,       // its logical volume
+        "layer",                // its name
+        _worldLV,               // its mother volume
+        false,                  // no boolean operation
+        detector_copy_number,   // copy number (detector number within the world)
+        fCheckOverlaps);        // checking overlaps
+    (void)detectorPV;
+
+    // Add the detector to the detector position map
+    for (auto const &[key, val] : IDMaps_inDetector)
+    {
+      G4ThreeVector bar_center_coord = val.bar_center_coord + offset;
+      IDMaps_inWorld.insert({key + detector_copy_number * 1e8*1e3*1e3, BarPosition(val.y_side_direction, val.z_side_direction, bar_center_coord)});
+    }    
     return 0;
   }
 

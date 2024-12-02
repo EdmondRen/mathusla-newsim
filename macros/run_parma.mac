@@ -23,15 +23,15 @@
 ## Setup PARMA generator
 /gen/select parma
 /gen/parma/pathname ../macros/generators/parma_default.conf
-/gen/parma/particle_pdgid 2112
+/gen/parma/particle_pdgid 2212
 /gen/parma/ekin_low 1 GeV
 # /gen/parma/ekin_high 100 GeV
 /gen/parma/shape 1
-/gen/parma/box 40. 40. 10. m
+/gen/parma/box 2. 2. 2. m
 # Update the PARMA generator settings
 /gen/parma/update
 
 
 /tracking/verbose 0
-/run/beamOn 10000
+/run/beamOn 1000
 #/run/dumpCouples

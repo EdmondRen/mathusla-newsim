@@ -8,6 +8,7 @@
 #include "util.hh"
 #include "MuEventAction.hh"
 #include "MuPrimaryGeneratorAction.hh"
+#include "MuDetectorConstruction.hh"
 
 namespace Analysis
 {
@@ -69,7 +70,7 @@ namespace Analysis
         fdata->Add("Hit_pdgIDparent",   util::py::__vector__, util::py::__double__);
         fdata->Add("Hit_isprimary",     util::py::__vector__, util::py::__int__);
         fdata->Add("Hit_processID",     util::py::__vector__, util::py::__int__);
-        fdata->Add("Hit_copyNumber",    util::py::__vector__, util::py::__int__);
+        fdata->Add("Hit_detectorID",    util::py::__vector__, util::py::__double__); // int32 is not long enough. Use double. 
         fdata->Add("Gen_x",             util::py::__vector__, util::py::__float__);
         fdata->Add("Gen_y",             util::py::__vector__, util::py::__float__);
         fdata->Add("Gen_z",             util::py::__vector__, util::py::__float__);
@@ -126,6 +127,11 @@ namespace Analysis
         // Get the event index
         const auto event_id = G4RunManager::GetRunManager()->GetCurrentEvent()->GetEventID();
 
+        // Get detector construction
+        auto detectorConstruction = G4RunManager::GetRunManager()->GetUserDetectorConstruction();
+        auto detectorConstruction_this = dynamic_cast<const MuDetectorConstruction*>(detectorConstruction);
+        auto detectorBuilder = detectorConstruction_this -> GetBuilder();
+
         // Don't write down anything if there are less than 4 hits.
         if (fHitsCollection->GetSize() < 4)
             return;
@@ -152,12 +158,13 @@ namespace Analysis
             data["Hit_pdgID"].push_back(hit->_trackPDG);
             data["Hit_pdgIDparent"].push_back(hit->_parentPDG);
             data["Hit_processID"].push_back(0); // Fix this later
+            data["Hit_detectorID"].push_back(detectorBuilder->CopynumberToDetectorID(hit->_copyNumber));
 
             // Copy number is a list for each hit. Flatten it and separate by -1
             // Start with lowest depth (for example, bar number) to highes depth (detector number)
-            for (int cn : hit->_copyNumber)
-                data["Hit_copyNumber"].push_back(cn);
-            data["Hit_copyNumber"].push_back(-1); // -1 is used to separate multiple hits in one event.
+            // for (int cn : hit->_copyNumber)
+            //     data["Hit_copyNumber"].push_back(cn);
+            // data["Hit_copyNumber"].push_back(-1); // -1 is used to separate multiple hits in one event.
         }
 
         // Process generated particles

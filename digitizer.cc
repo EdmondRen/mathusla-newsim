@@ -10,12 +10,37 @@
 #include <TROOT.h>
 #include <TTree.h>
 #include <TFile.h>
+#include <TRandom3.h>
 
 // Project includes
 #include "libs/cxxopts.hpp"
 #include "util.hh"
+// Include ALL detector geometries that you want to use
 #include "geometry/TestStand_UofT.hh"
 #include "geometry/Mathusla40.hh"
+
+TRandom3 generator;
+
+struct DigiConfig
+{
+    // Coincident timing resolution. 1/sqrt(2) of single channel resolution
+    float time_resolution;
+
+    // Speed of light in the fiber
+    float c = 29.979 / 1.89;
+
+    // Position resolution
+    float position_resolution = time_resolution * c;
+
+    float time_limit;
+    float sipm_energy_threshold;
+
+    DigiConfig() = default;
+    DigiConfig(float _time_resolution, float _time_limit, float _sipm_energy_threshold) : time_resolution(_time_resolution), time_limit(_time_limit), sipm_energy_threshold(_sipm_energy_threshold)
+    {
+        position_resolution = time_resolution * c;
+    }
+};
 
 // Container for simulation hits
 struct SimHit
@@ -23,15 +48,13 @@ struct SimHit
     // Necessary parameters
     int pdg_id; // PDG identifier
     int track_id;
-    std::vector<int> copy_numbers;
     float px, py, pz, edep;
     float x, y, z, t;
+    u_int64_t det_id;
 
     // Derived parameters
     //
-
-
-    u_int64_t det_id;
+    float *pos_vec[3] = {&x, &y, &z};
 
     SimHit() = default;
 
@@ -45,18 +68,10 @@ struct SimHit
            float z_momentum,
            int _track_id,
            int _pdg_id,
-           std::vector<int> _copy_numbers)
+           u_int64_t _det_id)
         : x(x_position), y(y_position), z(z_position), t(t_position), edep(edep_total),
           px(x_momentum), py(y_momentum), pz(z_momentum),
-          track_id(_track_id), pdg_id(_pdg_id), copy_numbers(_copy_numbers)
-    {
-        //
-        det_id = copy_numbers[0];
-        for (size_t i = 1; i < copy_numbers.size(); i++)
-        {
-            det_id += copy_numbers[i] * std::pow(10, 5 + (i - 1) * 3);
-        }
-    }
+          track_id(_track_id), pdg_id(_pdg_id), det_id(_det_id) {}
 };
 
 // Container for Digi hits
@@ -65,10 +80,7 @@ class DigiHit
 public:
     std::size_t index;
     int direction; // where the bar is pointing to
-    double x, ex;
-    double y, ey;
-    double z, ez;
-    double t, et;
+    double x, y, z, t;
     double px, py, pz, edep; // momentum of particle which made the hit
     double particle_mass;
     double particle_energy;
@@ -78,34 +90,77 @@ public:
     int type = -1;
 
     // Internal states
-    int xdirection; // xdirection: where the long end is pointing to, one of {0,1,2}
-    int zdirection; // zdirection: where the verticle end is pointing to, one of {0,1,2}
-    int track_id_min = 9999999999;
     std::vector<SimHit *> hits;
 
-    void AddHit(SimHit *hit, int _direction_)
+    G4ThreeVector ydirection; // xdirection: where the long end is pointing to, one of {0,1,2}
+    G4ThreeVector zdirection; // zdirection: where the verticle end is pointing to, one of {0,1,2}
+    int x_dirc_ind = 0;
+    int y_dirc_ind = 0;
+    int z_dirc_ind = 0;
+
+    int track_id_min = 9999999999;
+    double *pos_vec[3] = {&x, &y, &z};
+
+    void AddHit(SimHit *hit, MuGeoBuilder::BarPosition bar_position)
     {
         hits.push_back(hit);
         if (hit->track_id < track_id_min)
         {
             track_id_min = hit->track_id;
             pdg_id = hit->pdg_id;
-            edep = hit->edep;
-            px = hit->px;
-            py = hit->py;
-            pz = hit->pz;
+            int hit_pos[3] = {hit->x, hit->y, hit->z};
+
+            // Find the y direction index
+            for (y_dirc_ind = 0; y_dirc_ind < 3; y_dirc_ind++)
+            {
+                if (bar_position.y_side_direction[y_dirc_ind] != 0)
+                    break;
+            }
+
+            // Find the z direction index
+            for (z_dirc_ind = 0; z_dirc_ind < 3; z_dirc_ind++)
+            {
+                if (bar_position.z_side_direction[z_dirc_ind] != 0)
+                    break;
+            }
+
+            // x is the other direction
+            x_dirc_ind = 3 - abs(y_dirc_ind) - abs(z_dirc_ind);
+
+            *pos_vec[y_dirc_ind] = bar_position.bar_center_coord[y_dirc_ind];
+            *pos_vec[z_dirc_ind] = bar_position.bar_center_coord[z_dirc_ind];
+            *pos_vec[x_dirc_ind] = hit_pos[x_dirc_ind];
         }
     }
-};
 
-struct DigiConfig
-{
-    float resolution_x, resolution_y, resolution_z, resolution_t;
-    float time_limit;
-    float sipm_energy_threshold;
+    void Digitize(DigiConfig & config)
+    {
+        double e_sum = 0;
+        double long_direction_sum = 0.0;
+        double t_sum = 0;
 
-    DigiConfig() = default;
-    DigiConfig(float _resolution_x, float _resolution_y, float _resolution_z, float _resolution_t, float _time_limit, float _sipm_energy_threshold) : resolution_x(_resolution_x), resolution_y(_resolution_y), resolution_z(_resolution_z), resolution_t(_resolution_t), time_limit(_time_limit), sipm_energy_threshold(_sipm_energy_threshold) {}
+        for (auto hit : this->hits)
+        {
+            e_sum += hit->edep;
+            t_sum += hit->t * hit->edep;
+            long_direction_sum += (*hit->pos_vec[this->x_dirc_ind]) * hit->edep;
+        }
+        
+
+        this->edep = e_sum;
+        this->t = t_sum / e_sum;
+        *this->pos_vec[x_dirc_ind] = long_direction_sum/e_sum;
+
+
+        // TIME AND POSITION SMEARING
+        // we see the random number generator with a number that should be completly random:
+        // the clock time times the layer index times the number of digis
+
+        // Time smearing
+        this->t += generator.Gaus(0.0, config.time_resolution);
+        *this->pos_vec[x_dirc_ind] += generator.Gaus(0.0, config.position_resolution);
+
+    }
 };
 
 // --------------------------------------------------------
@@ -131,10 +186,7 @@ public:
     std::vector<float> *Hit_pz = nullptr;
     std::vector<int> *Hit_trackID = nullptr;
     std::vector<double> *Hit_pdgID = nullptr;
-    std::vector<int> *Hit_copyNumber = nullptr;
-
-    //
-    std::vector<std::vector<int>> Hit_copyNumber_split;
+    std::vector<double> *Hit_detectorID = nullptr;
 
     std::string SimulationName;
     std::string Geometry;
@@ -167,7 +219,7 @@ public:
         treeRaw->SetBranchAddress("Hit_pz", &Hit_pz);
         treeRaw->SetBranchAddress("Hit_trackID", &Hit_trackID);
         treeRaw->SetBranchAddress("Hit_pdgID", &Hit_pdgID);
-        treeRaw->SetBranchAddress("Hit_copyNumber", &Hit_copyNumber);
+        treeRaw->SetBranchAddress("Hit_detectorID", &Hit_detectorID);
         // Speed up reading by turning off all other branches
         treeRaw->SetBranchStatus("Gen_*", 0);
     }
@@ -190,7 +242,7 @@ public:
 
             //
             int delimiter = -1;
-            Hit_copyNumber_split = util::vector::splitVectorByDelimiter(*Hit_copyNumber, delimiter);
+            // Hit_detectorID_split = util::vector::splitVectorByDelimiter(*Hit_detectorID, delimiter);
 
             entry_counter += 1;
             for (uint i = 0; i < Hit_x->size(); i++)
@@ -205,7 +257,7 @@ public:
                                           (*Hit_pz)[i],
                                           (*Hit_trackID)[i],
                                           (*Hit_pdgID)[i],
-                                          Hit_copyNumber_split[i]));
+                                          (*Hit_detectorID)[i]));
             }
         }
     }
@@ -303,7 +355,7 @@ public:
 
 bool time_sort(SimHit *hit1, SimHit *hit2) { return (hit1->t < hit2->t); }
 
-std::vector<DigiHit *> Digitize(std::vector<SimHit *> hits, DigiConfig *config)
+std::vector<DigiHit *> Digitize(std::vector<SimHit *> hits, DigiConfig *config, MuGeoBuilder::BarPosition (*GetBarPosition)(long long))
 {
     // this is the vector of digi_hits we will return at the end of the function
     std::vector<DigiHit *> digis;
@@ -362,10 +414,9 @@ std::vector<DigiHit *> Digitize(std::vector<SimHit *> hits, DigiConfig *config)
             if (e_sum > config->sipm_energy_threshold)
             {
                 DigiHit *current_digi = new DigiHit();
-                // current_digi->det_id = current_id;
                 for (auto hit : used_hits)
                 {
-                    current_digi->AddHit(hit);
+                    current_digi->AddHit(hit, GetBarPosition(hit->det_id));
                 }
                 current_digi->index = (digis.size());
                 digis.push_back(current_digi);
@@ -388,6 +439,19 @@ std::vector<DigiHit *> Digitize(std::vector<SimHit *> hits, DigiConfig *config)
     // At this point, all of the digi_hits in the digi_vector have the hits which will make them up. However, they don't have any of their energy, position, or timing information added.
     // Below, we compute the energy, time, and position of all of the digi hits
     // We incoorporate the time and position smearing into this calculation as well
+
+    for (auto digi : digis)
+    {
+    }
+
+    // setting digi indices
+    int k = 0;
+    for (auto digi : digis)
+    {
+        digi->index = k++;
+    }
+
+    return digis;
 }
 
 int main(int argc, const char *argv[])
@@ -398,6 +462,7 @@ int main(int argc, const char *argv[])
     options.add_options()
         ("h,help", "Print help")
         ("filename", "ROOT file to digitize", cxxopts::value<std::string>())
+        ("s,seed", "Seed for random number generator", cxxopts::value<int>()->default_value("-1"))
         ("n,noise", "Noise rate [avg number per file]. Set to -1 to disable (default).", cxxopts::value<int>()->default_value("-1"))
         ("w,window", "Noise window [ns]", cxxopts::value<float>());
     options.parse_positional({"filename"});
@@ -410,6 +475,9 @@ int main(int argc, const char *argv[])
         std::cout << options.help() << std::endl;
         return 0; // Exit the program after showing help
     }
+
+    // Setup random number generator
+    generator.SetSeed(args["seed"].as<int>());
 
     // Open the input/output file
     std::filesystem::path input_filename = args["filename"].as<std::string>();

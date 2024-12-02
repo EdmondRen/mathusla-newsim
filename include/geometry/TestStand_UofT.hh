@@ -41,11 +41,11 @@ namespace MuGeoBuilder
     //    CCC are the "layer" copy number
     //    BBB are the "tower-module" copy number
     //    AAA are the "detector" copy number
-    int CopynumberToDetectorID(std::vector<int> copy_numbers) override;
+    long long int CopynumberToDetectorID(std::vector<int> copy_numbers) override;
 
     // Core function 4:
     // (For digitizer) Make a map from detector ID to bar information dict
-    std::map<std::string, float> GetInfoDetectorID() override;    
+    BarPosition GetBarPosition(long long detector_id) override;    
 
     // Helper functions:
     // void DefineMaterials();
@@ -58,12 +58,11 @@ namespace MuGeoBuilder
   private:
     bool fCheckOverlaps;
 
-    // For each detector ID, store a dictionary containing at least
-    // "y_side_direction": int (one of 0,1,2)
-    // "z_side_direction": int (one of 0,1,2)
-    // "y_side_coord": float
-    // "z_side_coord": float
-    std::vector<std::map<std::string, float> *> DetectorIDMaps;
+    // For each detector ID, store a struct of BarPosition
+    std::map<unsigned long long int, BarPosition> IDMaps_inLayer; // depth=0
+    std::map<unsigned long long int, BarPosition> IDMaps_inDetector; // depth=2
+    std::map<unsigned long long int, BarPosition> IDMaps_inWorld; // depth=3
+    std::map<unsigned long long int, BarPosition> IDMaps_inTower; // depth=1
   };
 
 } // namespace MuGeoBuilder

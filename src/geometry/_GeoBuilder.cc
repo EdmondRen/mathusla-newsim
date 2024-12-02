@@ -19,6 +19,9 @@
 #include "G4PhysicalConstants.hh"
 #include "G4SystemOfUnits.hh"
 
+#include "G4TransportationManager.hh"
+#include "G4PhysicalVolumesSearchScene.hh"
+
 // User include:
 #include "geometry/_GeoBuilder.hh"
 
@@ -30,6 +33,64 @@ namespace MuGeoBuilder
     // Builder::Builder() {}
     // G4VPhysicalVolume *Builder::Construct() { return 0; }
     // void Builder::ConstructSD(G4VSensitiveDetector *detector) { (void)detector; }
+
+    std::vector<CLHEP::Hep3Vector> Builder::GetPositionInWorld(const G4String &physName)
+    {
+        G4TransportationManager *transportationManager =
+            G4TransportationManager::GetTransportationManager();
+
+        size_t nWorlds = transportationManager->GetNoWorlds();
+
+        std::vector<G4PhysicalVolumesSearchScene::Findings> findingsVector;
+        std::vector<G4VPhysicalVolume *>::iterator iterWorld =
+            transportationManager->GetWorldsIterator();
+        for (size_t i = 0; i < nWorlds; ++i, ++iterWorld)
+        {
+            G4PhysicalVolumeModel searchModel(*iterWorld); // Unlimited depth.
+            G4ModelingParameters mp;                       // Default - no culling.
+            searchModel.SetModelingParameters(&mp);
+            G4PhysicalVolumesSearchScene searchScene(&searchModel, physName);
+            searchModel.DescribeYourselfTo(searchScene); // Initiate search.
+
+            for (const auto &findings : searchScene.GetFindings())
+            {
+                findingsVector.push_back(findings);
+            }
+        }
+
+        for (const auto &findings : findingsVector)
+        {
+            G4cout
+                << findings.fFoundBasePVPath
+                << " " << findings.fpFoundPV->GetName()
+                << " " << findings.fFoundPVCopyNo
+                << " (mother logical volume: "
+                << findings.fpFoundPV->GetMotherLogical()->GetName()
+                << ")"
+                << G4endl;
+        }
+
+        std::vector<CLHEP::Hep3Vector> vPos;
+
+        if (!findingsVector.size())
+        {
+            G4cout << physName << " not found" << G4endl;
+        }
+        else
+        {
+            for (const auto &findings : findingsVector)
+            {
+                vPos.push_back(findings.fFoundObjectTransformation.getTranslation());
+            }
+
+            for (const auto &pos : vPos)
+            {
+                G4cout << pos / m << G4endl;
+            }
+        }
+
+        return vPos;
+    }
 
     // ----------------------------------------------------------------------
     // Helper functions for building geometry, such as

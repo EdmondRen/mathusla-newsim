@@ -73,6 +73,10 @@ target_link_libraries(simulation PUBLIC
                     ${ROOT_LIBRARIES}
                     ${CRY_LIBRARIES})
 
+## Digitizer
+add_executable(digitizer digitizer.cc)
+target_link_libraries(digitizer PUBLIC ${ROOT_LIBRARIES})
+
 ## Standalone CRY cosmic generator
 add_executable(cry cry.cc src/util.cc ${headers})
 target_link_libraries(cry ${CRY_LIBRARIES})

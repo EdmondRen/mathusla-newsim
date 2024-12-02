@@ -8,10 +8,36 @@
 #include <G4UIcommand.hh>
 #include <G4VisAttributes.hh>
 
-
-
 namespace MuGeoBuilder
 {
+
+    // "y_side_direction": int (one of 0,1,2)
+    // "z_side_direction": int (one of 0,1,2)
+    // "y_side_coord": float
+    // "z_side_coord": float
+    struct BarPosition
+    {
+        G4ThreeVector y_side_direction;
+        G4ThreeVector z_side_direction;
+        G4ThreeVector bar_center_coord;
+
+        BarPosition(G4ThreeVector _y_side_direction,
+                    G4ThreeVector _z_side_direction,
+                    G4ThreeVector _bar_center_coord): y_side_direction(_y_side_direction.x(), _y_side_direction.y(), _y_side_direction.z()),
+                    z_side_direction(_z_side_direction.x(), _z_side_direction.y(), _z_side_direction.z()),
+                    bar_center_coord(_bar_center_coord.x(), _bar_center_coord.y(), _bar_center_coord.z())
+        {
+        }
+
+        // BarPosition(G4ThreeVector _y_side_direction,
+        //             G4ThreeVector _z_side_direction,
+        //             G4ThreeVector _bar_center_coord)
+        // {
+        //     y_side_direction = _y_side_direction;
+        //     z_side_direction = _z_side_direction;
+        //     bar_center_coord = _bar_center_coord;
+        // }        
+    };
 
     // Geometry Builder Class
     // This class takes care of detector construction
@@ -34,19 +60,22 @@ namespace MuGeoBuilder
 
         // Core function 3:
         // (For digitizer) Get a unique detector ID for each bar based on the copy number
-        virtual int CopynumberToDetectorID(std::vector<int> copy_numbers) = 0;
+        virtual long long int CopynumberToDetectorID(std::vector<int> copy_numbers) = 0;
 
         // Core function 4:
         // (For digitizer) Make a map from detector ID to bar information dict
-        virtual std::map<std::string, float> GetInfoDetectorID() = 0;
+        virtual BarPosition GetBarPosition(long long detector_id) = 0;
+
+        // Utilities
+        // Find the position of a physical volume in world
+        std::vector<CLHEP::Hep3Vector> GetPositionInWorld(const G4String &physName);
 
         // Varibles
         std::string DetectorName;
         // Messenger related
-        G4GenericMessenger *fMessenger;    
+        G4GenericMessenger *fMessenger;
 
     private:
-
     };
 
     namespace Material
@@ -83,7 +112,7 @@ namespace MuGeoBuilder
     namespace Vis
     {
         extern std::map<std::string, G4VisAttributes> styles;
-        
+
     } /* namespace Vis*/
 
 } // namespace MuGeoBuilder

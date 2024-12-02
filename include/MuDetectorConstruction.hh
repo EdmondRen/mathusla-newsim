@@ -83,6 +83,7 @@ class MuDetectorConstruction : public G4VUserDetectorConstruction, public G4UIme
     // get methods
     static util::py::Dict* GetSDdata();
     static const std::string GetName();
+    MuGeoBuilder::Builder* GetBuilder() const {return _det_;}
      
     static const std::string MessengerDirectory;
 
