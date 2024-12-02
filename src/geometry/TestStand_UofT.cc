@@ -32,7 +32,7 @@ namespace MuGeoBuilder
   {
     size_t COPY_DEPTH = 4;
 
-    // 0: bar
+    // 0: bar. x: along the bar, y: width, z: thickness
     double bar_lenx = 100 * cm;
     double bar_leny = 4 * cm;
     double bar_lenz = 1 * cm;
@@ -99,13 +99,21 @@ namespace MuGeoBuilder
 
   std::map<std::string, float> Uoft1_Builder::GetInfoDetectorID()
   {
-    for (size_t i_bar = 0; i_bar < uoftdims::layer_Nbars_x * uoftdims::layer_Nbars_y; i_bar++)
+    int barcenter_x_local, barcenter_y_local, barcenter_z_local;
+    int nbars = uoftdims::layer_Nbars_x * uoftdims::layer_Nbars_y;
+    int ntowers = uoftdims::detector_Ntowers_x * uoftdims::detector_Ntowers_y;
+
+    int nbars = uoftdims::layer_Nbars_x * uoftdims::layer_Nbars_y;
+
+    for (size_t i_bar = 0; i_bar < nbars; i_bar++)
     {
+      barcenter_x_local = (i_bar / uoftdims::layer_Nbars_y - 0.5*nbars) * uoftdims::bar_lenx;
+      barcenter_y_local = (i_bar % uoftdims::layer_Nbars_y - 0.5*nbars) * uoftdims::bar_leny;
       for (size_t i_layer =0; i_layer<uoftdims::module_Nlayers; i_layer++)
       {
-        for (size_t i_tower = 0; i_tower < uoftdims::detector_Ntowers_x * uoftdims::detector_Ntowers_y; i_tower++)
+        for (size_t i_tower = 0; i_tower < ntowers; i_tower++)
         {
-          
+
         }
       }
     }
