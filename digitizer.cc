@@ -30,9 +30,7 @@ struct SimHit
     // Derived parameters
     //
 
-    // det_id is a unique id for each bar, calculated by copy_numbers
-    // det_id = (uint64)...AAABBBCCCDDDXXXXX
-    // lower 5 digits are the bar copy number.
+
     u_int64_t det_id;
 
     SimHit() = default;
