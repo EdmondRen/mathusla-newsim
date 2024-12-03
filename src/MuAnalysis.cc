@@ -9,6 +9,7 @@
 #include "MuEventAction.hh"
 #include "MuPrimaryGeneratorAction.hh"
 #include "MuDetectorConstruction.hh"
+#include "MuSteppingAction.hh"
 
 namespace Analysis
 {
@@ -64,10 +65,10 @@ namespace Analysis
         fdata->Add("Hit_px",            util::py::__vector__, util::py::__float__);
         fdata->Add("Hit_py",            util::py::__vector__, util::py::__float__);
         fdata->Add("Hit_pz",            util::py::__vector__, util::py::__float__);
-        fdata->Add("Hit_trackID",       util::py::__vector__, util::py::__float__);
-        fdata->Add("Hit_trackIDparent", util::py::__vector__, util::py::__float__);
-        fdata->Add("Hit_pdgID",         util::py::__vector__, util::py::__double__);
-        fdata->Add("Hit_pdgIDparent",   util::py::__vector__, util::py::__double__);
+        fdata->Add("Hit_trackID",       util::py::__vector__, util::py::__int__);
+        fdata->Add("Hit_trackIDparent", util::py::__vector__, util::py::__int__);
+        fdata->Add("Hit_pdgID",         util::py::__vector__, util::py::__int__);
+        fdata->Add("Hit_pdgIDparent",   util::py::__vector__, util::py::__int__);
         fdata->Add("Hit_isprimary",     util::py::__vector__, util::py::__int__);
         fdata->Add("Hit_processID",     util::py::__vector__, util::py::__int__);
         fdata->Add("Hit_detectorID",    util::py::__vector__, util::py::__double__); // int32 is not long enough. Use double. 
@@ -80,6 +81,19 @@ namespace Analysis
         fdata->Add("Gen_pz",            util::py::__vector__, util::py::__float__);
         fdata->Add("Gen_pdgID",         util::py::__vector__, util::py::__double__);
         fdata->Add("Gen_index",         util::py::__vector__, util::py::__double__);
+        // Step data, optional
+        fdata->Add("Step_x",             util::py::__vector__, util::py::__float__);
+        fdata->Add("Step_y",             util::py::__vector__, util::py::__float__);
+        fdata->Add("Step_z",             util::py::__vector__, util::py::__float__);
+        fdata->Add("Step_t",             util::py::__vector__, util::py::__float__);
+        fdata->Add("Step_edep",          util::py::__vector__, util::py::__float__);
+        fdata->Add("Step_px",            util::py::__vector__, util::py::__float__);
+        fdata->Add("Step_py",            util::py::__vector__, util::py::__float__);
+        fdata->Add("Step_pz",            util::py::__vector__, util::py::__float__);
+        fdata->Add("Step_trackID",       util::py::__vector__, util::py::__int__);
+        fdata->Add("Step_trackIDparent", util::py::__vector__, util::py::__int__);
+        fdata->Add("Step_pdgID",         util::py::__vector__, util::py::__int__);
+        fdata->Add("Step_status",        util::py::__vector__, util::py::__int__);
         // clang-format on
     }
 
@@ -96,7 +110,7 @@ namespace Analysis
         fHitsCollection = new HitsCollection(SensitiveDetectorName, hcName);
 
         // Get a pointer to runactions
-        fMuRunAction = static_cast<const MuRunAction *> (G4RunManager::GetRunManager()->GetUserRunAction());
+        fMuRunAction = static_cast<const MuRunAction *>(G4RunManager::GetRunManager()->GetUserRunAction());
         this->run_number = fMuRunAction->GetRunNumber();
     }
 
@@ -129,8 +143,8 @@ namespace Analysis
 
         // Get detector construction
         auto detectorConstruction = G4RunManager::GetRunManager()->GetUserDetectorConstruction();
-        auto detectorConstruction_this = dynamic_cast<const MuDetectorConstruction*>(detectorConstruction);
-        auto detectorBuilder = detectorConstruction_this -> GetBuilder();
+        auto detectorConstruction_this = dynamic_cast<const MuDetectorConstruction *>(detectorConstruction);
+        auto detectorBuilder = detectorConstruction_this->GetBuilder();
 
         // Don't write down anything if there are less than 4 hits.
         if (fHitsCollection->GetSize() < 4)
@@ -138,8 +152,8 @@ namespace Analysis
 
         // Set single values
         data["UID"] = run_number * 1e9 + event_id;
-        data["Seed_0"] = *reinterpret_cast<int *>(&seedInfo[1]);    // Cast the address of the unsigned long to an int pointer
-        data["Seed_1"] = *reinterpret_cast<int *>(&seedInfo[2]);    // Cast the address of the unsigned long to an int pointer
+        data["Seed_0"] = *reinterpret_cast<int *>(&seedInfo[1]); // Cast the address of the unsigned long to an int pointer
+        data["Seed_1"] = *reinterpret_cast<int *>(&seedInfo[2]); // Cast the address of the unsigned long to an int pointer
 
         // Process hit collection
         for (std::size_t i = 0; i < fHitsCollection->GetSize(); ++i)
@@ -180,6 +194,28 @@ namespace Analysis
             data["Gen_pz"].push_back(particle.pz);
             data["Gen_pdgID"].push_back(particle.pdgid);
             data["Gen_index"].push_back(particle.index);
+        }
+
+        // Process Step data (only when saving step is enabled)
+        auto userStepAction = dynamic_cast<const MuSteppingAction *>(G4RunManager::GetRunManager()->GetUserSteppingAction());
+        if (userStepAction->ENABLE_STEPS)
+        {
+            auto fStepDataStore = userStepAction->fStepDataStore;
+            for (size_t ii = 0; ii < fStepDataStore->_step_x.size(); ii++)
+            {
+                data["Step_x"].push_back(fStepDataStore->_step_x[ii]);
+                data["Step_y"].push_back(fStepDataStore->_step_y[ii]);
+                data["Step_z"].push_back(fStepDataStore->_step_z[ii]);
+                data["Step_t"].push_back(fStepDataStore->_step_t[ii]);
+                data["Step_edep"].push_back(fStepDataStore->_step_edep[ii]);
+                data["Step_px"].push_back(fStepDataStore->_step_px[ii]);
+                data["Step_py"].push_back(fStepDataStore->_step_py[ii]);
+                data["Step_pz"].push_back(fStepDataStore->_step_pz[ii]);
+                data["Step_trackID"].push_back(fStepDataStore->_step_trackID[ii]);
+                data["Step_trackIDparent"].push_back(fStepDataStore->_step_trackIDparent[ii]);
+                data["Step_pdgID"].push_back(fStepDataStore->_step_pdg[ii]);
+                data["Step_status"].push_back(fStepDataStore->_step_status[ii]);
+            }
         }
 
         // Fill them into the tuple

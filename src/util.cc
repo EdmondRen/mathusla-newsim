@@ -29,7 +29,6 @@
 
 namespace util
 {
-    std::string VERSION = "0.1";
 
     namespace py
     {

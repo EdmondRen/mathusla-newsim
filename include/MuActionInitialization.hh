@@ -50,7 +50,8 @@ class MuActionInitialization : public G4VUserActionInitialization
     virtual void Build() const;
     
     // static flags
-    static bool DEBUG; 
+    static bool ENABLE_DEBUG; 
+    static bool ENABLE_STEPS;
 
   private:
     MuDetectorConstruction* fDetConstruction;

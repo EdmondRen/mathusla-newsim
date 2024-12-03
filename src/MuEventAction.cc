@@ -38,6 +38,9 @@
 #include "Randomize.hh"
 #include <iomanip>
 
+// # Project include 
+#include "MuSteppingAction.hh"
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 // Event information class
@@ -96,6 +99,11 @@ void MuEventAction::BeginOfEventAction(const G4Event *event)
 
   auto *eventInfo = new MyEventInformation(engienStatus[1], engienStatus[2], engienStatus[3]);
   const_cast<G4Event *>(event)->SetUserInformation(eventInfo);
+
+  // Clear the step data store
+  auto userStepAction = dynamic_cast<const MuSteppingAction *>(G4RunManager::GetRunManager()->GetUserSteppingAction());
+  userStepAction->fStepDataStore->clear();
+
 }
 
 void MuEventAction::EndOfEventAction(const G4Event *event)

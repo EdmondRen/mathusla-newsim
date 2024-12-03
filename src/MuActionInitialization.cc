@@ -36,7 +36,8 @@
 
 #include "util.hh"
 
-bool MuActionInitialization::DEBUG = false;
+bool MuActionInitialization::ENABLE_DEBUG = false;
+bool MuActionInitialization::ENABLE_STEPS = false;
 
 
 MuActionInitialization::MuActionInitialization(MuDetectorConstruction *detConstruction, cxxopts::ParseResult &uargs)
@@ -48,7 +49,8 @@ MuActionInitialization::MuActionInitialization(MuDetectorConstruction *detConstr
   util::io::create_directory(args["output"].as<G4String>());
 
   // Set static flags
-  DEBUG = args.count("debug");
+  ENABLE_DEBUG = args["debug"].as<bool>();
+  ENABLE_STEPS = args["all_steps"].as<bool>();
 }
 
 
@@ -73,6 +75,6 @@ void MuActionInitialization::Build() const
                                 run_number));
   auto eventAction = new MuEventAction;
   SetUserAction(eventAction);
-  SetUserAction(new MuSteppingAction(fDetConstruction, eventAction));
+  SetUserAction(new MuSteppingAction(fDetConstruction, eventAction, ENABLE_STEPS));
 }
 

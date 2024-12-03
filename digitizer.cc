@@ -215,10 +215,10 @@ public:
         treeMetadata->SetBranchAddress("SimulationName", SimulationName_buf);
         treeMetadata->SetBranchAddress("Geometry", Geometry_buf);
         treeMetadata->SetBranchAddress("Generator", Generator_buf);
-        treeMetadata->GetEntry(0); // Load into buffer
+        treeMetadata->GetEntry(0);           // Load into buffer
         SimulationName = SimulationName_buf; // Turn char[] into string
-        Geometry = Geometry_buf; // Turn char[] into string
-        Generator = Generator_buf; // Turn char[] into string
+        Geometry = Geometry_buf;             // Turn char[] into string
+        Generator = Generator_buf;           // Turn char[] into string
         SimulationName.erase(SimulationName.find_last_not_of("\n") + 1);
         Geometry.erase(Geometry.find_last_not_of("\n") + 1);
         Generator.erase(Generator.find_last_not_of("\n") + 1);
@@ -518,7 +518,11 @@ int main(int argc, const char *argv[])
         ("h,help", "Print help")
         ("filename", "ROOT file to digitize", cxxopts::value<std::string>())
         ("s,seed", "Seed for random number generator", cxxopts::value<int>()->default_value("-1"))
+        ("t,time_resolution", "Coincidence time resolution [ns].", cxxopts::value<float>()->default_value("1"))
+        ("T,time_limit", "Time limit [ns]", cxxopts::value<float>()->default_value("20"))
+        ("E,energy_threshold", "Energy threshold for a digi [MeV]", cxxopts::value<float>()->default_value("0.65"))
         ("n,noise", "Noise rate [avg number per file]. Set to -1 to disable (default).", cxxopts::value<int>()->default_value("-1"))
+        ("p,print_progress", "Print progress every `p` events", cxxopts::value<int>()->default_value("1"))
         ("w,window", "Noise window [ns]", cxxopts::value<float>());
     options.parse_positional({"filename"});
     auto args = options.parse(argc, argv);
@@ -533,12 +537,12 @@ int main(int argc, const char *argv[])
 
     print("**************************************************************");
     print("   MATHUSLA SIM Digitizer, version ", util::VERSION);
-    print("      Copyright : Geant4 Collaboration");
+    print("      - MATHUSLA Collaboration");
     print("**************************************************************");
-
 
     // Setup random number generator
     generator.SetSeed(args["seed"].as<int>());
+    auto print_progress = args["print_progress"].as<int>();
 
     // Open the input/output file
     std::filesystem::path input_filename = args["filename"].as<std::string>();
@@ -550,23 +554,31 @@ int main(int argc, const char *argv[])
     // Build all geometries and select the one based on metadata of infile
     std::unordered_map<std::string, MuGeoBuilder::Builder *> _det_map_;
     _det_map_["uoft1"] = new MuGeoBuilder::Uoft1_Builder();
-    print("** Building Select geometry: ", infile->Geometry, "**");
+    print("Digitizer > Building Select geometry: ", infile->Geometry, "**");
     auto _det_selected_ = _det_map_[infile->Geometry];
     _det_selected_->Construct();
-    print("** Finished building geometry **");
+    print("Digitizer > Finished building geometry ");
+    print("Digitizer > Running");
 
     // make a configuration for digitizer
-    float _time_resolution = 1;          // [ns]
-    float _time_limit = 20;              // [ns]
-    float _sipm_energy_threshold = 0.65; // [MeV]
+    float _time_resolution = args["time_resolution"].as<float>();        // [ns]
+    float _time_limit = args["time_limit"].as<float>();                  // [ns]
+    float _sipm_energy_threshold = args["energy_threshold"].as<float>(); // [MeV]
     auto config = DigiConfig(_time_resolution, _time_limit, _sipm_energy_threshold);
 
     for (int entry = 0; entry < (infile->entries); entry++)
-    {
+    {   
+        // Print progress
+        if (entry % print_progress==0)
+            print("Digitizer > ---> End of event:", entry);
+
+        // Load hits
         infile->Load();
 
+        // Digitize
         auto digis = Digitize(infile->hits, config, _det_selected_);
 
+        // Debug, Inspect the digits
         // for (auto digi : digis)
         // {
         //     print("Digi x", digi->x);
@@ -583,4 +595,7 @@ int main(int argc, const char *argv[])
     outfile->Write();
     outfile->Close();
     infile->Close();
+
+    print("Digitizer > Finished. File saved as:", output_filename);
+
 }

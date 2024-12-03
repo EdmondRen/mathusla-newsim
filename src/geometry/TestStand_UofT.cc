@@ -104,10 +104,10 @@ namespace MuGeoBuilder
   // Get the bar position given a detector ID
   BarPosition Uoft1_Builder::GetBarPosition(long long detector_id)
   {
-    for (auto const &[key, val] : IDMaps_inWorld)
-    {
+    // for (auto const &[key, val] : IDMaps_inWorld)
+    // {
       // print(key, val.y_side_direction);
-    }
+    // }
 
     // print("Now asking for ID", detector_id);
     return this->IDMaps_inWorld.at(detector_id);
@@ -405,7 +405,7 @@ namespace MuGeoBuilder
 
     // Limit the step in earth mid logical volume
     G4double minEkin = 1 * MeV;   // min kinetic energy (only for charged particles)
-    G4double minRange = 100 * mm; // min remaining energy (only for charged particles)
+    G4double minRange = 100 * mm; // min remaining range (only for charged particles)
     auto fStepLimit = new G4UserLimits();
     fStepLimit->SetUserMinEkine(minEkin);
     fStepLimit->SetUserMinRange(minRange);
