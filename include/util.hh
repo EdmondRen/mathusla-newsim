@@ -19,6 +19,8 @@
 
 namespace util
 {
+    std::string VERSION;
+
     namespace globals
     {
         extern std::string PROJECT_SOURCE_DIR;

@@ -25,6 +25,7 @@
 
 // User include:
 #include "geometry/TestStand_UofT.hh"
+#include "util.hh"
 
 namespace MuGeoBuilder
 {
@@ -83,6 +84,7 @@ namespace MuGeoBuilder
     double world_lenz = 100 * m;
   }
 
+  // Calculate detector ID based on the four copy numbers
   long long int Uoft1_Builder::CopynumberToDetectorID(std::vector<int> copy_numbers)
   {
     if (copy_numbers.size() != uoftdims::GEO_DEPTH)
@@ -94,13 +96,20 @@ namespace MuGeoBuilder
     long long int det_id = copy_numbers[0];
     for (size_t i = 1; i < copy_numbers.size(); i++)
     {
-      det_id += copy_numbers[i] * std::pow(10, 5 + (i - 1) * 3); // Depth 0 takes 5 digits, the rest takes 3 digits each.
+      det_id += copy_numbers[i] * std::pow(10, 5 + i * 3); // Depth 0 takes 5 digits, the rest takes 3 digits each.
     }
     return det_id;
   }
 
+  // Get the bar position given a detector ID
   BarPosition Uoft1_Builder::GetBarPosition(long long detector_id)
   {
+    for (auto const &[key, val] : IDMaps_inWorld)
+    {
+      // print(key, val.y_side_direction);
+    }
+
+    // print("Now asking for ID", detector_id);
     return this->IDMaps_inWorld.at(detector_id);
   }
 

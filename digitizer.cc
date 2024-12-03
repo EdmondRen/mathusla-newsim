@@ -6,6 +6,10 @@
 #include <cmath>
 #include <stdlib.h> // For Ubuntu Linux
 
+// Geant4
+#include "G4LogicalVolumeStore.hh"
+#include "G4SolidStore.hh"
+
 // ROOT
 #include <TROOT.h>
 #include <TTree.h>
@@ -22,7 +26,6 @@
 TRandom3 generator;
 
 std::string util::globals::PROJECT_SOURCE_DIR = "";
-
 
 struct DigiConfig
 {
@@ -114,7 +117,7 @@ public:
         {
             track_id_min = hit->track_id;
             pdg_id = hit->pdg_id;
-            int hit_pos[3] = {hit->x, hit->y, hit->z};
+            float hit_pos[3] = {hit->x, hit->y, hit->z};
 
             // Find the y direction index
             for (y_dirc_ind = 0; y_dirc_ind < 3; y_dirc_ind++)
@@ -191,12 +194,12 @@ public:
     std::vector<double> *Hit_pdgID = nullptr;
     std::vector<double> *Hit_detectorID = nullptr;
 
-    // std::string SimulationName;
-    // std::string Geometry;
-    // std::string Generator;
-    char SimulationName[200];
-    char Geometry[200];
-    char Generator[200];    
+    std::string SimulationName;
+    std::string Geometry;
+    std::string Generator;
+    char SimulationName_buf[200];
+    char Geometry_buf[200];
+    char Generator_buf[200];
 
     InputTreeHandeler(std::string filename)
     {
@@ -209,10 +212,16 @@ public:
         entries = treeRaw->GetEntries();
 
         // Read metadata
-        treeMetadata->SetBranchAddress("SimulationName", SimulationName);
-        treeMetadata->SetBranchAddress("Geometry", Geometry);
-        treeMetadata->SetBranchAddress("Generator", Generator);
+        treeMetadata->SetBranchAddress("SimulationName", SimulationName_buf);
+        treeMetadata->SetBranchAddress("Geometry", Geometry_buf);
+        treeMetadata->SetBranchAddress("Generator", Generator_buf);
         treeMetadata->GetEntry(0); // Load into buffer
+        SimulationName = SimulationName_buf; // Turn char[] into string
+        Geometry = Geometry_buf; // Turn char[] into string
+        Generator = Generator_buf; // Turn char[] into string
+        SimulationName.erase(SimulationName.find_last_not_of("\n") + 1);
+        Geometry.erase(Geometry.find_last_not_of("\n") + 1);
+        Generator.erase(Generator.find_last_not_of("\n") + 1);
 
         // Setup tree pointer to data buffer
         treeRaw->SetBranchAddress("Hit_x", &Hit_x);
@@ -251,8 +260,7 @@ public:
         {
             treeRaw->GetEntry(entry_counter);
 
-            //
-            int delimiter = -1;
+            // int delimiter = -1;
             // Hit_detectorID_split = util::vector::splitVectorByDelimiter(*Hit_detectorID, delimiter);
 
             entry_counter += 1;
@@ -418,9 +426,7 @@ std::vector<DigiHit *> Digitize(std::vector<SimHit *> hits, DigiConfig &config, 
     {
         // current detector id which we are working in
         auto current_id = (current_remaining_hits[0])->det_id;
-        double x = (current_remaining_hits[0])->x;
-        double y = (current_remaining_hits[0])->y;
-        double z = (current_remaining_hits[0])->z;
+        // double x = (current_remaining_hits[0])->x;
 
         // taking out all hits with the same detector id to be digitized, leaving the remaing for the next iteration
         for (auto hit : current_remaining_hits)
@@ -460,6 +466,8 @@ std::vector<DigiHit *> Digitize(std::vector<SimHit *> hits, DigiConfig &config, 
                     unused_hits.push_back(hit);
                 }
             }
+
+            // print("esum", e_sum, "len used hit", used_hits.size());
 
             if (e_sum > config.sipm_energy_threshold)
             {
@@ -523,6 +531,12 @@ int main(int argc, const char *argv[])
         return 0; // Exit the program after showing help
     }
 
+    print("**************************************************************");
+    print("   MATHUSLA SIM Digitizer, version ", util::VERSION);
+    print("      Copyright : Geant4 Collaboration");
+    print("**************************************************************");
+
+
     // Setup random number generator
     generator.SetSeed(args["seed"].as<int>());
 
@@ -534,15 +548,17 @@ int main(int argc, const char *argv[])
     auto outfile = new OutputTreeHandeler(output_filename.string());
 
     // Build all geometries and select the one based on metadata of infile
-    MuGeoBuilder::Builder *_det_selected_;
     std::unordered_map<std::string, MuGeoBuilder::Builder *> _det_map_;
     _det_map_["uoft1"] = new MuGeoBuilder::Uoft1_Builder();
-    _det_selected_ = _det_map_[infile->Geometry];
+    print("** Building Select geometry: ", infile->Geometry, "**");
+    auto _det_selected_ = _det_map_[infile->Geometry];
+    _det_selected_->Construct();
+    print("** Finished building geometry **");
 
     // make a configuration for digitizer
-    float _time_resolution;
-    float _time_limit;
-    float _sipm_energy_threshold;
+    float _time_resolution = 1;          // [ns]
+    float _time_limit = 20;              // [ns]
+    float _sipm_energy_threshold = 0.65; // [MeV]
     auto config = DigiConfig(_time_resolution, _time_limit, _sipm_energy_threshold);
 
     for (int entry = 0; entry < (infile->entries); entry++)
@@ -550,6 +566,11 @@ int main(int argc, const char *argv[])
         infile->Load();
 
         auto digis = Digitize(infile->hits, config, _det_selected_);
+
+        // for (auto digi : digis)
+        // {
+        //     print("Digi x", digi->x);
+        // }
 
         outfile->ExportDigis(digis);
         outfile->Fill();
