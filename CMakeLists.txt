@@ -74,8 +74,8 @@ target_link_libraries(simulation PUBLIC
                     ${CRY_LIBRARIES})
 
 ## Digitizer
-add_executable(digitizer digitizer.cc)
-target_link_libraries(digitizer PUBLIC ${ROOT_LIBRARIES})
+add_executable(digitizer digitizer.cc ${sources} ${headers})
+target_link_libraries(digitizer PUBLIC ${Geant4_LIBRARIES} ${ROOT_LIBRARIES} ${CRY_LIBRARIES})
 
 ## Standalone CRY cosmic generator
 add_executable(cry cry.cc src/util.cc ${headers})
@@ -87,6 +87,18 @@ add_executable(parma parma.cc
                   ${PROJECT_SOURCE_DIR}/src/generator/parma/parma_util.cc
                   ${PROJECT_SOURCE_DIR}/src/generator/parma/parma_subroutines.cc
                   ${PROJECT_SOURCE_DIR}/include/generator/parma/parma_util.hh)
+
+# add_library(musim SHARED ${sources})
+# target_include_directories(musim PUBLIC
+#     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+#     $<INSTALL_INTERFACE:${CMAKE_SOURCE_DIR}/include>)
+# target_link_libraries(musim PUBLIC
+#     ${Geant4_LIBRARIES} 
+#     ${ROOT_LIBRARIES}
+#     )
+
+# add_executable(simulation simulation.cc ${sources} ${headers})
+# target_link_libraries(simulation PUBLIC musim ${CRY_LIBRARIES})
 
 
 #----------------------------------------------------------------------------
