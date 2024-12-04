@@ -1,0 +1,12 @@
+## Setup PARMA generator
+/gen/select parma
+/gen/parma/pathname ../macros/generators/parma_default.conf
+/gen/parma/particle_pdgid 2112
+/gen/parma/ekin_low 1 GeV
+/gen/parma/ekin_high 200 GeV
+/gen/parma/shape 1
+/gen/parma/box 2. 2. 2. m
+
+
+# Update the PARMA generator settings
+/gen/parma/update

@@ -41,6 +41,25 @@ It takes in a list of event records. Each line contains a {filename, entry} pair
 
 # Event Digitizer
 
+Digitizer takes the simulation output ROOT file, turns the simulation truth into measurable quantities (x, y, z, t) along with some other information for debugging. 
+
+## Digitizer output format
+
+There are two ROOT tuples in the digitizer output ROOT file: "digi" and "metadata".
+
+"metadata" tree contains general information, while "digi" contains event-wise information.
+
+| Key             | dtype | Comment                                                                                                                                                                                                                                                                                                                                                                                 |
+|-----------------|-------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Digi_{x,y,z,t}  | float | Coordinate and time of digis                                                                                                                                                                                                                                                                                                                                                            |
+| Digi_edep       | float | Energy deposition                                                                                                                                                                                                                                                                                                                                                                       |
+| Digi_trackID    | int32 | Track ID, index of the track in Geant4                                                                                                                                                                                                                                                                                                                                                  |
+| Digi_pdgID      | int32 | Particle PDG ID                                                                                                                                                                                                                                                                                                                                                                         |
+| Digi_detectorID | int64 | Detector ID, in the format of AAABBBCCCDDDDD. A, B, C, Ds are the copy number of detector, tower-module, layer, bar.                                                                                                                                                                                                                                                                    |
+| Digi_type       | int32 | Indicates which generator the digi is from. 0: gun, 1: cry, 2: parma, -1: noise                                                                                                                                                                                                                                                                                                         |
+| Digi_hitInds    | int32 | Indices of the truth hits of each digi. Separated by -1.                                                                                                                                                                                                                                                                                                                                |
+| Digi_direction  | int32 | Direction of the bar coded into the last three digits of this number. Each digit indicates the current direction of the bar. The hundreds place is for the original x direction, the tens place for the original y direction, and the ones place for x. For example, 201 means the x direction (along the bar) is now pointing to z, y direction is now pointing to x, and z is now y.  |
+
 # Standalone generator: CRY
 
 ```

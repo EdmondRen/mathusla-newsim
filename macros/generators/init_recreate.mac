@@ -1,0 +1,5 @@
+## Setup recreate generator
+/gen/select recreate
+
+## Specify the ROOT file to recreate
+/gen/recreate/pathname data/backup_run_0.root

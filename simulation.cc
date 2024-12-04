@@ -47,6 +47,7 @@ int main(int argc, char **argv)
       ("s,seed", "Seed of random number generator, a positive integer. Default to -1 for random seed. Events in the same run share the same seed.", cxxopts::value<G4int>()->default_value("-1"))
       ("S,session", "Session name", cxxopts::value<G4String>()->default_value("MathuslaSim"))
       ("a,all_steps", "[Warning] Use cautiously. Write all steps into ROOT file. This usually takes a lot of storage space and more time on IO.", cxxopts::value<bool>()->default_value("false"))
+      ("v,save_vrml", "[Warning] Use cautiously. Write visualization of each event into VRML file. This usually takes a lot of storage space and more time on IO.", cxxopts::value<bool>()->default_value("false"))
       ("t,threads", "[NOT IMPLEMENTED] Number of threads. Only works with single (1) thread at this moment.", cxxopts::value<G4int>()->default_value("1"));
   auto args = options.parse(argc, argv);
   // Show help if the user asks for it

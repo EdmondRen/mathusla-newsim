@@ -16,30 +16,21 @@
 
 # Special run setting 
 
-# Production cut for charged particle range, global setting.
-# Secondaries with range less than this nunmber will not be generated.
-# Primary particle just goes through continuous energy loss
-/run/setCut 10 mm
-
-## Neutron killer
-# Disable neutron killer:
-# /process/inactivate nKiller
-/physics_engine/neutron/timeLimit 500 ns
-/physics_engine/neutron/energyLimit 1.0 MeV
-
+## Step limiter
+/control/execute ../macros/init_limit.mac
 
 ## Setup PARMA generator
 /gen/select parma
 /gen/parma/pathname ../macros/generators/parma_default.conf
 /gen/parma/particle_pdgid 2112
-/gen/parma/ekin_low 1 GeV
+/gen/parma/ekin_low 0 GeV
 /gen/parma/ekin_high 200 GeV
 /gen/parma/shape 1
 /gen/parma/box 2. 2. 2. m
+
 # Update the PARMA generator settings
 /gen/parma/update
 
 
-/tracking/verbose 0
-/run/beamOn 1970
+/run/beamOn 100000
 #/run/dumpCouples

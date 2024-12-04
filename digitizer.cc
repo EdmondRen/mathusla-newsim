@@ -26,20 +26,26 @@
 TRandom3 generator;
 
 std::string util::globals::PROJECT_SOURCE_DIR = "";
+std::map<std::string, int> DIGI_TYPE_MAP;
+
 
 struct DigiConfig
 {
-    // Coincident timing resolution. 1/sqrt(2) of single channel resolution
-    float time_resolution;
 
     // Speed of light in the fiber
     float c = 29.979 / 1.89;
 
+    // Coincident timing resolution. 1/sqrt(2) of single channel resolution
+    float time_resolution;
     // Position resolution
     float position_resolution = time_resolution * c;
 
+    // Time and energy cut
     float time_limit;
     float sipm_energy_threshold;
+
+    // Bar dimensions
+    float bar_width_x, bar_width_y, bar_width_z;     
 
     DigiConfig() = default;
     DigiConfig(float _time_resolution, float _time_limit, float _sipm_energy_threshold) : time_resolution(_time_resolution), time_limit(_time_limit), sipm_energy_threshold(_sipm_energy_threshold)
@@ -94,8 +100,8 @@ public:
     double particle_mass;
     double particle_energy;
     int pdg_id;
-    int track_id;
-    int layer_id = 0;
+    int track_id = 999999999;
+    int detector_id = 0;
     int type = -1;
 
     // Internal states
@@ -107,16 +113,16 @@ public:
     long y_dirc_ind = 0;
     long z_dirc_ind = 0;
 
-    long track_id_min = 999999999;
     double *pos_vec[3] = {&x, &y, &z};
 
     void AddHit(SimHit *hit, MuGeoBuilder::BarPosition bar_position)
     {
         hits.push_back(hit);
-        if (hit->track_id < track_id_min)
+        if (hit->track_id < track_id)
         {
-            track_id_min = hit->track_id;
+            track_id = hit->track_id;
             pdg_id = hit->pdg_id;
+            detector_id = hit->det_id;
             float hit_pos[3] = {hit->x, hit->y, hit->z};
 
             // Find the y direction index
@@ -139,6 +145,8 @@ public:
             *pos_vec[y_dirc_ind] = bar_position.bar_center_coord[y_dirc_ind];
             *pos_vec[z_dirc_ind] = bar_position.bar_center_coord[z_dirc_ind];
             *pos_vec[x_dirc_ind] = hit_pos[x_dirc_ind];
+
+            direction = x_dirc_ind*100 + y_dirc_ind*10 + z_dirc_ind;
         }
     }
 
@@ -228,10 +236,10 @@ public:
         treeRaw->SetBranchAddress("Hit_y", &Hit_y);
         treeRaw->SetBranchAddress("Hit_z", &Hit_z);
         treeRaw->SetBranchAddress("Hit_t", &Hit_t);
-        treeRaw->SetBranchAddress("Hit_edep", &Hit_edep);
         treeRaw->SetBranchAddress("Hit_px", &Hit_px);
         treeRaw->SetBranchAddress("Hit_py", &Hit_py);
-        treeRaw->SetBranchAddress("Hit_pz", &Hit_pz);
+        treeRaw->SetBranchAddress("Hit_pz", &Hit_pz);        
+        treeRaw->SetBranchAddress("Hit_edep", &Hit_edep);
         treeRaw->SetBranchAddress("Hit_trackID", &Hit_trackID);
         treeRaw->SetBranchAddress("Hit_pdgID", &Hit_pdgID);
         treeRaw->SetBranchAddress("Hit_detectorID", &Hit_detectorID);
@@ -298,21 +306,21 @@ public:
     std::vector<float> Digi_z;
     std::vector<float> Digi_t;
     std::vector<float> Digi_edep;
-    std::vector<float> Digi_px;
-    std::vector<float> Digi_py;
-    std::vector<float> Digi_pz;
-    std::vector<float> Digi_trackID;
-    std::vector<double> Digi_pdgID;
-    std::vector<int> Digi_direction; // Last three digits of Direction indicates the direction of the bar. For example, 012 means x->x, y->y, z->z
-    std::vector<int> Digi_layerID;   // Which layer the hit is from. Layer is obtained from the copy number of depth 1 in GENAT4
+    std::vector<int> Digi_trackID;
+    std::vector<int> Digi_pdgID;
+    std::vector<long long> Digi_detectorID;   // Which layer the hit is from. Layer is obtained from the copy number of depth 1 in GENAT4
     std::vector<int> Digi_type;      // Soure of the event. -1: noise, 0: GUN, 1: PARMA, 2: CRY
     std::vector<int> Digi_hitInds;   // The index of truth hits of each digitized hit
+    std::vector<int> Digi_direction; // Indicates the direction of the bar with last three digits . For example, .....012 means x->x, y->y, z->z
 
     // Buffer for metadata;
     std::string SimulationName;
     std::string Geometry;
     std::string Generator;
-    std::vector<float> Uncertainty;
+    float Uncertainty_t;
+    float Uncertainty_x;
+    float Uncertainty_y;
+    float Uncertainty_z;
 
     OutputTreeHandeler(std::string filename)
     {
@@ -321,11 +329,14 @@ public:
         outputTreeRaw = new TTree(output_tree_name, "Digitized Tree");
         outputTreeMetadata = new TTree("metadata", "Metadata for digitization");
 
-        // Read metadata
+        // Write metadata
         outputTreeMetadata->Branch("SimulationName", &SimulationName);
         outputTreeMetadata->Branch("Geometry", &Geometry);
         outputTreeMetadata->Branch("Generator", &Generator);
-        outputTreeMetadata->Branch("Uncertainty", "std::vector<float>", &Uncertainty);
+        outputTreeMetadata->Branch("Uncertainty_t", &Uncertainty_t);
+        outputTreeMetadata->Branch("Uncertainty_x", &Uncertainty_x);
+        outputTreeMetadata->Branch("Uncertainty_y", &Uncertainty_y);
+        outputTreeMetadata->Branch("Uncertainty_z", &Uncertainty_z);
 
         // Setup tree pointer to data buffer
         outputTreeRaw->Branch("Digi_x", &Digi_x);
@@ -333,14 +344,12 @@ public:
         outputTreeRaw->Branch("Digi_z", &Digi_z);
         outputTreeRaw->Branch("Digi_t", &Digi_t);
         outputTreeRaw->Branch("Digi_edep", &Digi_edep);
-        outputTreeRaw->Branch("Digi_px", &Digi_px);
-        outputTreeRaw->Branch("Digi_py", &Digi_py);
-        outputTreeRaw->Branch("Digi_pz", &Digi_pz);
         outputTreeRaw->Branch("Digi_trackID", &Digi_trackID);
         outputTreeRaw->Branch("Digi_pdgID", &Digi_pdgID);
-        outputTreeRaw->Branch("Digi_layerID", &Digi_layerID);
+        outputTreeRaw->Branch("Digi_detectorID", &Digi_detectorID);
         outputTreeRaw->Branch("Digi_type", &Digi_type);
         outputTreeRaw->Branch("Digi_hitInds", &Digi_hitInds);
+        outputTreeRaw->Branch("Digi_direction", &Digi_direction);
     }
 
     ~OutputTreeHandeler()
@@ -355,13 +364,10 @@ public:
         Digi_z.clear();
         Digi_t.clear();
         Digi_edep.clear();
-        Digi_px.clear();
-        Digi_py.clear();
-        Digi_pz.clear();
         Digi_trackID.clear();
         Digi_pdgID.clear();
         Digi_direction.clear();
-        Digi_layerID.clear();
+        Digi_detectorID.clear();
         Digi_type.clear();
         Digi_hitInds.clear();
     }
@@ -377,13 +383,10 @@ public:
             Digi_y.push_back(digi->y);
             Digi_z.push_back(digi->z);
             Digi_edep.push_back(digi->edep);
-            Digi_px.push_back(digi->px);
-            Digi_py.push_back(digi->py);
-            Digi_pz.push_back(digi->pz);
             Digi_trackID.push_back(digi->track_id);
             Digi_pdgID.push_back(digi->pdg_id);
             Digi_direction.push_back(digi->direction);
-            Digi_layerID.push_back(digi->direction);
+            Digi_detectorID.push_back(digi->detector_id);
             Digi_type.push_back(digi->type);
             for (auto hit : digi->hits)
             {
@@ -402,8 +405,18 @@ public:
     void Write()
     {
         outputTreeRaw->Write();
+    }
+
+    void WriteConfig(DigiConfig &config)
+    {   
+        Uncertainty_t = config.time_resolution;
+        Uncertainty_x = config.position_resolution;
+        Uncertainty_y = config.bar_width_y/std::sqrt(12);
+        Uncertainty_z = config.bar_width_z/std::sqrt(12);
+        outputTreeMetadata->Fill();
         outputTreeMetadata->Write();
     }
+
 
     void Close()
     {
@@ -540,9 +553,20 @@ int main(int argc, const char *argv[])
     print("      - MATHUSLA Collaboration");
     print("**************************************************************");
 
+    // Make a map between generator name and the Digi_type
+    DIGI_TYPE_MAP.insert({"gun", 0});
+    DIGI_TYPE_MAP.insert({"gun", 0});
+
+
     // Setup random number generator
     generator.SetSeed(args["seed"].as<int>());
     auto print_progress = args["print_progress"].as<int>();
+
+    // make a configuration for digitizer
+    float _time_resolution = args["time_resolution"].as<float>();        // [ns]
+    float _time_limit = args["time_limit"].as<float>();                  // [ns]
+    float _sipm_energy_threshold = args["energy_threshold"].as<float>(); // [MeV]
+    auto config = DigiConfig(_time_resolution, _time_limit, _sipm_energy_threshold);
 
     // Open the input/output file
     std::filesystem::path input_filename = args["filename"].as<std::string>();
@@ -560,11 +584,25 @@ int main(int argc, const char *argv[])
     print("Digitizer > Finished building geometry ");
     print("Digitizer > Running");
 
-    // make a configuration for digitizer
-    float _time_resolution = args["time_resolution"].as<float>();        // [ns]
-    float _time_limit = args["time_limit"].as<float>();                  // [ns]
-    float _sipm_energy_threshold = args["energy_threshold"].as<float>(); // [MeV]
-    auto config = DigiConfig(_time_resolution, _time_limit, _sipm_energy_threshold);
+    int digi_type = DIGI_TYPE_MAP[infile->Generator];
+
+
+    // Write the metatdata into output file
+    // 1. Copy the information from input file
+    outfile->SimulationName = infile->SimulationName;
+    outfile->Geometry = infile->Geometry;
+    outfile->Generator = infile->Generator;
+    // Read geometry information from the GeoBuilder
+    if (infile->Geometry == "uoft1")
+    {
+        config.bar_width_x = MuGeoBuilder::uoftdims::bar_lenx;
+        config.bar_width_y = MuGeoBuilder::uoftdims::bar_leny;
+        config.bar_width_z = MuGeoBuilder::uoftdims::bar_lenz;
+    }
+    // 2. Add info from config 
+    outfile->WriteConfig(config);
+
+
 
     for (int entry = 0; entry < (infile->entries); entry++)
     {   
@@ -578,11 +616,12 @@ int main(int argc, const char *argv[])
         // Digitize
         auto digis = Digitize(infile->hits, config, _det_selected_);
 
-        // Debug, Inspect the digits
-        // for (auto digi : digis)
-        // {
-        //     print("Digi x", digi->x);
-        // }
+        for (auto digi : digis)
+        {
+            digi->type = digi_type;
+            // Debug, Inspect the digits
+            print("Digi x", digi->x);
+        }
 
         outfile->ExportDigis(digis);
         outfile->Fill();
