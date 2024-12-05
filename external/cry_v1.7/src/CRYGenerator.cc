@@ -55,6 +55,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <math.h>
 #include <stdlib.h>  // For Ubuntu Linux
+#include <numeric>
 
 CRYGenerator::CRYGenerator(CRYSetup *setup) {
 
@@ -436,5 +437,60 @@ void CRYGenerator::genEvent(std::vector<CRYParticle*> *retList, double EkinMin) 
 
   }  while(static_cast<int>(retList->size()) < _minParticles);
 
+}
+
+bool CRYGenerator::prepare_single() {
+  int n_particle_enabled = 0;
+  CRYParticle::CRYId id_selected;
+
+  for (int cryid = CRYParticle::CRYIdMin; cryid != CRYParticle::CRYIdMax; cryid ++)
+  {
+    if ( !(_tallyList[static_cast<CRYParticle::CRYId>(cryid)]) ) continue;
+    id_selected=_idDict[static_cast<CRYParticle::CRYId>(cryid)];
+    n_particle_enabled +=1;
+  }
+
+  // Return false if more than one particle is requested
+  if (n_particle_enabled!=1)
+    return false;
+
+  // Now let's profile the 2-D pdfs along the primary energy
+  CRYPdf *pdf_primary = _primary->getPDF();
+  CRYPdf *pdf_selected = _kePdfs[id_selected];
+
+  const std::vector<double> *primary_binning = _primaryBinning->bins();
+  const std::vector<std::vector<double>> *pdf_primary_data = pdf_selected->params();
+  const std::vector<std::vector<double>> *pdf_selected_data = pdf_selected->params();
+
+  std::vector<double> pdf_primary_data1d = (*pdf_primary_data)[0];
+  std::vector<double> pdf_selected_profile;
+  // auto primary_energy_pdf_norm = std::reduce(pdf_primary_data1d.begin(), pdf_primary_data1d.end());
+  auto primary_energy_pdf_norm = std::reduce((*pdf_selected_data)[10].begin(), (*pdf_selected_data)[10].end());
+
+  std::cout<<"Primary energy pdf norm:"<<primary_energy_pdf_norm<<std::endl;
+  std::cout<<"Secondary pdf size (number of energy bins):"<<(*pdf_selected_data).size()<<std::endl;
+  std::cout<<"Primary pdf size (number of energy bins):"<<(*pdf_primary_data)[0].size()<<std::endl;  
+
+
+  // Initialize all elements to 0
+  for (size_t i=0; i< (*pdf_selected_data)[0].size(); i++)
+  {
+    pdf_selected_profile.push_back(0);
+  }
+
+  // Loop all primary energy bins
+  for (size_t iprime=0; iprime< (*pdf_selected_data).size(); iprime++)
+  {
+    for (size_t ibin=0; ibin< (*pdf_selected_data)[0].size(); ibin++)
+    {
+      pdf_selected_profile[ibin] += (*pdf_selected_data)[iprime][ibin] * pdf_primary_data1d[iprime];
+    }
+  }
+
+  auto pdf_profile_norm = std::reduce(pdf_selected_profile.begin(), pdf_selected_profile.end());
+
+  std::cout<<"Profiled pdf norm:"<<pdf_profile_norm<<std::endl;
+
+  return true;
 }
 

@@ -74,6 +74,7 @@ public:
   std::vector<CRYParticle*>* genEvent();
   void genEvent(std::vector<CRYParticle*> *retList);
   void genEvent(std::vector<CRYParticle*> *retList, double EkinMin);
+  bool prepare_single();
   void genEvent_single(std::vector<CRYParticle*> *retList);
 
   //Time that has been simulated by this instance
@@ -104,6 +105,8 @@ private:
   CRYSetup *_setup;
   CRYWeightFunc *_primaryWeighting;
   CRYParticle *_primaryPart;
+
+  CRYPdf *_singleParticlePDF;
 };
 
 #endif

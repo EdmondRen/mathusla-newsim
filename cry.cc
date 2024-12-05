@@ -104,6 +104,8 @@ int main(int argc, const char *argv[])
   // Make a generator
   CRYGenerator gen(setup);
 
+  gen.prepare_single();
+
   // Open output file to write shower particles
   std::ofstream out(args["output"].as<std::string>());
   if (!out || out.bad())

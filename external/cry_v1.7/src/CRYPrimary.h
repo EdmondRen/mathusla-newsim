@@ -93,6 +93,9 @@ public:
   // Sum of unweighted partial rates
   double totalRate();
 
+  // Get the pdf
+  CRYPdf * getPDF() {return _cachedPdf;}
+
 private:
 
   // primary spectrum is a weighted sum of solar min and solar
