@@ -47,6 +47,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <math.h>
 #include <string.h>  // For Ubuntu Linux
 #include <stdlib.h>  // For Ubuntu Linux
+#include <numeric>
 
 CRYPdf::CRYPdf(std::string data) {
 
@@ -194,6 +195,49 @@ CRYPdf::CRYPdf(std::string name,
     _cdfs->push_back(cdf);
   }
 
+}
+
+std::vector<double> CRYPdf::reBin(int nbins)
+{
+  std::vector<double> new_bin_edges;
+  for ( unsigned int j=0; j<nbins+1; j++) {
+	  new_bin_edges.push_back(pow(10.,_min + (j)*( _max-_min)/(nbins)));
+  }
+  return new_bin_edges;
+}
+
+std::vector<double> CRYPdf::makeBins()
+{
+  auto probs = (*_params)[0];
+  for ( unsigned int j=0; j<(probs.size())+1; j++) {
+	  bin_edges.push_back(pow(10.,_min + (j)*( _max-_min)/((probs.size()))));
+  }
+  return bin_edges;
+}
+
+
+float CRYPdf::cdf(int i_col, float x)
+{
+  auto probs = (*_params)[i_col];
+
+  float prob_culm = 0;
+  float prob_sum = std::reduce(probs.begin(), probs.end());
+// std::cout<<"Prob norm"<<prob_sum<<std::endl;  
+
+  for ( unsigned int j=0; j<probs.size(); j++) {
+    if (x > bin_edges[j+1])
+    {
+      prob_culm+=(probs[j]/prob_sum);
+    }
+    else
+    {
+      // prob_culm+=(probs[j]/prob_sum * (x-bin_edges[j])/(bin_edges[j+1]-bin_edges[j]));
+      return prob_culm;
+    }
+  }
+
+  // Should never reach here
+  return 0;
 }
 
 

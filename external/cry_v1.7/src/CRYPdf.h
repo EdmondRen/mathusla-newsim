@@ -123,7 +123,10 @@ public:
   //hack - add accessors to set min and max..
   void setMin(double min) {_min=min;}
   void setMax(double max) {_max=max;}
-
+  std::vector<double> makeBins();
+  std::vector<double> reBin(int nbins);
+  float cdf(int i_col, float x);
+  std::vector<double> bin_edges;
 
 private:
   void readSetOfParams(std::string data);
