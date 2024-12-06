@@ -114,10 +114,10 @@ int main(int argc, const char *argv[])
   out << "# nEvent nSecondary PDG-id KE[MeV] x[m] y[m] z[m] u v w t[s]\n";
 
   std::vector<CRYParticle *> *ev = new std::vector<CRYParticle *>;
-  for (int i = 0; i < nEv; )
+  for (int i = 0; i < nEv;)
   {
     ev->clear();
-      // gen.genEvent(ev);
+    // gen.genEvent(ev);
 
     // if (ekin_cut==0)
     //   gen.genEvent(ev);
@@ -132,14 +132,20 @@ int main(int argc, const char *argv[])
     // If cut is enabled, check if the result contains the specified particle
     bool selected = false;
     double tmin = 1e100;
+
+    for (unsigned j = 0; j < ev->size(); j++)
+    {
+      CRYParticle *p = (*ev)[j];
+      // Find the time of the first particle
+      if (p->t() < tmin)
+        tmin = p->t();
+    }
+
     if (selection_en)
     {
       for (unsigned j = 0; j < ev->size(); j++)
       {
         CRYParticle *p = (*ev)[j];
-        // Find the time of the first particle
-        if (p->t() < tmin)
-          tmin = p->t();
         if ((std::find(selections.begin(), selections.end(), p->PDGid()) != selections.end()) && ((p->ke() * ekin_cut_sign) > ekin_cut))
         {
           selected = true;
