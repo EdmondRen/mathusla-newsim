@@ -216,12 +216,12 @@ std::vector<double> CRYPdf::makeBins()
 }
 
 
-float CRYPdf::cdf(int i_col, float x)
+double CRYPdf::cdf(int i_col, double x)
 {
   auto probs = (*_params)[i_col];
 
-  float prob_culm = 0;
-  float prob_sum = std::reduce(probs.begin(), probs.end());
+  double prob_culm = 0;
+  double prob_sum = std::reduce(probs.begin(), probs.end());
 // std::cout<<"Prob norm"<<prob_sum<<std::endl;  
 
   for ( unsigned int j=0; j<probs.size(); j++) {
@@ -231,7 +231,7 @@ float CRYPdf::cdf(int i_col, float x)
     }
     else
     {
-      // prob_culm+=(probs[j]/prob_sum * (x-bin_edges[j])/(bin_edges[j+1]-bin_edges[j]));
+      prob_culm+=(probs[j]/prob_sum * (x-bin_edges[j])/(bin_edges[j+1]-bin_edges[j]));
       return prob_culm;
     }
   }

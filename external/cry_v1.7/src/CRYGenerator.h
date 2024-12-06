@@ -106,7 +106,8 @@ private:
   CRYWeightFunc *_primaryWeighting;
   CRYParticle *_primaryPart;
 
-  CRYPdf *_singleParticlePDF;
+  CRYPdf *_singleParticlekePdf;
+  CRYParticle::CRYId id_selected;
 };
 
 #endif

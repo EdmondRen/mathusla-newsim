@@ -104,7 +104,7 @@ int main(int argc, const char *argv[])
   // Make a generator
   CRYGenerator gen(setup);
 
-  gen.prepare_single();
+  bool IsSingleSpecies = gen.prepare_single();
 
   // Open output file to write shower particles
   std::ofstream out(args["output"].as<std::string>());
@@ -119,10 +119,15 @@ int main(int argc, const char *argv[])
     ev->clear();
       // gen.genEvent(ev);
 
-    if (ekin_cut==0)
+    // if (ekin_cut==0)
+    //   gen.genEvent(ev);
+    // else
+    //   gen.genEvent(ev, ekin_cut);
+
+    if (!IsSingleSpecies)
       gen.genEvent(ev);
     else
-      gen.genEvent(ev, ekin_cut);
+      gen.genEvent_single(ev);
 
     // If cut is enabled, check if the result contains the specified particle
     bool selected = false;

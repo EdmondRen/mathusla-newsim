@@ -443,7 +443,6 @@ void CRYGenerator::genEvent(std::vector<CRYParticle*> *retList, double EkinMin) 
 
 bool CRYGenerator::prepare_single() {
   int n_particle_enabled = 0;
-  CRYParticle::CRYId id_selected;
 
   for (int cryid = CRYParticle::CRYIdMin; cryid != CRYParticle::CRYIdMax; cryid ++)
   {
@@ -462,50 +461,90 @@ bool CRYGenerator::prepare_single() {
   pdf_primary->makeBins(); // Just run the cdf function so that bin edges are caluclated
   
 
-  // const std::vector<double> *primary_binning = _primaryBinning->bins();
   const std::vector<std::vector<double>> *pdf_primary_data = pdf_primary->params();
   const std::vector<std::vector<double>> *pdf_selected_data = pdf_selected->params();
+
+  // Rebin the entire range based on the number of bins in the secondary data.
   const std::vector<double>  pdf_selected_bin_edges = pdf_primary->reBin((*pdf_selected_data).size());
-
-  // std::vector<double> pdf_primary_data1d = (*pdf_primary_data)[0];
-  std::vector<double> pdf_selected_profile;
-  // auto primary_energy_pdf_norm = std::reduce(pdf_primary_data1d.begin(), pdf_primary_data1d.end());
-  // auto primary_energy_pdf_norm = std::reduce((*pdf_selected_data)[10].begin(), (*pdf_selected_data)[10].end());
-
-  // std::cout<<"Primary energy pdf norm:"<<primary_energy_pdf_norm<<std::endl;
-  // std::cout<<"Secondary pdf size (number of energy bins):"<<(*pdf_selected_data).size()<<std::endl;
-  // std::cout<<"Primary pdf size (number of energy bins):"<<(*pdf_primary_data)[0].size()<<std::endl;  
 
 
   // Initialize all elements to 0
+  std::vector<double> pdf_selected_profile;
+  std::vector<std::vector<double>> pdf_selected_full;
   for (size_t i=0; i< (*pdf_selected_data)[0].size(); i++)
   {
     pdf_selected_profile.push_back(0);
   }
 
-  for (size_t i=0; i< pdf_selected_bin_edges.size(); i++)
-  {
-std::cout<<i<<"bin edges"<<pdf_selected_bin_edges[i]<<std::endl;  }  
 
   // Loop all primary energy bins
   double total_prime_prob = 0;
   for (size_t iprime=0; iprime< (*pdf_selected_data).size(); iprime++)
   {
     double prob_iprime = pdf_primary->cdf(0, pdf_selected_bin_edges[iprime+1]) - pdf_primary->cdf(0, pdf_selected_bin_edges[iprime]);
+      std::cout<<prob_iprime<<std::endl;
     total_prime_prob+=prob_iprime;
-  std::cout<<"Prime accu prob "<<prob_iprime<<" " << pdf_selected_bin_edges[iprime+1] << " " << pdf_selected_bin_edges[iprime]<<std::endl;
     for (size_t ibin=0; ibin< (*pdf_selected_data)[0].size(); ibin++)
     {
       pdf_selected_profile[ibin] += (*pdf_selected_data)[iprime][ibin] * prob_iprime;
+      std::cout<< "   "<<(*pdf_selected_data)[iprime][ibin]<<std::endl;
     }
   }
 
   auto pdf_profile_norm = std::reduce(pdf_selected_profile.begin(), pdf_selected_profile.end());
-  // auto pdf_profile_norm = std::reduce((*pdf_selected_data)[0].begin(), (*pdf_selected_data)[0].end());
-  //   double prob_iprime = pdf_primary->cdf(0, 1e8) - pdf_primary->cdf(0, pdf_selected_bin_edges[0]);
+  pdf_selected_full.push_back(pdf_selected_profile);
 
-  std::cout<<"Profiled pdf norm:"<<pdf_profile_norm<<std::endl;
+  std::cout<<"Profiled pdf length:"<<pdf_selected_profile.size()<<std::endl;
+
+  for (size_t ibin=0; ibin< (*pdf_selected_data)[0].size(); ibin++)
+  {
+  std::cout<<"bin#, content: "<<ibin << ", "<<pdf_selected_profile[ibin]<<std::endl;
+  }
+
+
+  _singleParticlekePdf = new CRYPdf(pdf_selected->name(), 
+                            pdf_selected_bin_edges.front(), 
+                            pdf_selected_bin_edges.back(), 
+                            CRYPdf::LOG,
+                            pdf_selected->key(),
+                            pdf_selected_full);
 
   return true;
 }
+
+
+
+void CRYGenerator::genEvent_single(std::vector<CRYParticle*> *retList) {
+  if ( retList==0 ) retList=new std::vector<CRYParticle*>;
+
+  double keSecondary=_singleParticlekePdf->draw(_utils,0);
+  int sBin=_secondaryBinning->bin(keSecondary);
+
+  // Now sample lateral distribution, for now is just flat inside the box
+  double xPosSecondary= (_utils->randomFlat()-0.5) * _subboxSize;
+  double yPosSecondary= (_utils->randomFlat()-0.5) * _subboxSize;;
+
+  double timeSecondary= 0;
+  
+  int charge= 0 ;
+  double u,v,w;
+  std::cout<<"ke, sbin "<< sBin << " "  << keSecondary<< " " <<std::endl;
+  w=_cosThetaPdfs[id_selected]->draw(_utils,sBin);
+  // w=0.2;
+
+  double maxV=sqrt(1.0-w*w);
+  double tphi=_utils->randomFlat()*2.0*M_PI;
+  v=maxV*sin(tphi);
+  u=maxV*cos(tphi);
+  
+  // make secondary and add it to the list
+  CRYParticle *daug=new CRYParticle(id_selected,charge,keSecondary);
+  daug->setPosition(xPosSecondary,yPosSecondary,0.);
+  daug->setTime(timeSecondary);
+  daug->setDirection(u,v,w);
+
+  retList->push_back(daug);
+
+}
+
 
