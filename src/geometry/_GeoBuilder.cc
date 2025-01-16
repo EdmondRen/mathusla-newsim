@@ -154,10 +154,10 @@ namespace MuGeoBuilder
         {
             std::map<std::string, G4VisAttributes> styles_store;
 
-            styles_store["SensitiveAttributes1"] = G4VisAttributes(G4Colour(0.3, 1., 0., 0.9));
+            styles_store["SensitiveAttributes1"] = G4VisAttributes(G4Colour(0.3, 1., 0., 0.4));
             styles_store["SensitiveAttributes1"].SetForceSolid(true);
 
-            styles_store["SensitiveAttributes2"] = G4VisAttributes(G4Colour(1, 0.3, 0., 0.9));
+            styles_store["SensitiveAttributes2"] = G4VisAttributes(G4Colour(1, 0.3, 0., 0.6));
             styles_store["SensitiveAttributes2"].SetForceSolid(true);
 
             styles_store["HighlightRed"] = G4VisAttributes(G4Colour(1, 0, 0, 1));
@@ -182,6 +182,9 @@ namespace MuGeoBuilder
 
             styles_store["AlAttributes"] = G4VisAttributes(G4Colour(0.4, 0.6, 0.7));
             styles_store["AlAttributes"].SetForceSolid(true);
+
+            styles_store["Invisible"] = G4VisAttributes(G4Colour(1.0, 1.0, 1.0)); // White color for clarity
+            styles_store["Invisible"].SetVisibility(false);
 
             return styles_store;
         }

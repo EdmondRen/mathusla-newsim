@@ -481,14 +481,39 @@ bool CRYGenerator::prepare_single() {
 
   // Loop all primary energy bins
   double total_prime_prob = 0;
+  int ndiv=100;
+  std::vector<double> nSec_mean_list = _nParticlesPDF->mean();   
+
+  
+  for (size_t ibin=0; ibin< nSec_mean_list.size(); ibin++)
+  {
+  std::cout<<ibin << " nsec "<< nSec_mean_list[ibin]<<std::endl;
+  }
+
   for (size_t iprime=0; iprime< (*pdf_selected_data).size(); iprime++)
   {
-    double prob_iprime = pdf_primary->cdf(0, pdf_selected_primary_bin_edges[iprime+1]) - pdf_primary->cdf(0, pdf_selected_primary_bin_edges[iprime]);
-      // std::cout<<prob_iprime<<std::endl;
+    double ke_high=pdf_selected_primary_bin_edges[iprime+1];
+    double ke_low=pdf_selected_primary_bin_edges[iprime];
+    double prob_iprime = pdf_primary->cdf(0, ke_high) - pdf_primary->cdf(0, ke_low);
+
+    // Caculate the average number of secondary particles in this primary particle ek range
+    float nSec_avg=0;
+    int pBin;
+    for (int idiv=0; idiv<ndiv; idiv++)
+    {
+      pBin=_primaryBinning->bin(ke_low + (ke_high-ke_low)/ndiv*idiv);
+      nSec_avg += nSec_mean_list[pBin];
+      if (idiv==0)
+      std::cout<<" pbin "<<pBin<<std::endl;
+    }
+    nSec_avg/=ndiv;
+
+
+      std::cout<<ke_low<<" "<<nSec_avg<<std::endl;
     total_prime_prob+=prob_iprime;
     for (size_t ibin=0; ibin< (*pdf_selected_data)[0].size(); ibin++)
     {
-      pdf_selected_profile[ibin] += (*pdf_selected_data)[iprime][ibin] * prob_iprime;
+      pdf_selected_profile[ibin] += (*pdf_selected_data)[iprime][ibin] * prob_iprime * nSec_avg;
       // std::cout<< "   "<<(*pdf_selected_data)[iprime][ibin]<<std::endl;
     }
   }
@@ -497,9 +522,16 @@ bool CRYGenerator::prepare_single() {
 
 
   auto pdf_profile_norm = std::reduce(pdf_selected_profile.begin(), pdf_selected_profile.end());
+  for (size_t ibin=0; ibin< pdf_selected_profile.size(); ibin++)
+  {
+    pdf_selected_profile[ibin] /= pdf_profile_norm;
+      std::cout<< "  Energy, prob  " << pdf_selected_secondary_bin_edges[ibin] << " "<<pdf_selected_profile[ibin]<<std::endl;
+  }
+
+
   pdf_selected_remake.push_back(pdf_selected_profile);
 
-  // std::cout<<"Profiled pdf length:"<<pdf_selected_profile.size()<<std::endl;
+  std::cout<<"Profiled pdf norm:"<<pdf_selected_profile.size()<<std::endl;
 
   // for (size_t ibin=0; ibin< (*pdf_selected_data)[0].size(); ibin++)
   // {

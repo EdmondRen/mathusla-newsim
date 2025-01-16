@@ -35,8 +35,10 @@ struct DigiConfig
     // Speed of light in the fiber
     float c = 29.979 / 1.89;
 
-    // Coincident timing resolution. 1/sqrt(2) of single channel resolution
+    // Coincident timing resolution. 
+    // == 1/sqrt(2) times single channel resolution
     float time_resolution;
+
     // Position resolution
     float position_resolution = time_resolution * c;
 

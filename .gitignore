@@ -1,3 +1,5 @@
-/build/
+.ipynb_checkpoints
 debug_commands.md
+
+/build/
 /data/

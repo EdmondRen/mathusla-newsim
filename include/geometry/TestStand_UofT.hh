@@ -16,6 +16,7 @@ namespace MuGeoBuilder
 
   namespace uoftdims
   {
+    // GEO_DEPTH: number of depth. Here we stick to depth of 4: #detector, #tower-module, #layer and #bar
     extern size_t GEO_DEPTH;
     // 0: bar. x: along the bar, y: width, z: thickness
     extern double bar_lenx;
@@ -94,7 +95,7 @@ namespace MuGeoBuilder
     //    CCC are the "layer" copy number
     //    BBB are the "tower-module" copy number
     //    AAA are the "detector" copy number
-    long long int CopynumberToDetectorID(std::vector<int> copy_numbers) override;
+    long long int GetDetectorID(std::vector<int> copy_numbers, G4ThreeVector local_coord) override;
 
     // Core function 4:
     // (For digitizer) Make a map from detector ID to bar information dict
@@ -113,9 +114,9 @@ namespace MuGeoBuilder
 
     // For each detector ID, store a struct of BarPosition
     std::map<unsigned long long int, BarPosition> IDMaps_inLayer;    // depth=0
+    std::map<unsigned long long int, BarPosition> IDMaps_inTower;    // depth=1
     std::map<unsigned long long int, BarPosition> IDMaps_inDetector; // depth=2
     std::map<unsigned long long int, BarPosition> IDMaps_inWorld;    // depth=3
-    std::map<unsigned long long int, BarPosition> IDMaps_inTower;    // depth=1
   };
 
 } // namespace MuGeoBuilder

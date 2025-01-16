@@ -60,7 +60,9 @@ namespace MuGeoBuilder
 
         // Core function 3:
         // (For digitizer) Get a unique detector ID for each bar based on the copy number
-        virtual long long int CopynumberToDetectorID(std::vector<int> copy_numbers) = 0;
+        // Depends on the implementation of the geometry, local coordinates may be needed.
+        // For example, if the bottom-level touchable is a monolithic plate instead of individual bars...
+        virtual long long int GetDetectorID(std::vector<int> copy_numbers, G4ThreeVector local_coords) = 0;
 
         // Core function 4:
         // (For digitizer) Make a map from detector ID to bar information dict

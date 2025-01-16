@@ -45,6 +45,11 @@ namespace Analysis
         G4int totalDepth = touchable_pre->GetHistoryDepth();
         for (int i = 0; i < totalDepth; i++)
             this->_copyNumber.push_back(touchable_pre->GetCopyNumber(i));
+
+        G4ThreeVector worldPos = preStepPoint->GetPosition();
+        // Get the transformation matrix from the world to the local coordinate system of the bottom-level touchable
+        // and perform the coordinate transform 
+        this->_local_coord = touchable_pre->GetHistory()->GetTopTransform().TransformPoint(worldPos);
     }
 
     //  ---------------------------------------------------------------------------
@@ -172,7 +177,7 @@ namespace Analysis
             data["Hit_pdgID"].push_back(hit->_trackPDG);
             data["Hit_pdgIDparent"].push_back(hit->_parentPDG);
             data["Hit_processID"].push_back(0); // Fix this later
-            data["Hit_detectorID"].push_back(detectorBuilder->CopynumberToDetectorID(hit->_copyNumber));
+            data["Hit_detectorID"].push_back(detectorBuilder->GetDetectorID(hit->_copyNumber, hit->_local_coord));
 
             // Copy number is a list for each hit. Flatten it and separate by -1
             // Start with lowest depth (for example, bar number) to highes depth (detector number)

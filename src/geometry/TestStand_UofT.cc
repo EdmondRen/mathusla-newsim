@@ -85,7 +85,7 @@ namespace MuGeoBuilder
   }
 
   // Calculate detector ID based on the four copy numbers
-  long long int Uoft1_Builder::CopynumberToDetectorID(std::vector<int> copy_numbers)
+  long long int Uoft1_Builder::GetDetectorID(std::vector<int> copy_numbers, G4ThreeVector local_coord)
   {
     if (copy_numbers.size() != uoftdims::GEO_DEPTH)
     {
@@ -210,6 +210,37 @@ namespace MuGeoBuilder
         IDMaps_inLayer.insert({bar_copy_number, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
       }
     }
+
+    // Add the aluminum case
+    // For simplicity, just add a top and bottom plate instead of a hollow box
+    auto al_case = new G4Box("al_case", uoftdims::layer_lenx / 2, uoftdims::layer_leny / 2, uoftdims::layer_wallthick / 2);
+    auto al_caseLV = new G4LogicalVolume(
+        al_case,            // its solid
+        Material::Aluminum, // its material
+        "al_case");             // its name
+    auto al_case1PV = new G4PVPlacement(
+        0, // no rotation
+        G4ThreeVector(0,
+                      0,
+                      uoftdims::bar_lenz / 2 + uoftdims::layer_wallthick / 2), // offset it by corresponding bar width and length
+        al_caseLV,            // its logical volume
+        "al_case",            // its name
+        layerLV,          // its mother  volume
+        false,            // no boolean operation
+        0,                // copy number
+        fCheckOverlaps);  // checking overlaps
+    auto al_case2PV = new G4PVPlacement(
+        0, // no rotation
+        G4ThreeVector(0,
+                      0,
+                      -(uoftdims::bar_lenz / 2 + uoftdims::layer_wallthick / 2)), // offset it by corresponding bar width and length
+        al_caseLV,            // its logical volume
+        "al_case",            // its name
+        layerLV,          // its mother  volume
+        false,            // no boolean operation
+        1,                // copy number
+        fCheckOverlaps);  // checking overlaps        
+
     return 0;
   }
 
@@ -292,7 +323,7 @@ namespace MuGeoBuilder
                                         uoftdims::detector_modules_yoffset[j],
                                         0)), // offset
             moduleLV,                        // its logical volume
-            "layer",                         // its name
+            "Tower module",                  // its name
             this->detectorLV,                // its mother volume
             false,                           // no boolean operation
             tower_copy_number,               // copy number (tower number within the full detector)

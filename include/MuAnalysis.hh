@@ -81,6 +81,7 @@ namespace Analysis
         G4LorentzVector _momentum;
 
         std::vector<int> _copyNumber;
+        G4ThreeVector _local_coord; // Coornidate in the bottom-level of touchable
     };
     extern G4Allocator<uHit> *HitAllocator;
     inline void *uHit::operator new(size_t)

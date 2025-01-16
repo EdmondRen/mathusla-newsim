@@ -54,6 +54,7 @@
 #include "MuAnalysis.hh"
 #include "geometry/_GeoBuilder.hh"
 #include "geometry/TestStand_UofT.hh"
+#include "geometry/Mathusla40.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 const std::string MuDetectorConstruction::MessengerDirectory = "/det/";
@@ -71,6 +72,7 @@ MuDetectorConstruction::MuDetectorConstruction(const std::string &detector_name,
 {
   // Make a map of all available detectors
   _det_map_["uoft1"] = new MuGeoBuilder::Uoft1_Builder();
+  _det_map_["mu40v0"] = new MuGeoBuilder::Mathusla40_Builder();
   
   // Make messenger commands
   _ui_select = CreateCommand<G4UIcmdWithAString>("select", "Select Detector to use.");
@@ -106,7 +108,7 @@ G4VPhysicalVolume *MuDetectorConstruction::Construct()
 void MuDetectorConstruction::ConstructSDandField()
 {
   // Assign a sensitive detector to the geometry
-  if (_det_name_ == "uoft1")
+  if (_det_name_ == "uoft1" || _det_name_ == "mu40v0" )
   {
     auto sensitive_detector = new Analysis::DefaultDetector();
     _det_->ConstructSD(sensitive_detector);
