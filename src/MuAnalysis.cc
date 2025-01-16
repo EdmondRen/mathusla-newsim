@@ -38,6 +38,8 @@ namespace Analysis
         this->_position = G4LorentzVector(step_point->GetGlobalTime(), step_point->GetPosition());
         this->_momentum = G4LorentzVector(step_point->GetTotalEnergy(), step_point->GetMomentum());
 
+        G4cout<<"-----hit_x----- "<< _position.x() <<G4endl;
+
         // Get touchable
         const auto preStepPoint = step->GetPreStepPoint();
         const auto touchable_pre = preStepPoint->GetTouchable();

@@ -157,7 +157,7 @@ namespace MuGeoBuilder
             styles_store["SensitiveAttributes1"] = G4VisAttributes(G4Colour(0.3, 1., 0., 0.4));
             styles_store["SensitiveAttributes1"].SetForceSolid(true);
 
-            styles_store["SensitiveAttributes2"] = G4VisAttributes(G4Colour(1, 0.3, 0., 0.6));
+            styles_store["SensitiveAttributes2"] = G4VisAttributes(G4Colour(0.1, 0.5, 0., 0.6));
             styles_store["SensitiveAttributes2"].SetForceSolid(true);
 
             styles_store["HighlightRed"] = G4VisAttributes(G4Colour(1, 0, 0, 1));

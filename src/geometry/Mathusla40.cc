@@ -53,10 +53,10 @@ namespace MuGeoBuilder
         double layer_lenz = 10 * cm;
         // 2: tower module
         int module_Nlayers = 6;
+        double module_lgap = 0.8 * m; // Gap between layers
         double module_lenx = 10 * m;
         double module_leny = 10 * m;
-        double module_lenz = 4.1 * m;
-        double module_lgap = 0.8 * m; // Gap between layers
+        double module_lenz = module_lgap*(module_Nlayers-1) + layer_lenz;
         std::vector<int> module_layers_zdirection = {kZAxis, kZAxis, kZAxis, kZAxis, kZAxis, kZAxis};
         std::vector<int> module_layers_xdirection = {kXAxis, kYAxis, kXAxis, kYAxis, kXAxis, kYAxis};
         std::vector<double> module_layers_xoffset = {0, 0, 0, 0, 0};                                                                                                                                                                            // From the module x-center
@@ -73,7 +73,7 @@ namespace MuGeoBuilder
         double detector_lenz = module_lenz;
         std::vector<double> detector_modules_xoffset = {-1.5 * module_lenx, -0.5 * module_lenx, 0.5 * module_lenx, 1.5 * module_lenx};
         std::vector<double> detector_modules_yoffset = detector_modules_xoffset;
-        std::vector<double> detector_ground_offset = {0, 0, detector_decay_vol_height + module_lgap + layer_lenz}; // x and y offsets are relative to detector box center, z offset is from the bottom.
+        std::vector<double> detector_ground_offset = {0, 0, detector_decay_vol_height+module_lgap + layer_lenz}; // x and y offsets are relative to detector box center, z offset is from the bottom.
         // Surroundings
         double env_earth_depth_top = 0.1 * m;
         double env_earth_depth_mid = 100 * m;
@@ -91,46 +91,56 @@ namespace MuGeoBuilder
         // Veto layers
         // Those are treated differently.
         // vf_: veto_floor
-        // vw_: veto_wall
-        double vf_panel_lenx = bar_lenx_real * floor(detector_Ntowers_x * module_lenx / bar_lenx_real);
-        double vf_panel_leny = bar_leny_real * floor(detector_Ntowers_y * module_leny / bar_leny_real);
-        int vf_layer_Nbars_x_real = round(vf_panel_lenx / bar_lenx_real);
-        int vf_layer_Nbars_y_real = round(vf_panel_leny / bar_leny_real);
-        double vf_layer_lenx = bar_lenx * layer_Nbars_x + 20 * cm;
-        double vf_layer_leny = bar_leny * layer_Nbars_y;
+        double vf_panel_lenx = detector_Ntowers_x * module_lenx;
+        double vf_panel_leny = detector_Ntowers_y * module_leny;
 
-        double veto_wall_height = detector_decay_vol_height + module_lgap + layer_lenz;
-        int vw_nbars_y1 = floor(detector_leny / bar_lenx_real);
-        int vw_nbars_z1 = floor(veto_wall_height / bar_leny_real);
-        int vw_nbars_y2 = floor(detector_leny / bar_leny_real);
-        int vw_nbars_z2 = floor(veto_wall_height / bar_lenx_real);
-        double vw_panel_leny1 = bar_lenx_real * vw_nbars_y1;
-        double vw_panel_lenz1 = bar_leny_real * vw_nbars_z1;
-        double vw_panel_leny2 = bar_leny_real * vw_nbars_y2;
-        double vw_panel_lenz2 = bar_lenx_real * vw_nbars_z2;
+        // vw_: veto_wall
+        double vw_panel_lenz = detector_decay_vol_height + module_lgap + layer_lenz;
+        double vw_panel_leny = vf_panel_leny;
 
     }
 
     // Calculate detector ID based on the four copy numbers
     long long int Mathusla40_Builder::GetDetectorID(std::vector<int> copy_numbers, G4ThreeVector local_coord)
     {
-        if (copy_numbers.size() != mu40dims::GEO_DEPTH)
-        {
-            G4cout << " [ERROR] Geometry: The geometry depth is wrong. Please check geometry implementation." << G4endl;
-            exit(0);
-        }
-
         // long long int det_id = copy_numbers[0];
         long long int det_id = 0;
-        // Now we need to manually calculate which bar it is in based on the local coordinate.
-        int nx = floor((local_coord.X + mu40dims::bar_lenx * 0.5) / mu40dims::bar_lenx_real);
-        int ny = floor((local_coord.Y + mu40dims::bar_leny * 0.5) / mu40dims::bar_leny_real);
-        int bar_copy_number = ny + nx * mu40dims::layer_Nbars_y_real;
 
-        for (size_t i = 1; i < copy_numbers.size(); i++)
+        // 0: tracking layers, with depth = 4
+        if (copy_numbers.size() == mu40dims::GEO_DEPTH)
         {
-            det_id += copy_numbers[i] * std::pow(10, 5 + i * 3); // Depth 0 takes 5 digits, the rest takes 3 digits each.
+            // Now we need to manually calculate which bar it is in based on the local coordinate.
+            int nx = floor((local_coord.X + mu40dims::bar_lenx * 0.5) / mu40dims::bar_lenx_real);
+            int ny = floor((local_coord.Y + mu40dims::bar_leny * 0.5) / mu40dims::bar_leny_real);
+            det_id += ny + nx * mu40dims::layer_Nbars_y_real;
+            for (size_t i = 1; i < copy_numbers.size(); i++)
+            {
+                det_id += copy_numbers[i] * std::pow(10, 5 + (i - 1) * 3); // Depth 0 takes 5 digits, the rest takes 3 digits each.
+            }
         }
+
+        // 1: veto layers, depth = 2
+        else if (copy_numbers.size() == 2)
+        {
+            int layer_number = copy_numbers[1];
+            int nx, ny, ny_total;
+            if (layer_number % 2 == 0)
+            {
+                nx = floor((local_coord.X) / mu40dims::bar_lenx_real);
+                ny = floor((local_coord.Y) / mu40dims::bar_leny_real);
+                ny_total = mu40dims::vf_panel_leny / mu40dims::bar_leny_real;
+            }
+            else
+            {
+                nx = floor((local_coord.X) / mu40dims::bar_leny_real);
+                ny = floor((local_coord.Y) / mu40dims::bar_lenx_real);
+                ny_total = mu40dims::vf_panel_leny / mu40dims::bar_lenx_real;
+            }
+            det_id += ny + nx * ny_total;
+            int veto_detector_number = 1;
+            det_id += layer_number * 1e5 + veto_detector_number * 1e5 * 1e6;
+        }
+
         return det_id;
     }
 
@@ -285,6 +295,8 @@ namespace MuGeoBuilder
             1,                                                                        // copy number
             fCheckOverlaps);                                                          // checking overlaps
 
+        (void)al_case1PV;
+        (void)al_case2PV;
         return 0;
     }
 
@@ -345,6 +357,13 @@ namespace MuGeoBuilder
             Material::Air, // its material
             "detector");   // its name
         this->detectorLV->SetVisAttributes(Vis::styles["Invisible"]);
+        auto detector_backwall = new G4Box("detector", mu40dims::detector_leny / 2, mu40dims::detector_lenz / 2, mu40dims::module_lenx / 2);
+        auto detector_backwallLV = new G4LogicalVolume(
+            detector,      // its solid
+            Material::Air, // its material
+            "detector");   // its name
+        detector_backwallLV->SetVisAttributes(Vis::styles["Invisible"]);
+
 
         // Place components in detector volume
         // Make a tower module
@@ -385,22 +404,19 @@ namespace MuGeoBuilder
             }
         }
         // Backwall detectors
+        // Define the rotation around the Y-axis (using the angle in radians)
+        G4RotationMatrix rotation;
+        rotation.rotateY(90.0 * deg);           
         for (int i = 0; i < mu40dims::detector_Ntowers_y; i++)
-        {
-            // Define the rotation around the Y-axis (using the angle in radians)
-            G4RotationMatrix rotation;
-            rotation.rotateY(90.0 * deg);
-
+        {   
+            auto offset_temp = G4ThreeVector(0,mu40dims::detector_modules_yoffset[i],0);
             int tower_copy_number = i + mu40dims::detector_Ntowers_x * mu40dims::detector_Ntowers_y;
-            ;
             auto modulePV = new G4PVPlacement(
                 G4Transform3D(rotation, // rotation
-                              G4ThreeVector(mu40dims::detector_modules_xoffset.back() + mu40dims::module_lenx * 0.5 + mu40dims::module_lenz * 0.5 + 10 * cm,
-                                            mu40dims::detector_modules_yoffset[i],
-                                            -mu40dims::module_leny * 0.5 - mu40dims::module_lenz * 0.5)), // offset
+                              offset_temp), // offset
                 moduleLV,                                                                                 // its logical volume
                 "Tower module",                                                                           // its name
-                this->detectorLV,                                                                         // its mother volume
+                detector_backwallLV,                                                                         // its mother volume
                 false,                                                                                    // no boolean operation
                 tower_copy_number,                                                                        // copy number (tower number within the full detector)
                 fCheckOverlaps);                                                                          // checking overlaps
@@ -409,17 +425,15 @@ namespace MuGeoBuilder
             // Add the modules to the detector position map
             for (auto const &[key, val] : IDMaps_inTower)
             {
-                G4ThreeVector bar_center_coord = val.bar_center_coord + G4ThreeVector(mu40dims::detector_modules_xoffset.back() + mu40dims::module_lenx * 0.5 + mu40dims::module_lenz * 0.5 + 10 * cm,
-                                                                                      mu40dims::detector_modules_yoffset[i],
-                                                                                      0);
+                G4ThreeVector bar_center_coord = val.bar_center_coord + offset_temp;
                 IDMaps_inDetector.insert({key + tower_copy_number * 1e8 * 1e3,
-                                          BarPosition(rotation * val.y_side_direction, rotation * val.z_side_direction, bar_center_coord)});
+                                          BarPosition(rotation * val.y_side_direction, rotation * val.z_side_direction, rotation*bar_center_coord)});
             }
         }
 
-        // Veto layers
 
-        ConstructVeto(_worldLV);
+
+
 
         // Place detector in world
         int detector_copy_number = 0;
@@ -431,12 +445,27 @@ namespace MuGeoBuilder
         auto detectorPV = new G4PVPlacement(
             transform,
             this->detectorLV,     // its logical volume
-            "layer",              // its name
+            "Main detector",              // its name
             _worldLV,             // its mother volume
             false,                // no boolean operation
             detector_copy_number, // copy number (detector number within the world)
             fCheckOverlaps);      // checking overlaps
         (void)detectorPV;
+        // Place backwall detector in world
+        auto offset_backwall = G4ThreeVector(mu40dims::detector_modules_xoffset.back() + mu40dims::module_lenx * 0.5 + mu40dims::module_lenz * 0.5,
+                                            0,
+                                            -mu40dims::module_lenx * 0.5 + mu40dims::detector_ground_offset.back());                                         
+        auto transform_backwall = G4Transform3D(G4RotationMatrix(), // rotation
+                                       offset_backwall);            // offset        
+        auto detector_backwallPV = new G4PVPlacement(
+            transform_backwall,
+            detector_backwallLV,     // its logical volume
+            "Backwall",              // its name
+            _worldLV,             // its mother volume
+            false,                // no boolean operation
+            detector_copy_number, // copy number (detector number within the world)
+            fCheckOverlaps);      // checking overlaps
+        (void)detectorPV;     
 
         // Add the detector to the detector position map
         for (auto const &[key, val] : IDMaps_inDetector)
@@ -444,49 +473,17 @@ namespace MuGeoBuilder
             G4ThreeVector bar_center_coord = val.bar_center_coord + offset;
             IDMaps_inWorld.insert({key + detector_copy_number * 1e8 * 1e3 * 1e3, BarPosition(val.y_side_direction, val.z_side_direction, bar_center_coord)});
         }
+
+        // Veto layers
+        ConstructVeto(_worldLV);
+
         return 0;
     }
 
     void Mathusla40_Builder::ConstructVeto(G4LogicalVolume *_worldLV)
     {
-        // Make detector logic volume
-        auto detector_z_thickness = (mu40dims::module_lgap + mu40dims::layer_lenz * 2);
-        auto detector_veto_floor = new G4Box("detector", mu40dims::detector_lenx / 2, mu40dims::detector_leny / 2, detector_z_thickness / 2);
-        auto detector_veto_floorLV = new G4LogicalVolume(
-            detector_veto_floor, // its solid
-            Material::Air,       // its material
-            "detector");         // its name
-        detector_veto_floorLV->SetVisAttributes(Vis::styles["Invisible"]);
-        // Place detector in world
-        auto detector_veto_floorPV = new G4PVPlacement(
-            G4Transform3D(G4RotationMatrix(),                               // rotation
-                          G4ThreeVector(0, 0, detector_z_thickness * 0.5)), // offset),
-            detector_veto_floorLV,                                          // its logical volume
-            "Floor veto detector",                                          // its name
-            _worldLV,                                                       // its mother volume
-            false,                                                          // no boolean operation
-            1,                                                              // copy number (detector number within the world)
-            fCheckOverlaps);                                                // checking overlaps
-
-        // Make a module
-        auto module_veto_floor = new G4Box("module", mu40dims::vf_panel_lenx / 2, mu40dims::vf_panel_leny / 2, detector_z_thickness / 2);
-        auto module_veto_floorLV = new G4LogicalVolume(
-            module_veto_floor, // its solid
-            Material::Air,     // its material
-            "module");         // its name
-        module_veto_floorLV->SetVisAttributes(Vis::styles["CasingAttributes"]);
-        // Place module in detector
-        auto module_veto_floorPV = new G4PVPlacement(
-            G4Transform3D(),
-            module_veto_floorLV,   // its logical volume
-            "Floor veto module",   // its name
-            detector_veto_floorLV, // its mother volume
-            false,                 // no boolean operation
-            0,                     // copy number (detector number within the world)
-            fCheckOverlaps);       // checking overlaps
-
-        // Put layers into module
-        // Make a layer
+        // ----------------------------------------------------------------------------
+        // 1. Floor layer
         auto layer_veto_floor = new G4Box("layer", mu40dims::vf_panel_lenx / 2, mu40dims::vf_panel_leny / 2, mu40dims::layer_lenz / 2);
         auto layer_veto_floorLV = new G4LogicalVolume(
             layer_veto_floor, // its solid
@@ -510,7 +507,6 @@ namespace MuGeoBuilder
             0,                  // copy number (detector number within the world)
             fCheckOverlaps);    // checking overlaps
 
-
         // Add the aluminum case
         // For simplicity, just add a top and bottom plate instead of a hollow box
         auto al_case = new G4Box("al_case", mu40dims::vf_panel_lenx / 2, mu40dims::vf_panel_leny / 2, mu40dims::layer_wallthick / 2);
@@ -519,16 +515,14 @@ namespace MuGeoBuilder
             Material::Aluminum, // its material
             "al_case");         // its name
         auto al_case1PV = new G4PVPlacement(
-            0, // no rotation
-            G4ThreeVector(0,
-                          0,
-                          mu40dims::bar_lenz / 2 + mu40dims::layer_wallthick / 2), // offset it by corresponding bar width and length
-            al_caseLV,                                                             // its logical volume
-            "al_case",                                                             // its name
-            layer_veto_floorLV,                                                               // its mother  volume
-            false,                                                                 // no boolean operation
-            0,                                                                     // copy number
-            fCheckOverlaps);                                                       // checking overlaps
+            0,                                                                             // no rotation
+            G4ThreeVector(0, 0, (mu40dims::bar_lenz / 2 + mu40dims::layer_wallthick / 2)), // offset it by corresponding bar width and length
+            al_caseLV,                                                                     // its logical volume
+            "al_case",                                                                     // its name
+            layer_veto_floorLV,                                                            // its mother  volume
+            false,                                                                         // no boolean operation
+            0,                                                                             // copy number
+            fCheckOverlaps);                                                               // checking overlaps
         auto al_case2PV = new G4PVPlacement(
             0, // no rotation
             G4ThreeVector(0,
@@ -536,33 +530,218 @@ namespace MuGeoBuilder
                           -(mu40dims::bar_lenz / 2 + mu40dims::layer_wallthick / 2)), // offset it by corresponding bar width and length
             al_caseLV,                                                                // its logical volume
             "al_case",                                                                // its name
-            layer_veto_floorLV,                                                                  // its mother  volume
+            layer_veto_floorLV,                                                       // its mother  volume
             false,                                                                    // no boolean operation
             1,                                                                        // copy number
-            fCheckOverlaps);                                                          // checking overlaps            
+            fCheckOverlaps);                                                          // checking overlaps
 
-        G4RotationMatrix transform_rotate_around_z;
-        transform_rotate_around_z.rotateZ(90 * deg);
+        // Put layers in world
+        G4RotationMatrix transform_rotate;
+        transform_rotate.rotateZ(90 * deg);
         // First layer
+        auto total_thickness = mu40dims::bar_lenz + mu40dims::layer_wallthick * 2;
+        auto vf_zoffset_1 = total_thickness * 0.5;
+        auto vf_zoffset_2 = total_thickness * 0.5 + mu40dims::module_lgap;
         auto layer_veto_floor1PV = new G4PVPlacement(
-            G4Transform3D(G4RotationMatrix(),                                 // rotation
-                          G4ThreeVector(0, 0, -mu40dims::module_lgap * 0.5)), // offset),
-            layer_veto_floorLV,                                               // its logical volume
-            "Layer 0",                                                        // its name
-            module_veto_floorLV,                                              // its mother volume
-            false,                                                            // no boolean operation
-            0,                                                                // copy number (detector number within the world)
-            fCheckOverlaps);                                                  // checking overlaps
+            G4Transform3D(G4RotationMatrix(),                 // rotation
+                          G4ThreeVector(0, 0, vf_zoffset_1)), // offset),
+            layer_veto_floorLV,                               // its logical volume
+            "Veto Floor Layer 0",                             // its name
+            _worldLV,                                         // its mother volume
+            false,                                            // no boolean operation
+            2,                                                // copy number (detector number within the world)
+            fCheckOverlaps);                                  // checking overlaps
         // Second layer
         auto layer_veto_floor2PV = new G4PVPlacement(
-            G4Transform3D(G4RotationMatrix(),                                // rotation
-                          G4ThreeVector(0, 0, mu40dims::module_lgap * 0.5)), // offset),
-            layer_veto_floorLV,                                              // its logical volume
-            "Layer 1",                                                       // its name
-            module_veto_floorLV,                                             // its mother volume
-            false,                                                           // no boolean operation
-            1,                                                               // copy number (detector number within the world)
-            fCheckOverlaps);                                                 // checking overlaps
+            G4Transform3D(G4RotationMatrix(),                 // rotation
+                          G4ThreeVector(0, 0, vf_zoffset_2)), // offset),
+            layer_veto_floorLV,                               // its logical volume
+            "Veto Floor Layer 1",                             // its name
+            _worldLV,                                         // its mother volume
+            false,                                            // no boolean operation
+            3,                                                // copy number (detector number within the world)
+            fCheckOverlaps);                                  // checking overlaps
+
+        // Calculated and save the bar positions
+        int det_number = 1; // 1 for veto detector
+        // First layer
+        int layer_number = 2;
+        auto nbars_x_half = ceil(0.5 * mu40dims::vf_panel_lenx / mu40dims::bar_lenx_real);
+        auto nbars_y_half = ceil(0.5 * mu40dims::vf_panel_leny / mu40dims::bar_leny_real);
+        for (int i = -nbars_x_half; i < nbars_x_half; i++)
+        {
+            for (int j = -nbars_y_half; j < nbars_y_half; j++)
+            {
+                unsigned long long bar_copy_number = (j + i * (nbars_y_half * 2)) + layer_number * 1e5 + det_number * 1e5 * 1e6;
+
+                float barcenter_x_offset = mu40dims::bar_lenx_real * (i + 0.5);
+                float barcenter_y_offset = mu40dims::bar_leny_real * (j + 0.5);
+                float barcenter_z_offset = vf_zoffset_1;
+                // Add this bar to the detector position map
+                G4ThreeVector y_side_direction = G4ThreeVector(0, 1, 0);
+                G4ThreeVector z_side_direction = G4ThreeVector(0, 0, 1);
+                G4ThreeVector bar_center_coord = G4ThreeVector(barcenter_x_offset, barcenter_y_offset, barcenter_z_offset);
+                IDMaps_inLayer_veto.insert({bar_copy_number, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
+            }
+        }
+        // Second layer
+        layer_number = 3;
+        nbars_x_half = ceil(0.5 * mu40dims::vf_panel_lenx / mu40dims::bar_leny_real);
+        nbars_y_half = ceil(0.5 * mu40dims::vf_panel_leny / mu40dims::bar_lenx_real);
+        for (int i = -nbars_x_half; i < nbars_x_half; i++)
+        {
+            for (int j = -nbars_y_half; j < nbars_y_half; j++)
+            {
+                unsigned long long bar_copy_number = (j + i * (nbars_y_half * 2)) + layer_number * 1e5 + det_number * 1e5 * 1e6;
+
+                float barcenter_x_offset = mu40dims::bar_leny_real * (j + 0.5);
+                float barcenter_y_offset = mu40dims::bar_lenx_real * (i + 0.5);
+                float barcenter_z_offset = vf_zoffset_1;
+                // Add this bar to the detector position map
+                G4ThreeVector y_side_direction = G4ThreeVector(1, 0, 0);
+                G4ThreeVector z_side_direction = G4ThreeVector(0, 0, 1);
+                G4ThreeVector bar_center_coord = G4ThreeVector(barcenter_x_offset, barcenter_y_offset, barcenter_z_offset);
+                IDMaps_inLayer_veto.insert({bar_copy_number, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
+            }
+        }
+
+        // ----------------------------------------------------------------------------
+        // 2.Wall layer
+        auto layer_veto_wall = new G4Box("layer", mu40dims::vw_panel_lenz / 2, mu40dims::vw_panel_leny / 2, mu40dims::layer_lenz / 2);
+        auto layer_veto_wallLV = new G4LogicalVolume(
+            layer_veto_wall, // its solid
+            Material::Air,   // its material
+            "layer");        // its name
+
+        // Make a scintillator
+        auto bar_veto_wall = new G4Box("bar", mu40dims::vw_panel_lenz / 2, mu40dims::vw_panel_leny / 2, mu40dims::bar_lenz / 2);
+        auto bar_veto_wallLV = new G4LogicalVolume(
+            bar_veto_wall,                 // its solid
+            Material::PlasticScintillator, // its material
+            "bar");                        // its name
+        bar_veto_wallLV->SetVisAttributes(Vis::styles["SensitiveAttributes2"]);
+        // Put scintillators in layer
+        auto bar_veto_wall1PV = new G4PVPlacement(
+            G4Transform3D(),
+            bar_veto_wallLV,   // its logical volume
+            "Bar",             // its name
+            layer_veto_wallLV, // its mother volume
+            false,             // no boolean operation
+            0,                 // copy number (detector number within the world)
+            fCheckOverlaps);   // checking overlaps
+
+        // Add the aluminum case
+        // For simplicity, just add a top and bottom plate instead of a hollow box
+        auto al_case_wall = new G4Box("al_case", mu40dims::vw_panel_lenz / 2, mu40dims::vw_panel_leny / 2, mu40dims::layer_wallthick / 2);
+        auto al_case_wallLV = new G4LogicalVolume(
+            al_case_wall,       // its solid
+            Material::Aluminum, // its material
+            "al_case");         // its name
+        auto al_case1_wallPV = new G4PVPlacement(
+            0,                                                                             // no rotation
+            G4ThreeVector(0, 0, (mu40dims::bar_lenz / 2 + mu40dims::layer_wallthick / 2)), // offset it by corresponding bar width and length
+            al_case_wallLV,                                                                // its logical volume
+            "al_case",                                                                     // its name
+            layer_veto_wallLV,                                                             // its mother  volume
+            false,                                                                         // no boolean operation
+            0,                                                                             // copy number
+            fCheckOverlaps);                                                               // checking overlaps
+        auto al_case2_wallPV = new G4PVPlacement(
+            0,                                                                              // no rotation
+            G4ThreeVector(0, 0, -(mu40dims::bar_lenz / 2 + mu40dims::layer_wallthick / 2)), // offset it by corresponding bar width and length
+            al_case_wallLV,                                                                 // its logical volume
+            "al_case",                                                                      // its name
+            layer_veto_wallLV,                                                              // its mother  volume
+            false,                                                                          // no boolean operation
+            1,                                                                              // copy number
+            fCheckOverlaps);                                                                // checking overlaps
+
+        // Place layers in world
+        G4RotationMatrix transform_rotatey;
+        transform_rotatey.rotateY(90 * deg);
+        // First layer
+        auto x_offset1 = -total_thickness * 0.5 - mu40dims::vf_panel_leny * 0.5 - mu40dims::module_lgap;
+        auto x_offset2 = -total_thickness * 0.5 - mu40dims::vf_panel_leny * 0.5;
+        auto trans1 = G4ThreeVector(x_offset1, 0, mu40dims::vw_panel_lenz * 0.5);
+        auto trans2 = G4ThreeVector(x_offset2, 0, mu40dims::vw_panel_lenz * 0.5);
+        auto trans3 = G4ThreeVector(24.8*m, 0, mu40dims::vw_panel_lenz * 0.5);
+        auto layer_veto_wall1PV = new G4PVPlacement(
+            G4Transform3D(transform_rotatey, // rotation
+                          trans1),           // offset),
+            layer_veto_wallLV,               // its logical volume
+            "Veto Wall Layer 0",             // its name
+            _worldLV,                        // its mother volume
+            false,                           // no boolean operation
+            0,                               // copy number (detector number within the world)
+            fCheckOverlaps);                 // checking overlaps
+        // Second layer
+        auto layer_veto_wall2PV = new G4PVPlacement(
+            G4Transform3D(transform_rotatey, // rotation
+                          trans2),           // offset),
+            layer_veto_wallLV,               // its logical volume
+            "Veto Wall Layer 1",             // its name
+            _worldLV,                        // its mother volume
+            false,                           // no boolean operation
+            1,                               // copy number (detector number within the world)
+            fCheckOverlaps);                 // checking overlaps
+
+
+        // Calculated and save the bar positions
+        nbars_y_half = ceil(0.5 * mu40dims::vw_panel_leny / mu40dims::bar_lenx_real);
+        auto nbars_z_half = ceil(0.5 * mu40dims::vw_panel_lenz / mu40dims::bar_leny_real);
+        // First layer
+        layer_number = 0;
+        for (int i = -nbars_y_half; i < nbars_y_half; i++)
+        {
+            for (int j = -nbars_z_half; j < nbars_z_half; j++)
+            {
+                unsigned long long bar_copy_number = (j + i * (nbars_z_half * 2)) + layer_number * 1e5 + det_number * 1e5 * 1e6;
+
+                float barcenter_x_offset = x_offset1;
+                float barcenter_y_offset = mu40dims::bar_lenx_real * (i + 0.5);
+                float barcenter_z_offset = mu40dims::bar_leny_real * (j + 0.5);
+                // Add this bar to the detector position map
+                G4ThreeVector y_side_direction = G4ThreeVector(0, 0, 1);
+                G4ThreeVector z_side_direction = G4ThreeVector(1, 0, 0);
+                G4ThreeVector bar_center_coord = G4ThreeVector(barcenter_x_offset, barcenter_y_offset, barcenter_z_offset);
+                IDMaps_inLayer_veto.insert({bar_copy_number, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
+            }
+        }
+        // Second layer
+        nbars_y_half = ceil(0.5 * mu40dims::vw_panel_leny / mu40dims::bar_leny_real);
+        nbars_z_half = ceil(0.5 * mu40dims::vw_panel_lenz / mu40dims::bar_lenx_real);
+        layer_number = 1;
+        for (int i = -nbars_y_half; i < nbars_y_half; i++)
+        {
+            for (int j = -nbars_z_half; j < nbars_z_half; j++)
+            {
+                unsigned long long bar_copy_number = (j + i * (nbars_z_half * 2)) + layer_number * 1e5 + det_number * 1e5 * 1e6;
+
+                float barcenter_x_offset = x_offset1;
+                float barcenter_y_offset = mu40dims::bar_leny_real * (j + 0.5);
+                float barcenter_z_offset = mu40dims::bar_lenx_real * (i + 0.5);
+                // Add this bar to the detector position map
+                G4ThreeVector y_side_direction = G4ThreeVector(0, 1, 0);
+                G4ThreeVector z_side_direction = G4ThreeVector(1, 0, 0);
+                G4ThreeVector bar_center_coord = G4ThreeVector(barcenter_x_offset, barcenter_y_offset, barcenter_z_offset);
+                IDMaps_inLayer_veto.insert({bar_copy_number, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
+            }
+        }
+
+        allSensitiveDetectors.push_back(bar_veto_floor1PV);
+        allSensitiveDetectors.push_back(bar_veto_wall1PV);
+
+        // Supress warnings of unused variables
+        (void)bar_veto_floor1PV;
+        (void)al_case1PV;
+        (void)al_case2PV;
+        (void)layer_veto_floor1PV;
+        (void)layer_veto_floor2PV;
+        (void)bar_veto_wall1PV;
+        (void)al_case1_wallPV;
+        (void)al_case2_wallPV;
+        (void)layer_veto_wall1PV;
+        (void)layer_veto_wall2PV;
     }
 
     G4LogicalVolume *Mathusla40_Builder::ConstructEnvironment(G4LogicalVolume *_worldLV)
