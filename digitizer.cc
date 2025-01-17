@@ -28,14 +28,13 @@ TRandom3 generator;
 std::string util::globals::PROJECT_SOURCE_DIR = "";
 std::map<std::string, int> DIGI_TYPE_MAP;
 
-
 struct DigiConfig
 {
 
     // Speed of light in the fiber
     float c = 29.979 / 1.89;
 
-    // Coincident timing resolution. 
+    // Coincident timing resolution.
     // == 1/sqrt(2) times single channel resolution
     float time_resolution;
 
@@ -47,7 +46,7 @@ struct DigiConfig
     float sipm_energy_threshold;
 
     // Bar dimensions
-    float bar_width_x, bar_width_y, bar_width_z;     
+    float bar_width_x, bar_width_y, bar_width_z;
 
     DigiConfig() = default;
     DigiConfig(float _time_resolution, float _time_limit, float _sipm_energy_threshold) : time_resolution(_time_resolution), time_limit(_time_limit), sipm_energy_threshold(_sipm_energy_threshold)
@@ -130,25 +129,27 @@ public:
             // Find the y direction index
             for (y_dirc_ind = 0; y_dirc_ind < 3; y_dirc_ind++)
             {
-                if (bar_position.y_side_direction[y_dirc_ind] != 0)
+                if (round(abs(bar_position.y_side_direction[y_dirc_ind])) == 1)
                     break;
             }
 
             // Find the z direction index
             for (z_dirc_ind = 0; z_dirc_ind < 3; z_dirc_ind++)
             {
-                if (bar_position.z_side_direction[z_dirc_ind] != 0)
+                if (round(abs(bar_position.z_side_direction[z_dirc_ind])) == 1)
                     break;
             }
 
             // x is the other direction
             x_dirc_ind = 3 - abs(y_dirc_ind) - abs(z_dirc_ind);
+            // print("yind, zind", y_dirc_ind, z_dirc_ind);
+            // print("y_dir, z_dir", bar_position.y_side_direction.x(), bar_position.y_side_direction.y(), bar_position.y_side_direction.z(), bar_position.z_side_direction.x(), bar_position.z_side_direction.y(), bar_position.z_side_direction.z());
 
             *pos_vec[y_dirc_ind] = bar_position.bar_center_coord[y_dirc_ind];
             *pos_vec[z_dirc_ind] = bar_position.bar_center_coord[z_dirc_ind];
             *pos_vec[x_dirc_ind] = hit_pos[x_dirc_ind];
 
-            direction = x_dirc_ind*100 + y_dirc_ind*10 + z_dirc_ind;
+            direction = x_dirc_ind * 100 + y_dirc_ind * 10 + z_dirc_ind;
         }
     }
 
@@ -240,7 +241,7 @@ public:
         treeRaw->SetBranchAddress("Hit_t", &Hit_t);
         treeRaw->SetBranchAddress("Hit_px", &Hit_px);
         treeRaw->SetBranchAddress("Hit_py", &Hit_py);
-        treeRaw->SetBranchAddress("Hit_pz", &Hit_pz);        
+        treeRaw->SetBranchAddress("Hit_pz", &Hit_pz);
         treeRaw->SetBranchAddress("Hit_edep", &Hit_edep);
         treeRaw->SetBranchAddress("Hit_trackID", &Hit_trackID);
         treeRaw->SetBranchAddress("Hit_pdgID", &Hit_pdgID);
@@ -310,10 +311,10 @@ public:
     std::vector<float> Digi_edep;
     std::vector<int> Digi_trackID;
     std::vector<int> Digi_pdgID;
-    std::vector<long long> Digi_detectorID;   // Which layer the hit is from. Layer is obtained from the copy number of depth 1 in GENAT4
-    std::vector<int> Digi_type;      // Soure of the event. -1: noise, 0: GUN, 1: PARMA, 2: CRY
-    std::vector<int> Digi_hitInds;   // The index of truth hits of each digitized hit
-    std::vector<int> Digi_direction; // Indicates the direction of the bar with last three digits . For example, .....012 means x->x, y->y, z->z
+    std::vector<long long> Digi_detectorID; // Which layer the hit is from. Layer is obtained from the copy number of depth 1 in GENAT4
+    std::vector<int> Digi_type;             // Soure of the event. -1: noise, 0: GUN, 1: PARMA, 2: CRY
+    std::vector<int> Digi_hitInds;          // The index of truth hits of each digitized hit
+    std::vector<int> Digi_direction;        // Indicates the direction of the bar with last three digits . For example, .....012 means x->x, y->y, z->z
 
     // Buffer for metadata;
     std::string SimulationName;
@@ -410,15 +411,14 @@ public:
     }
 
     void WriteConfig(DigiConfig &config)
-    {   
+    {
         Uncertainty_t = config.time_resolution;
         Uncertainty_x = config.position_resolution;
-        Uncertainty_y = config.bar_width_y/std::sqrt(12);
-        Uncertainty_z = config.bar_width_z/std::sqrt(12);
+        Uncertainty_y = config.bar_width_y / std::sqrt(12);
+        Uncertainty_z = config.bar_width_z / std::sqrt(12);
         outputTreeMetadata->Fill();
         outputTreeMetadata->Write();
     }
-
 
     void Close()
     {
@@ -528,7 +528,7 @@ int main(int argc, const char *argv[])
 {
     // Setup argument format
     // clang-format off
-    cxxopts::Options options("CRY cosmic generator", "CRY cosmic generator with text output");
+    cxxopts::Options options("./digitizer", "Digitize the MATHUSLA simulation events");
     options.add_options()
         ("h,help", "Print help")
         ("filename", "ROOT file to digitize", cxxopts::value<std::string>())
@@ -559,7 +559,6 @@ int main(int argc, const char *argv[])
     DIGI_TYPE_MAP.insert({"gun", 0});
     DIGI_TYPE_MAP.insert({"gun", 0});
 
-
     // Setup random number generator
     generator.SetSeed(args["seed"].as<int>());
     auto print_progress = args["print_progress"].as<int>();
@@ -580,14 +579,15 @@ int main(int argc, const char *argv[])
     // Build all geometries and select the one based on metadata of infile
     std::unordered_map<std::string, MuGeoBuilder::Builder *> _det_map_;
     _det_map_["uoft1"] = new MuGeoBuilder::Uoft1_Builder();
-    print("Digitizer > Building Select geometry: ", infile->Geometry, "**");
+    _det_map_["mu40v0"] = new MuGeoBuilder::Mathusla40_Builder();
     auto _det_selected_ = _det_map_[infile->Geometry];
     _det_selected_->Construct();
+
+    print("Digitizer > Building Select geometry: ", infile->Geometry, "**");
     print("Digitizer > Finished building geometry ");
     print("Digitizer > Running");
 
     int digi_type = DIGI_TYPE_MAP[infile->Generator];
-
 
     // Write the metatdata into output file
     // 1. Copy the information from input file
@@ -601,15 +601,13 @@ int main(int argc, const char *argv[])
         config.bar_width_y = MuGeoBuilder::uoftdims::bar_leny;
         config.bar_width_z = MuGeoBuilder::uoftdims::bar_lenz;
     }
-    // 2. Add info from config 
+    // 2. Add info from config
     outfile->WriteConfig(config);
 
-
-
     for (int entry = 0; entry < (infile->entries); entry++)
-    {   
+    {
         // Print progress
-        if (entry % print_progress==0)
+        if (entry % print_progress == 0)
             print("Digitizer > ---> End of event:", entry);
 
         // Load hits
@@ -638,5 +636,4 @@ int main(int argc, const char *argv[])
     infile->Close();
 
     print("Digitizer > Finished. File saved as:", output_filename);
-
 }

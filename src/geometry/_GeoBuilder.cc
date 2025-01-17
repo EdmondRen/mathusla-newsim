@@ -183,8 +183,18 @@ namespace MuGeoBuilder
             styles_store["AlAttributes"] = G4VisAttributes(G4Colour(0.4, 0.6, 0.7, 0.4));
             styles_store["AlAttributes"].SetForceSolid(true);
 
+            // A few general styles
             styles_store["Invisible"] = G4VisAttributes(G4Colour(1.0, 1.0, 1.0)); // White color for clarity
             styles_store["Invisible"].SetVisibility(false);
+
+            styles_store["WhiteFrame"] = G4VisAttributes(G4Colour(0., 0., 1., 1.));
+            styles_store["WhiteFrame"].SetForceWireframe(true);     
+
+            styles_store["WhiteCloud"] = G4VisAttributes(G4Colour(0., 0., 1.));
+            styles_store["WhiteCloud"].SetVisibility(true);     
+            styles_store["WhiteCloud"].SetForceSolid(false);     
+            styles_store["WhiteCloud"].SetForceWireframe(true);     
+            // styles_store["WhiteCloud"].SetForcePoints(true);     
 
             return styles_store;
         }

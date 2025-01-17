@@ -43,6 +43,22 @@ It takes in a list of event records. Each line contains a {filename, entry} pair
 
 Digitizer takes the simulation output ROOT file, turns the simulation truth into measurable quantities (x, y, z, t) along with some other information for debugging. 
 
+        Usage:
+          CRY cosmic generator [OPTION...] positional parameters
+
+          -h, --help                  Print help
+          -s, --seed arg              Seed for random number generator (default: 
+                                      -1)
+          -t, --time_resolution arg   Coincidence time resolution [ns]. (default: 
+                                      1)
+          -T, --time_limit arg        Time limit [ns] (default: 20)
+          -E, --energy_threshold arg  Energy threshold for a digi [MeV] (default: 
+                                      0.65)
+          -n, --noise arg             Noise rate [avg number per file]. Set to -1 
+                                      to disable (default). (default: -1)
+          -p, --print_progress arg    Print progress every `p` events (default: 1)
+          -w, --window arg            Noise window [ns]
+
 ## Digitizer output format
 
 There are two ROOT tuples in the digitizer output ROOT file: "digi" and "metadata".

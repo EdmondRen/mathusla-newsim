@@ -1,0 +1,46 @@
+# Macro file for example Mu
+# 
+# Can be run in batch, without graphic
+# or interactively: Idle> /control/execute run1.mac
+#
+# Change the default number of workers (in multi-threading mode) 
+#/run/numberOfThreads 4
+#
+# Initialize kernel
+/vis/disable
+/tracking/verbose 0
+
+# Select detector
+/det/select mu40v0
+
+# Initialize run
+/run/initialize
+/run/printProgress 100
+# /run/numberOfThreads 1
+
+
+# Special run setting 
+
+## Step limiter
+/control/execute ../macros/init_limit.mac
+
+## Setup PARMA generator
+/gen/select parma
+/gen/parma/pathname ../tests/mathusla40/parma_config_mathusla40.conf
+# pdgids
+# 13: muon
+# 11: electron
+# 2212: proton
+# 2112: neutron
+/gen/parma/particle_pdgid 13
+/gen/parma/ekin_low 0 GeV
+/gen/parma/ekin_high 200 GeV
+/gen/parma/shape 1
+/gen/parma/box 50. 50. 25. m
+
+# Update the PARMA generator settings
+/gen/parma/update
+
+
+/run/beamOn 1000
+#/run/dumpCouples

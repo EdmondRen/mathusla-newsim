@@ -34,7 +34,7 @@ int main(int argc, char **argv)
   // ------------------------------
   // Evaluate arguments
   // clang-format off
-  cxxopts::Options options("Geant4 simulation", "Geant4 simulation for MATHUSLA");
+  cxxopts::Options options("./simulation", "Geant4 simulation for MATHUSLA");
   options.add_options()
       ("h,help", "Print help")
       ("D,debug", "Enable debugging") // a bool parameter
@@ -105,7 +105,8 @@ int main(int argc, char **argv)
   runManager->SetUserInitialization(detConstruction);
   
   // Set physics list
-  auto physicsList = new FTFP_BERT;
+  int verboseLevel = 0; // set to zero for non-verbosity  
+  auto physicsList = new FTFP_BERT(verboseLevel);
   // physicsList->RegisterPhysics(new ElectronEarthCutBuilder()); // Electron cuts
   physicsList->RegisterPhysics(new G4StepLimiterPhysics());
   runManager->SetUserInitialization(physicsList);
@@ -124,7 +125,10 @@ int main(int argc, char **argv)
   auto UImanager = G4UImanager::GetUIpointer();
 
   // Run in Batch mode / Interactive mode (Process macro or start UI session)
-  //
+  UImanager->ApplyCommand("/process/verbose 0");  // Suppresses process initialization summary
+  UImanager->ApplyCommand("/physics/verbose 0");  // Suppresses physics list initialization output  
+  UImanager->ApplyCommand("/process/em/verbose 0 0");  // Suppress EM process output
+  UImanager->ApplyCommand("/process/had/verbose 0");  // Suppress hadronic process output
   if (macro_path.size())
   {
     // batch mode

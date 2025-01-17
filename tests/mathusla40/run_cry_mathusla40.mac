@@ -10,8 +10,10 @@
 /vis/disable
 /tracking/verbose 0
 
+# Select detector
 /det/select mu40v0
 
+# Initialize
 /run/initialize
 /run/printProgress 100
 
