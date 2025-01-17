@@ -147,10 +147,8 @@ namespace MuGeoBuilder
     std::map<unsigned long long int, BarPosition> IDMaps_inLayer;    // depth=0
     std::map<unsigned long long int, BarPosition> IDMaps_inTower;    // depth=1
     std::map<unsigned long long int, BarPosition> IDMaps_inDetector; // depth=2
+    std::map<unsigned long long int, BarPosition> IDMaps_inDetectorBack; // depth=2
     std::map<unsigned long long int, BarPosition> IDMaps_inWorld;    // depth=3
-
-    std::map<unsigned long long int, BarPosition> IDMaps_inLayer_veto;    // depth=0
-    std::map<unsigned long long int, BarPosition> IDMaps_inWorld_veto;    // depth=1
   };
 
 } // namespace MuGeoBuilder

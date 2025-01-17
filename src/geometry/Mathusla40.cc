@@ -1,3 +1,4 @@
+
 // G4 material
 #include "G4Material.hh"
 #include "G4NistManager.hh"
@@ -46,24 +47,24 @@ namespace MuGeoBuilder
         int layer_Nbars_x_real = round(bar_lenx / bar_lenx_real);
         int layer_Nbars_y_real = round(bar_leny / bar_leny_real);
         double layer_wallthick = 0.3 * cm;
-        double layer_hbeam_width = 2 * cm;
-        double layer_hbeam_thick = 0.5 * cm;
-        double layer_lenx = bar_lenx * layer_Nbars_x + 20 * cm; //---Derived
-        double layer_leny = bar_leny * layer_Nbars_y;           //---Derived
-        double layer_lenz = 10 * cm;
+        double layer_hbeam_width = 8 * 2.54 * cm; // Horizontal HSS 8*8*1/2
+        double layer_hbeam_thick = 0.5 * 2.54 * cm;
+        double layer_lenx = std::max({bar_lenx * layer_Nbars_x, bar_leny *layer_Nbars_y});
+        double layer_leny = layer_lenx; //---Derived
+        double layer_lenz = layer_hbeam_width * 2 + bar_lenz;
         // 2: tower module
         int module_Nlayers = 6;
         double module_lgap = 0.8 * m; // Gap between layers
-        double module_lenx = 10 * m;
-        double module_leny = 10 * m;
-        double module_lenz = module_lgap*(module_Nlayers-1) + layer_lenz;
+        double module_lenx = 10.7 * m;
+        double module_leny = 10.7 * m;
+        double module_lenz = module_lgap * (module_Nlayers - 1) + layer_lenz;
         std::vector<int> module_layers_zdirection = {kZAxis, kZAxis, kZAxis, kZAxis, kZAxis, kZAxis};
         std::vector<int> module_layers_xdirection = {kXAxis, kYAxis, kXAxis, kYAxis, kXAxis, kYAxis};
         std::vector<double> module_layers_xoffset = {0, 0, 0, 0, 0};                                                                                                                                                                            // From the module x-center
         std::vector<double> module_layers_yoffset = {0, 0, 0, 0, 0};                                                                                                                                                                            // From the module y-center
         std::vector<double> module_layers_zoffset = {layer_lenz / 2, layer_lenz / 2 + module_lgap * 1, layer_lenz / 2 + module_lgap * 2, layer_lenz / 2 + module_lgap * 3, layer_lenz / 2 + module_lgap * 4, layer_lenz / 2 + module_lgap * 5}; // From the module z-BOTTOM
-        double module_vbeam_width = 10 * cm;
-        double module_vbeam_thick = 1 * cm;
+        double module_vbeam_width = 14 * 2.54 * cm;                                                                                                                                                                                             // Vertical HSS 14*14*5/8
+        double module_vbeam_thick = 0.625 * 2.54 * cm;
         // 3. Entire detector
         int detector_Ntowers_x = 4;
         int detector_Ntowers_y = 4;
@@ -73,20 +74,20 @@ namespace MuGeoBuilder
         double detector_lenz = module_lenz;
         std::vector<double> detector_modules_xoffset = {-1.5 * module_lenx, -0.5 * module_lenx, 0.5 * module_lenx, 1.5 * module_lenx};
         std::vector<double> detector_modules_yoffset = detector_modules_xoffset;
-        std::vector<double> detector_ground_offset = {0, 0, detector_decay_vol_height+module_lgap + layer_lenz}; // x and y offsets are relative to detector box center, z offset is from the bottom.
+        std::vector<double> detector_ground_offset = {0, 0, detector_decay_vol_height + module_lgap + layer_lenz}; // x and y offsets are relative to detector box center, z offset is from the bottom.
         // Surroundings
         double env_earth_depth_top = 0.1 * m;
         double env_earth_depth_mid = 100 * m;
-        double env_air_depth = 20 * m;
+        double env_air_depth = 40 * m;
         double env_ceiling_lenx = detector_lenx + 10 * m;
         double env_ceiling_leny = detector_lenx + 10 * m;
         double env_ceiling_lenz = detector_lenz + 3 * m + detector_ground_offset[2];
-        double env_ceiling_concrete_thickness = 5 * cm;
+        double env_ceiling_concrete_thickness = 10 * cm;
         double env_floor_iron_thickness = 2 * cm;
         // World
-        double world_lenx = 120 * m;
-        double world_leny = 100 * m;
-        double world_lenz = 100 * m;
+        double world_lenx = 300 * m;
+        double world_leny = 200 * m;
+        double world_lenz = 200 * m;
 
         // Veto layers
         // Those are treated differently.
@@ -248,7 +249,7 @@ namespace MuGeoBuilder
             }
         }
 
-        // Need to manually calculate the real copy number of each bar
+        // Calculate the real copy number of each bar
         for (int i = 0; i < mu40dims::layer_Nbars_x_real; i++)
         {
             for (int j = 0; j < mu40dims::layer_Nbars_y_real; j++)
@@ -267,11 +268,12 @@ namespace MuGeoBuilder
 
         // Add the aluminum case
         // For simplicity, just add a top and bottom plate instead of a hollow box
-        auto al_case = new G4Box("al_case", mu40dims::layer_lenx / 2, mu40dims::layer_leny / 2, mu40dims::layer_wallthick / 2);
+        auto al_case = new G4Box("al_case", mu40dims::bar_lenx / 2, mu40dims::bar_leny / 2, mu40dims::layer_wallthick / 2);
         auto al_caseLV = new G4LogicalVolume(
             al_case,            // its solid
             Material::Aluminum, // its material
             "al_case");         // its name
+        al_caseLV->SetVisAttributes(Vis::styles["CasingAttributes"]);
         auto al_case1PV = new G4PVPlacement(
             0, // no rotation
             G4ThreeVector(0,
@@ -294,9 +296,39 @@ namespace MuGeoBuilder
             false,                                                                    // no boolean operation
             1,                                                                        // copy number
             fCheckOverlaps);                                                          // checking overlaps
-
         (void)al_case1PV;
         (void)al_case2PV;
+
+        // Add horizontal steel beams
+        auto steel_len = mu40dims::layer_lenx - 2 * mu40dims::layer_hbeam_width;
+        auto hss_out = new G4Box("steel beam", steel_len / 2, mu40dims::layer_hbeam_width / 2, mu40dims::layer_hbeam_width / 2);
+        auto hss_in = new G4Box("steel beam", steel_len / 2, mu40dims::layer_hbeam_width / 2 - mu40dims::layer_hbeam_thick, mu40dims::layer_hbeam_width / 2 - mu40dims::layer_hbeam_thick);
+        auto hss_LV = new G4LogicalVolume(new G4SubtractionSolid("", hss_out, hss_in), // its solid
+                                          Material::Iron,                              // its material
+                                          "steel beam 8*8*1/2");                       // its name
+        hss_LV->SetVisAttributes(Vis::styles["IronAttributes"]);
+        // Create the rotation matrices for the 4 rotations (90 degrees apart)
+        G4RotationMatrix *rot1 = new G4RotationMatrix();
+        rot1->rotateZ(0 * CLHEP::deg); // No rotation for the first volume
+
+        G4RotationMatrix *rot2 = new G4RotationMatrix();
+        rot2->rotateZ(90 * CLHEP::deg); // 90 degrees for the second volume
+
+        G4RotationMatrix *rot3 = new G4RotationMatrix();
+        rot3->rotateZ(180 * CLHEP::deg); // 180 degrees for the third volume
+
+        G4RotationMatrix *rot4 = new G4RotationMatrix();
+        rot4->rotateZ(270 * CLHEP::deg); // 270 degrees for the fourth volume
+
+        // Position the replicas (placed around the mother volume)
+        auto steel_offset = steel_len * 0.5 + mu40dims::layer_hbeam_width * 0.5;
+        auto steel_offset_v = -mu40dims::layer_hbeam_width * 0.5 - mu40dims::bar_lenz * 0.5;
+
+        new G4PVPlacement(rot1, G4ThreeVector(0, steel_offset, steel_offset_v), hss_LV, "Edge1", layerLV, false, 0);
+        new G4PVPlacement(rot2, G4ThreeVector(steel_offset, 0, steel_offset_v), hss_LV, "Edge2", layerLV, false, 1);
+        new G4PVPlacement(rot3, G4ThreeVector(0, -steel_offset, steel_offset_v), hss_LV, "Edge3", layerLV, false, 2);
+        new G4PVPlacement(rot4, G4ThreeVector(-steel_offset, 0, steel_offset_v), hss_LV, "Edge4", layerLV, false, 3);
+
         return 0;
     }
 
@@ -315,13 +347,17 @@ namespace MuGeoBuilder
         {
             // Make a rotation matrix based on given directions
             std::vector<int> e1 = {0, 0, 0}, e2 = {0, 0, 0}, e3 = {0, 0, 0};
-            e1[mu40dims::module_layers_xdirection[i]] = 1;
             e3[mu40dims::module_layers_zdirection[i]] = 1;
-            e2[3 - mu40dims::module_layers_xdirection[i] - mu40dims::module_layers_zdirection[i]] = 1;
+            e1[mu40dims::module_layers_xdirection[i]] = 1;
+            if (((mu40dims::module_layers_zdirection[i]+1) % 3) + 1 == mu40dims::module_layers_xdirection[i])
+                e2[3 - mu40dims::module_layers_xdirection[i] - mu40dims::module_layers_zdirection[i]] = -1;
+            else
+                e2[3 - mu40dims::module_layers_xdirection[i] - mu40dims::module_layers_zdirection[i]] = 1;
 
             auto transform_rotate = G4RotationMatrix(G4ThreeVector(e1[0], e1[1], e1[2]),
                                                      G4ThreeVector(e2[0], e2[1], e2[2]),
                                                      G4ThreeVector(e3[0], e3[1], e3[2]));
+
             auto transform_shift = G4ThreeVector(mu40dims::module_layers_xoffset[i],
                                                  mu40dims::module_layers_yoffset[i],
                                                  -mu40dims::module_lenz / 2 + mu40dims::module_layers_zoffset[i]); // offset
@@ -342,7 +378,7 @@ namespace MuGeoBuilder
                 G4ThreeVector y_side_direction = transform_rotate * val.y_side_direction;
                 G4ThreeVector z_side_direction = transform_rotate * val.z_side_direction;
                 G4ThreeVector bar_center_coord = transform_rotate * val.bar_center_coord + transform_shift;
-                IDMaps_inTower.insert({key + i * 1e8, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
+                IDMaps_inTower.insert({key + i * 1e5, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
             }
         }
         return 0;
@@ -357,16 +393,17 @@ namespace MuGeoBuilder
             Material::Air, // its material
             "detector");   // its name
         this->detectorLV->SetVisAttributes(Vis::styles["Invisible"]);
-        auto detector_backwall = new G4Box("detector", mu40dims::detector_leny / 2, mu40dims::detector_lenz / 2, mu40dims::module_lenx / 2);
+        auto detector_backwall = new G4Box("detector", mu40dims::detector_lenz / 2, mu40dims::detector_leny / 2, mu40dims::module_lenx / 2);
         auto detector_backwallLV = new G4LogicalVolume(
-            detector,      // its solid
+            detector_backwall,      // its solid
             Material::Air, // its material
             "detector");   // its name
         detector_backwallLV->SetVisAttributes(Vis::styles["Invisible"]);
 
-
         // Place components in detector volume
         // Make a tower module
+
+        // Top tower modules
         auto moduleS = new G4Box("module", mu40dims::module_lenx / 2, mu40dims::module_leny / 2, mu40dims::module_lenz / 2);
         auto moduleLV = new G4LogicalVolume(
             moduleS,       // its solid
@@ -399,41 +436,37 @@ namespace MuGeoBuilder
                     G4ThreeVector bar_center_coord = val.bar_center_coord + G4ThreeVector(mu40dims::detector_modules_xoffset[i],
                                                                                           mu40dims::detector_modules_yoffset[j],
                                                                                           0);
-                    IDMaps_inDetector.insert({key + tower_copy_number * 1e8 * 1e3, BarPosition(val.y_side_direction, val.z_side_direction, bar_center_coord)});
+                    IDMaps_inDetector.insert({key + tower_copy_number * 1e5 * 1e3, BarPosition(val.y_side_direction, val.z_side_direction, bar_center_coord)});
                 }
             }
         }
-        // Backwall detectors
+        // Backwall tower modules
         // Define the rotation around the Y-axis (using the angle in radians)
         G4RotationMatrix rotation;
-        rotation.rotateY(90.0 * deg);           
+        rotation.rotateY(90.0 * deg);
         for (int i = 0; i < mu40dims::detector_Ntowers_y; i++)
-        {   
-            auto offset_temp = G4ThreeVector(0,mu40dims::detector_modules_yoffset[i],0);
+        {
+            auto offset_temp = G4ThreeVector(0, mu40dims::detector_modules_yoffset[i], 0);
             int tower_copy_number = i + mu40dims::detector_Ntowers_x * mu40dims::detector_Ntowers_y;
             auto modulePV = new G4PVPlacement(
-                G4Transform3D(rotation, // rotation
+                G4Transform3D(rotation,     // rotation
                               offset_temp), // offset
-                moduleLV,                                                                                 // its logical volume
-                "Tower module",                                                                           // its name
-                detector_backwallLV,                                                                         // its mother volume
-                false,                                                                                    // no boolean operation
-                tower_copy_number,                                                                        // copy number (tower number within the full detector)
-                fCheckOverlaps);                                                                          // checking overlaps
+                moduleLV,                   // its logical volume
+                "Tower module",             // its name
+                detector_backwallLV,        // its mother volume
+                false,                      // no boolean operation
+                tower_copy_number,          // copy number (tower number within the full detector)
+                fCheckOverlaps);            // checking overlaps
             (void)modulePV;
 
             // Add the modules to the detector position map
             for (auto const &[key, val] : IDMaps_inTower)
             {
                 G4ThreeVector bar_center_coord = val.bar_center_coord + offset_temp;
-                IDMaps_inDetector.insert({key + tower_copy_number * 1e8 * 1e3,
-                                          BarPosition(rotation * val.y_side_direction, rotation * val.z_side_direction, rotation*bar_center_coord)});
+                IDMaps_inDetectorBack.insert({key + tower_copy_number * 1e5 * 1e3,
+                                              BarPosition(rotation * val.y_side_direction, rotation * val.z_side_direction, rotation * bar_center_coord)});
             }
         }
-
-
-
-
 
         // Place detector in world
         int detector_copy_number = 0;
@@ -445,7 +478,7 @@ namespace MuGeoBuilder
         auto detectorPV = new G4PVPlacement(
             transform,
             this->detectorLV,     // its logical volume
-            "Main detector",              // its name
+            "Main detector",      // its name
             _worldLV,             // its mother volume
             false,                // no boolean operation
             detector_copy_number, // copy number (detector number within the world)
@@ -453,29 +486,73 @@ namespace MuGeoBuilder
         (void)detectorPV;
         // Place backwall detector in world
         auto offset_backwall = G4ThreeVector(mu40dims::detector_modules_xoffset.back() + mu40dims::module_lenx * 0.5 + mu40dims::module_lenz * 0.5,
-                                            0,
-                                            -mu40dims::module_lenx * 0.5 + mu40dims::detector_ground_offset.back());                                         
+                                             0,
+                                             -mu40dims::module_lenx * 0.5 + mu40dims::detector_ground_offset.back());
         auto transform_backwall = G4Transform3D(G4RotationMatrix(), // rotation
-                                       offset_backwall);            // offset        
+                                                offset_backwall);   // offset
         auto detector_backwallPV = new G4PVPlacement(
             transform_backwall,
-            detector_backwallLV,     // its logical volume
-            "Backwall",              // its name
+            detector_backwallLV,  // its logical volume
+            "Backwall",           // its name
             _worldLV,             // its mother volume
             false,                // no boolean operation
             detector_copy_number, // copy number (detector number within the world)
             fCheckOverlaps);      // checking overlaps
-        (void)detectorPV;     
+        (void)detector_backwallPV;
 
         // Add the detector to the detector position map
         for (auto const &[key, val] : IDMaps_inDetector)
         {
             G4ThreeVector bar_center_coord = val.bar_center_coord + offset;
-            IDMaps_inWorld.insert({key + detector_copy_number * 1e8 * 1e3 * 1e3, BarPosition(val.y_side_direction, val.z_side_direction, bar_center_coord)});
+            IDMaps_inWorld.insert({key + detector_copy_number * 1e5 * 1e3 * 1e3, BarPosition(val.y_side_direction, val.z_side_direction, bar_center_coord)});
+        }
+        for (auto const &[key, val] : IDMaps_inDetectorBack)
+        {
+            G4ThreeVector bar_center_coord = val.bar_center_coord + offset_backwall;
+            IDMaps_inWorld.insert({key + detector_copy_number * 1e5 * 1e3 * 1e3, BarPosition(val.y_side_direction, val.z_side_direction, bar_center_coord)});
         }
 
         // Veto layers
         ConstructVeto(_worldLV);
+
+        // Vertical HSS steel beams
+        auto steel_len = mu40dims::detector_decay_vol_height + mu40dims::module_lenz;
+        auto hss_out = new G4Box("steel beam", mu40dims::module_vbeam_width / 2, mu40dims::module_vbeam_width / 2, steel_len / 2);
+        auto hss_in = new G4Box("steel beam", mu40dims::module_vbeam_width / 2 - mu40dims::module_vbeam_thick, mu40dims::module_vbeam_width / 2 - mu40dims::module_vbeam_thick, steel_len / 2);
+        auto hss_LV = new G4LogicalVolume(new G4SubtractionSolid("steel beam", hss_out, hss_in), // its solid
+                                          Material::Iron,                                        // its material
+                                          "steel beam 14*14*0.625");                             // its name
+        hss_LV->SetVisAttributes(Vis::styles["IronAttributes"]);
+        auto z_pos_above_floor = mu40dims::bar_lenz + mu40dims::layer_wallthick * 2 + mu40dims::module_lgap  + mu40dims::layer_lenz;
+        for (int i = 0; i < mu40dims::detector_Ntowers_x; i++)
+        {
+            for (int j = 0; j < mu40dims::detector_Ntowers_y; j++)
+            {
+                // G4Transform3D(G4RotationMatrix(), // rotation
+                //               G4ThreeVector(mu40dims::detector_modules_xoffset[i],
+                //                             mu40dims::detector_modules_yoffset[j],
+                new G4PVPlacement(G4Transform3D(G4RotationMatrix(),
+                                                G4ThreeVector(mu40dims::detector_modules_xoffset[i] + (mu40dims::layer_lenx + mu40dims::module_vbeam_width) * 0.5,
+                                                              mu40dims::detector_modules_yoffset[j] + (mu40dims::layer_lenx + mu40dims::module_vbeam_width) * 0.5,
+                                                              steel_len * 0.5 + z_pos_above_floor)),
+                                  hss_LV, "Verticle Beam", _worldLV, false, 0);
+                new G4PVPlacement(G4Transform3D(G4RotationMatrix(),
+                                                G4ThreeVector(mu40dims::detector_modules_xoffset[i] + (mu40dims::layer_lenx + mu40dims::module_vbeam_width) * 0.5,
+                                                              mu40dims::detector_modules_yoffset[j] - (mu40dims::layer_lenx + mu40dims::module_vbeam_width) * 0.5,
+                                                              steel_len * 0.5 + z_pos_above_floor)),
+                                  hss_LV, "Verticle Beam", _worldLV, false, 1);
+                new G4PVPlacement(G4Transform3D(G4RotationMatrix(),
+                                                G4ThreeVector(mu40dims::detector_modules_xoffset[i] - (mu40dims::layer_lenx + mu40dims::module_vbeam_width) * 0.5,
+                                                              mu40dims::detector_modules_yoffset[j] + (mu40dims::layer_lenx + mu40dims::module_vbeam_width) * 0.5,
+                                                              steel_len * 0.5 + z_pos_above_floor)),
+                                  hss_LV, "Verticle Beam", _worldLV, false, 2);
+                new G4PVPlacement(G4Transform3D(G4RotationMatrix(),
+                                                G4ThreeVector(mu40dims::detector_modules_xoffset[i] - (mu40dims::layer_lenx + mu40dims::module_vbeam_width) * 0.5,
+                                                              mu40dims::detector_modules_yoffset[j] - (mu40dims::layer_lenx + mu40dims::module_vbeam_width) * 0.5,
+                                                              steel_len * 0.5 + z_pos_above_floor)),
+                                  hss_LV, "Verticle Beam", _worldLV, false, 3);
+            }
+        }
 
         return 0;
     }
@@ -581,7 +658,7 @@ namespace MuGeoBuilder
                 G4ThreeVector y_side_direction = G4ThreeVector(0, 1, 0);
                 G4ThreeVector z_side_direction = G4ThreeVector(0, 0, 1);
                 G4ThreeVector bar_center_coord = G4ThreeVector(barcenter_x_offset, barcenter_y_offset, barcenter_z_offset);
-                IDMaps_inLayer_veto.insert({bar_copy_number, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
+                IDMaps_inWorld.insert({bar_copy_number, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
             }
         }
         // Second layer
@@ -601,7 +678,7 @@ namespace MuGeoBuilder
                 G4ThreeVector y_side_direction = G4ThreeVector(1, 0, 0);
                 G4ThreeVector z_side_direction = G4ThreeVector(0, 0, 1);
                 G4ThreeVector bar_center_coord = G4ThreeVector(barcenter_x_offset, barcenter_y_offset, barcenter_z_offset);
-                IDMaps_inLayer_veto.insert({bar_copy_number, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
+                IDMaps_inWorld.insert({bar_copy_number, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
             }
         }
 
@@ -664,7 +741,7 @@ namespace MuGeoBuilder
         auto x_offset2 = -total_thickness * 0.5 - mu40dims::vf_panel_leny * 0.5;
         auto trans1 = G4ThreeVector(x_offset1, 0, mu40dims::vw_panel_lenz * 0.5);
         auto trans2 = G4ThreeVector(x_offset2, 0, mu40dims::vw_panel_lenz * 0.5);
-        auto trans3 = G4ThreeVector(24.8*m, 0, mu40dims::vw_panel_lenz * 0.5);
+        auto trans3 = G4ThreeVector(24.8 * m, 0, mu40dims::vw_panel_lenz * 0.5);
         auto layer_veto_wall1PV = new G4PVPlacement(
             G4Transform3D(transform_rotatey, // rotation
                           trans1),           // offset),
@@ -685,7 +762,6 @@ namespace MuGeoBuilder
             1,                               // copy number (detector number within the world)
             fCheckOverlaps);                 // checking overlaps
 
-
         // Calculated and save the bar positions
         nbars_y_half = ceil(0.5 * mu40dims::vw_panel_leny / mu40dims::bar_lenx_real);
         auto nbars_z_half = ceil(0.5 * mu40dims::vw_panel_lenz / mu40dims::bar_leny_real);
@@ -704,7 +780,7 @@ namespace MuGeoBuilder
                 G4ThreeVector y_side_direction = G4ThreeVector(0, 0, 1);
                 G4ThreeVector z_side_direction = G4ThreeVector(1, 0, 0);
                 G4ThreeVector bar_center_coord = G4ThreeVector(barcenter_x_offset, barcenter_y_offset, barcenter_z_offset);
-                IDMaps_inLayer_veto.insert({bar_copy_number, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
+                IDMaps_inWorld.insert({bar_copy_number, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
             }
         }
         // Second layer
@@ -724,7 +800,7 @@ namespace MuGeoBuilder
                 G4ThreeVector y_side_direction = G4ThreeVector(0, 1, 0);
                 G4ThreeVector z_side_direction = G4ThreeVector(1, 0, 0);
                 G4ThreeVector bar_center_coord = G4ThreeVector(barcenter_x_offset, barcenter_y_offset, barcenter_z_offset);
-                IDMaps_inLayer_veto.insert({bar_copy_number, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
+                IDMaps_inWorld.insert({bar_copy_number, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
             }
         }
 
