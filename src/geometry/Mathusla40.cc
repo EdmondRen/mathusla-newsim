@@ -51,7 +51,7 @@ namespace MuGeoBuilder
         double layer_hbeam_thick = 0.5 * 2.54 * cm;
         double layer_lenx = std::max({bar_lenx * layer_Nbars_x, bar_leny *layer_Nbars_y});
         double layer_leny = layer_lenx; //---Derived
-        double layer_lenz = layer_hbeam_width * 2 + bar_lenz + layer_wallthick*2;
+        double layer_lenz = layer_hbeam_width * 2 + bar_lenz + layer_wallthick * 2;
         // 2: tower module
         int module_Nlayers = 6;
         double module_lgap = 0.8 * m; // Gap between layers
@@ -99,10 +99,20 @@ namespace MuGeoBuilder
         // vf_: veto_floor
         double vf_panel_lenx = detector_Ntowers_x * module_lenx;
         double vf_panel_leny = detector_Ntowers_y * module_leny;
+        double vf_zoffset_1 = layer_lenz * 0.5;
+        double vf_zoffset_2 = layer_lenz * 0.5 + module_lgap;
+        int vf_Nbars_x_layer1 = ceil(0.5 * mu40dims::vf_panel_lenx / mu40dims::bar_leny_real) * 2;
+        int vf_Nbars_y_layer1 = ceil(0.5 * mu40dims::vf_panel_leny / mu40dims::bar_lenx_real) * 2;
+        int vf_Nbars_x_layer2 = ceil(0.5 * mu40dims::vf_panel_lenx / mu40dims::bar_lenx_real) * 2;
+        int vf_Nbars_y_layer2 = ceil(0.5 * mu40dims::vf_panel_leny / mu40dims::bar_leny_real) * 2;
 
         // vw_: veto_wall
         double vw_panel_lenz = detector_decay_vol_height + module_lgap + layer_lenz;
         double vw_panel_leny = vf_panel_leny;
+        int vw_Nbars_z_layer1 = ceil(0.5 * mu40dims::vw_panel_lenz / mu40dims::bar_leny_real) * 2;
+        int vw_Nbars_y_layer1 = ceil(0.5 * mu40dims::vw_panel_leny / mu40dims::bar_lenx_real) * 2;
+        int vw_Nbars_z_layer2 = ceil(0.5 * mu40dims::vw_panel_lenz / mu40dims::bar_lenx_real) * 2;
+        int vw_Nbars_y_layer2 = ceil(0.5 * mu40dims::vw_panel_leny / mu40dims::bar_leny_real) * 2;
 
     }
 
@@ -116,36 +126,48 @@ namespace MuGeoBuilder
         if (copy_numbers.size() == mu40dims::GEO_DEPTH)
         {
             // Now we need to manually calculate which bar it is in based on the local coordinate.
-            int nx = floor(local_coord.x() / mu40dims::bar_lenx_real) + mu40dims::layer_Nbars_x_real/2;
-            int ny = floor(local_coord.y() / mu40dims::bar_leny_real) + mu40dims::layer_Nbars_y_real/2;
+            int nx = floor(local_coord.x() / mu40dims::bar_lenx_real) + mu40dims::layer_Nbars_x_real / 2;
+            int ny = floor(local_coord.y() / mu40dims::bar_leny_real) + mu40dims::layer_Nbars_y_real / 2;
             det_id += ny + nx * mu40dims::layer_Nbars_y_real;
             for (size_t i = 1; i < copy_numbers.size(); i++)
             {
                 det_id += copy_numbers[i] * std::pow(10, 5 + (i - 1) * 3); // Depth 0 takes 5 digits, the rest takes 3 digits each.
             }
-            print("Local coord x,y,z", local_coord.x(), local_coord.y(), local_coord.z(), nx, ny);
-
+            // print("Local coord x,y,z", local_coord.x(), local_coord.y(), local_coord.z(), nx, ny);
         }
-
 
         // 1: veto layers, depth = 2
         else if (copy_numbers.size() == 2)
         {
             int layer_number = copy_numbers[1];
             int nx, ny, ny_total;
-            if (layer_number % 2 == 0)
+            if (layer_number == 0)
             {
-                nx = floor((local_coord.x()) / mu40dims::bar_lenx_real);
-                ny = floor((local_coord.y()) / mu40dims::bar_leny_real);
-                ny_total = mu40dims::vf_panel_leny / mu40dims::bar_leny_real;
+                nx = floor((local_coord.x()) / mu40dims::bar_leny_real) + mu40dims::vw_Nbars_z_layer1 / 2;
+                ny = floor((local_coord.y()) / mu40dims::bar_lenx_real) + mu40dims::vw_Nbars_y_layer1 / 2;
+                ny_total = mu40dims::vw_Nbars_y_layer1 / 2;
             }
-            else
+            else if (layer_number == 1)
             {
-                nx = floor((local_coord.x()) / mu40dims::bar_leny_real);
-                ny = floor((local_coord.y()) / mu40dims::bar_lenx_real);
-                ny_total = mu40dims::vf_panel_leny / mu40dims::bar_lenx_real;
+                nx = floor((local_coord.x()) / mu40dims::bar_lenx_real) + mu40dims::vw_Nbars_z_layer2 / 2;
+                ny = floor((local_coord.y()) / mu40dims::bar_leny_real) + mu40dims::vw_Nbars_y_layer2 / 2;
+                ny_total = mu40dims::vw_Nbars_y_layer2 / 2;
+            }
+            else if (layer_number == 2)
+            {
+                nx = floor((local_coord.x()) / mu40dims::bar_leny_real) + mu40dims::vf_Nbars_x_layer1 / 2;
+                ny = floor((local_coord.y()) / mu40dims::bar_lenx_real) + mu40dims::vf_Nbars_y_layer1 / 2;
+                ny_total = mu40dims::vf_Nbars_y_layer1 / 2;
+            }
+            else if (layer_number == 3)
+            {
+                nx = floor((local_coord.x()) / mu40dims::bar_lenx_real) + mu40dims::vf_Nbars_x_layer2 / 2;
+                ny = floor((local_coord.y()) / mu40dims::bar_leny_real) + mu40dims::vf_Nbars_y_layer2 / 2;
+                ny_total = mu40dims::vf_Nbars_y_layer2 / 2;
             }
             det_id += ny + nx * ny_total;
+            // print("layer,detid--nx,ny,ny_total",layer_number,det_id, "--", nx,ny,ny_total);
+            // print(local_coord.x(), local_coord.y(), mu40dims::bar_lenx_real, mu40dims::bar_leny_real, mu40dims::vw_Nbars_y_layer2, mu40dims::vw_Nbars_z_layer2);
             int veto_detector_number = 1;
             det_id += layer_number * 1e5 + veto_detector_number * 1e5 * 1e6;
         }
@@ -237,8 +259,8 @@ namespace MuGeoBuilder
             {
                 int bar_copy_number = j + i * mu40dims::layer_Nbars_y;
 
-                float barcenter_x_offset = mu40dims::bar_lenx * (i - mu40dims::layer_Nbars_x / 2. + 1.5);
-                float barcenter_y_offset = mu40dims::bar_leny * (j - mu40dims::layer_Nbars_y / 2. + 1.5);
+                float barcenter_x_offset = mu40dims::bar_lenx_real * (i - mu40dims::layer_Nbars_x / 2. + 1.5);
+                float barcenter_y_offset = mu40dims::bar_leny_real * (j - mu40dims::layer_Nbars_y / 2. + 1.5);
 
                 auto barPV = new G4PVPlacement(
                     0, // no rotation
@@ -257,15 +279,15 @@ namespace MuGeoBuilder
             }
         }
 
-        // Calculate the real copy number of each bar
+        // Calculate the copy number of each bar
         for (int i = 0; i < mu40dims::layer_Nbars_x_real; i++)
         {
             for (int j = 0; j < mu40dims::layer_Nbars_y_real; j++)
             {
                 int bar_copy_number = j + i * mu40dims::layer_Nbars_y_real;
 
-                float barcenter_x_offset = mu40dims::bar_lenx_real * (i - mu40dims::layer_Nbars_x_real/ 2. + 1.5);
-                float barcenter_y_offset = mu40dims::bar_leny_real * (j - mu40dims::layer_Nbars_y_real/ 2. + 1.5);
+                float barcenter_x_offset = mu40dims::bar_lenx_real * (i - mu40dims::layer_Nbars_x_real / 2. + 1.5);
+                float barcenter_y_offset = mu40dims::bar_leny_real * (j - mu40dims::layer_Nbars_y_real / 2. + 1.5);
                 // Add this bar to the detector position map
                 G4ThreeVector y_side_direction = G4ThreeVector(0, 1, 0);
                 G4ThreeVector z_side_direction = G4ThreeVector(0, 0, 1);
@@ -621,7 +643,6 @@ namespace MuGeoBuilder
             1,                                                                        // copy number
             fCheckOverlaps);                                                          // checking overlaps
 
-        //-------------------------------------------------
         // Steel beams
         // Vertical HSS steel beams
         auto steel_len = mu40dims::layer_lenx - 2 * mu40dims::layer_hbeam_width;
@@ -677,43 +698,39 @@ namespace MuGeoBuilder
         transform_rotate.rotateZ(90 * deg);
         // First layer
         // auto total_thickness = mu40dims::bar_lenz + mu40dims::layer_wallthick * 2;
-        auto vf_zoffset_1 = mu40dims::layer_lenz * 0.5;
-        auto vf_zoffset_2 = mu40dims::layer_lenz * 0.5 + mu40dims::module_lgap;
         auto layer_veto_floor1PV = new G4PVPlacement(
-            G4Transform3D(G4RotationMatrix(),                 // rotation
-                          G4ThreeVector(0, 0, vf_zoffset_1)), // offset),
-            layer_veto_floorLV,                               // its logical volume
-            "Veto Floor Layer 0",                             // its name
-            _worldLV,                                         // its mother volume
-            false,                                            // no boolean operation
-            2,                                                // copy number (detector number within the world)
-            fCheckOverlaps);                                  // checking overlaps
+            G4Transform3D(G4RotationMatrix(),                           // rotation
+                          G4ThreeVector(0, 0, mu40dims::vf_zoffset_1)), // offset),
+            layer_veto_floorLV,                                         // its logical volume
+            "Veto Floor Layer 0",                                       // its name
+            _worldLV,                                                   // its mother volume
+            false,                                                      // no boolean operation
+            2,                                                          // copy number (detector number within the world)
+            fCheckOverlaps);                                            // checking overlaps
         // Second layer
         auto layer_veto_floor2PV = new G4PVPlacement(
-            G4Transform3D(G4RotationMatrix(),                 // rotation
-                          G4ThreeVector(0, 0, vf_zoffset_2)), // offset),
-            layer_veto_floorLV,                               // its logical volume
-            "Veto Floor Layer 1",                             // its name
-            _worldLV,                                         // its mother volume
-            false,                                            // no boolean operation
-            3,                                                // copy number (detector number within the world)
-            fCheckOverlaps);                                  // checking overlaps
+            G4Transform3D(G4RotationMatrix(),                           // rotation
+                          G4ThreeVector(0, 0, mu40dims::vf_zoffset_2)), // offset),
+            layer_veto_floorLV,                                         // its logical volume
+            "Veto Floor Layer 1",                                       // its name
+            _worldLV,                                                   // its mother volume
+            false,                                                      // no boolean operation
+            3,                                                          // copy number (detector number within the world)
+            fCheckOverlaps);                                            // checking overlaps
 
         // Calculated and save the bar positions
         int det_number = 1; // 1 for veto detector
         // First layer
         int layer_number = 2;
-        auto nbars_x_half = ceil(0.5 * mu40dims::vf_panel_lenx / mu40dims::bar_lenx_real);
-        auto nbars_y_half = ceil(0.5 * mu40dims::vf_panel_leny / mu40dims::bar_leny_real);
-        for (int i = -nbars_x_half; i < nbars_x_half; i++)
+        for (int i = 0 / 2; i < mu40dims::vf_Nbars_x_layer1; i++)
         {
-            for (int j = -nbars_y_half; j < nbars_y_half; j++)
+            for (int j = 0 / 2; j < mu40dims::vf_Nbars_y_layer1; j++)
             {
-                unsigned long long bar_copy_number = (j + i * (nbars_y_half * 2)) + layer_number * 1e5 + det_number * 1e5 * 1e6;
+                unsigned long long bar_copy_number = (j + i * mu40dims::vf_Nbars_y_layer1) + layer_number * 1e5 + det_number * 1e5 * 1e6;
 
-                float barcenter_x_offset = mu40dims::bar_lenx_real * (i + 0.5);
-                float barcenter_y_offset = mu40dims::bar_leny_real * (j + 0.5);
-                float barcenter_z_offset = vf_zoffset_1;
+                float barcenter_x_offset = mu40dims::bar_leny_real * (i - mu40dims::vf_Nbars_x_layer1 / 2 + 0.5);
+                float barcenter_y_offset = mu40dims::bar_lenx_real * (j - mu40dims::vf_Nbars_y_layer1 / 2 + 0.5);
+                float barcenter_z_offset = mu40dims::vf_zoffset_1;
                 // Add this bar to the detector position map
                 G4ThreeVector y_side_direction = G4ThreeVector(0, 1, 0);
                 G4ThreeVector z_side_direction = G4ThreeVector(0, 0, 1);
@@ -723,17 +740,15 @@ namespace MuGeoBuilder
         }
         // Second layer
         layer_number = 3;
-        nbars_x_half = ceil(0.5 * mu40dims::vf_panel_lenx / mu40dims::bar_leny_real);
-        nbars_y_half = ceil(0.5 * mu40dims::vf_panel_leny / mu40dims::bar_lenx_real);
-        for (int i = -nbars_x_half; i < nbars_x_half; i++)
+        for (int i = 0 / 2; i < mu40dims::vf_Nbars_x_layer2; i++)
         {
-            for (int j = -nbars_y_half; j < nbars_y_half; j++)
+            for (int j = 0 / 2; j < mu40dims::vf_Nbars_y_layer2; j++)
             {
-                unsigned long long bar_copy_number = (j + i * (nbars_y_half * 2)) + layer_number * 1e5 + det_number * 1e5 * 1e6;
+                unsigned long long bar_copy_number = (j + i * mu40dims::vf_Nbars_y_layer2) + layer_number * 1e5 + det_number * 1e5 * 1e6;
 
-                float barcenter_x_offset = mu40dims::bar_leny_real * (j + 0.5);
-                float barcenter_y_offset = mu40dims::bar_lenx_real * (i + 0.5);
-                float barcenter_z_offset = vf_zoffset_1;
+                float barcenter_x_offset = mu40dims::bar_lenx_real * (j - mu40dims::vf_Nbars_y_layer2 / 2 + 0.5);
+                float barcenter_y_offset = mu40dims::bar_leny_real * (i - mu40dims::vf_Nbars_x_layer2 / 2 + 0.5);
+                float barcenter_z_offset = mu40dims::vf_zoffset_2;
                 // Add this bar to the detector position map
                 G4ThreeVector y_side_direction = G4ThreeVector(1, 0, 0);
                 G4ThreeVector z_side_direction = G4ThreeVector(0, 0, 1);
@@ -823,19 +838,17 @@ namespace MuGeoBuilder
             fCheckOverlaps);                 // checking overlaps
 
         // Calculated and save the bar positions
-        nbars_y_half = ceil(0.5 * mu40dims::vw_panel_leny / mu40dims::bar_lenx_real);
-        auto nbars_z_half = ceil(0.5 * mu40dims::vw_panel_lenz / mu40dims::bar_leny_real);
         // First layer
         layer_number = 0;
-        for (int i = -nbars_y_half; i < nbars_y_half; i++)
+        for (int i = 0; i < mu40dims::vw_Nbars_z_layer1; i++)
         {
-            for (int j = -nbars_z_half; j < nbars_z_half; j++)
+            for (int j = 0; j < mu40dims::vw_Nbars_y_layer1; j++)
             {
-                unsigned long long bar_copy_number = (j + i * (nbars_z_half * 2)) + layer_number * 1e5 + det_number * 1e5 * 1e6;
+                unsigned long long bar_copy_number = (j + i * mu40dims::vw_Nbars_y_layer1) + layer_number * 1e5 + det_number * 1e5 * 1e6;
 
                 float barcenter_x_offset = x_offset1;
-                float barcenter_y_offset = mu40dims::bar_lenx_real * (i + 0.5);
-                float barcenter_z_offset = mu40dims::bar_leny_real * (j + 0.5);
+                float barcenter_y_offset = mu40dims::bar_lenx_real * (i - mu40dims::vw_Nbars_z_layer1 / 2 + 0.5);
+                float barcenter_z_offset = mu40dims::bar_leny_real * (j - mu40dims::vw_Nbars_y_layer1 / 2 + 0.5);
                 // Add this bar to the detector position map
                 G4ThreeVector y_side_direction = G4ThreeVector(0, 0, 1);
                 G4ThreeVector z_side_direction = G4ThreeVector(1, 0, 0);
@@ -844,18 +857,16 @@ namespace MuGeoBuilder
             }
         }
         // Second layer
-        nbars_y_half = ceil(0.5 * mu40dims::vw_panel_leny / mu40dims::bar_leny_real);
-        nbars_z_half = ceil(0.5 * mu40dims::vw_panel_lenz / mu40dims::bar_lenx_real);
         layer_number = 1;
-        for (int i = -nbars_y_half; i < nbars_y_half; i++)
+        for (int i = 0; i < mu40dims::vw_Nbars_z_layer2; i++)
         {
-            for (int j = -nbars_z_half; j < nbars_z_half; j++)
+            for (int j = 0; j < mu40dims::vw_Nbars_y_layer2; j++)
             {
-                unsigned long long bar_copy_number = (j + i * (nbars_z_half * 2)) + layer_number * 1e5 + det_number * 1e5 * 1e6;
+                unsigned long long bar_copy_number = (j + i * mu40dims::vw_Nbars_y_layer2) + layer_number * 1e5 + det_number * 1e5 * 1e6;
 
-                float barcenter_x_offset = x_offset1;
-                float barcenter_y_offset = mu40dims::bar_leny_real * (j + 0.5);
-                float barcenter_z_offset = mu40dims::bar_lenx_real * (i + 0.5);
+                float barcenter_x_offset = x_offset2;
+                float barcenter_y_offset = mu40dims::bar_leny_real * (j - mu40dims::vw_Nbars_y_layer2 / 2 + 0.5);
+                float barcenter_z_offset = mu40dims::bar_lenx_real * (i - mu40dims::vw_Nbars_z_layer2 / 2 + 0.5);
                 // Add this bar to the detector position map
                 G4ThreeVector y_side_direction = G4ThreeVector(0, 1, 0);
                 G4ThreeVector z_side_direction = G4ThreeVector(1, 0, 0);
@@ -900,7 +911,7 @@ namespace MuGeoBuilder
         G4LogicalVolume *earthLV = new G4LogicalVolume(
             earth_excavated,     // its solid
             Material::GroundMix, // its material
-            "earth_top");            // its name
+            "earth_top");        // its name
         earthLV->SetVisAttributes(Vis::styles["TransparentBrown"]);
 
         // Place earth in world
@@ -909,7 +920,7 @@ namespace MuGeoBuilder
                           G4ThreeVector(0, 0,
                                         -0.5 * mu40dims::env_earth_depth_top)), // offset
             earthLV,                                                            // its logical volume
-            "earth_top",                                                            // its name
+            "earth_top",                                                        // its name
             _worldLV,                                                           // its mother volume
             false,                                                              // no boolean operation
             0,                                                                  // copy number (layer number within a module)
@@ -930,7 +941,7 @@ namespace MuGeoBuilder
         G4LogicalVolume *earthLV_mid = new G4LogicalVolume(
             earth_excavated_mid, // its solid
             Material::GroundMix, // its material
-            "earth_mid");            // its name
+            "earth_mid");        // its name
         earthLV_mid->SetVisAttributes(Vis::styles["TransparentBrown"]);
 
         // Place earth in world
@@ -939,7 +950,7 @@ namespace MuGeoBuilder
                           G4ThreeVector(0, 0,
                                         -mu40dims::env_earth_depth_top - 0.5 * mu40dims::env_earth_depth_mid)), // offset
             earthLV_mid,                                                                                        // its logical volume
-            "earth_mid",                                                                                            // its name
+            "earth_mid",                                                                                        // its name
             _worldLV,                                                                                           // its mother volume
             false,                                                                                              // no boolean operation
             0,                                                                                                  // copy number (layer number within a module)
