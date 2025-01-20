@@ -51,7 +51,7 @@ namespace MuGeoBuilder
         double layer_hbeam_thick = 0.5 * 2.54 * cm;
         double layer_lenx = std::max({bar_lenx * layer_Nbars_x, bar_leny *layer_Nbars_y});
         double layer_leny = layer_lenx;
-        double layer_lenz = layer_hbeam_width * 2 + bar_lenz + layer_wallthick * 2;
+        double layer_lenz = layer_hbeam_width * 2 + bar_lenz + layer_wallthick * 2 + 1 * mm;
         // 2: tower module
         int module_Nlayers = 6;
         double module_lgap = 0.8 * m; // Gap between layers
@@ -92,7 +92,7 @@ namespace MuGeoBuilder
         // World
         double world_lenx = 300 * m;
         double world_leny = 200 * m;
-        double world_lenz = 200 * m;
+        double world_lenz = 210 * m;
 
         // Veto layers
         // Those are treated differently.
@@ -121,7 +121,6 @@ namespace MuGeoBuilder
     {
         // long long int det_id = copy_numbers[0];
         long long int det_id = 0;
-        print("copy number ", copy_numbers);
 
         // 0: tracking layers, with depth = 4
         if (copy_numbers.size() == mu40dims::GEO_DEPTH)
@@ -241,10 +240,10 @@ namespace MuGeoBuilder
         this->fdetector = detector;
 
         // Assign each physical volume the sensitive detector
-        for (auto &bar : allSensitiveDetectors)
-        {
-            bar->GetLogicalVolume()->SetSensitiveDetector(detector);
-        }
+        // for (auto &bar : allSensitiveDetectors)
+        // {
+        //     bar->GetLogicalVolume()->SetSensitiveDetector(detector);
+        // }
 
         for (auto &bar : allSensitiveDetectorsLV)
         {
@@ -261,7 +260,7 @@ namespace MuGeoBuilder
             "bar");                        // its name
         barLV->SetVisAttributes(Vis::styles["SensitiveAttributes1"]);
         // Add this bar to the list of sensitive detectors
-        // allSensitiveDetectorsLV.push_back(barLV);
+        allSensitiveDetectorsLV.push_back(barLV);
 
         // Fill the bars in the layer volume
         for (int i = 0; i < mu40dims::layer_Nbars_x; i++)
@@ -284,8 +283,7 @@ namespace MuGeoBuilder
                     false,            // no boolean operation
                     bar_copy_number,  // copy number (bar number within a layer)
                     fCheckOverlaps);  // checking overlaps
-                // (void)barPV;
-                allSensitiveDetectors.push_back(barPV);
+                (void)barPV;
             }
         }
 
@@ -318,24 +316,24 @@ namespace MuGeoBuilder
             0, // no rotation
             G4ThreeVector(0,
                           0,
-                          mu40dims::bar_lenz / 2 + mu40dims::layer_wallthick / 2), // offset it by corresponding bar width and length
-            al_caseLV,                                                             // its logical volume
-            "al_case",                                                             // its name
-            layerLV,                                                               // its mother  volume
-            false,                                                                 // no boolean operation
-            0,                                                                     // copy number
-            fCheckOverlaps);                                                       // checking overlaps
+                          mu40dims::bar_lenz / 2 + mu40dims::layer_wallthick / 2 + 0.1 * mm), // offset it by corresponding bar width and length
+            al_caseLV,                                                                        // its logical volume
+            "al_case",                                                                        // its name
+            layerLV,                                                                          // its mother  volume
+            false,                                                                            // no boolean operation
+            2,                                                                                // copy number
+            fCheckOverlaps);                                                                  // checking overlaps
         auto al_case2PV = new G4PVPlacement(
             0, // no rotation
             G4ThreeVector(0,
                           0,
-                          -(mu40dims::bar_lenz / 2 + mu40dims::layer_wallthick / 2)), // offset it by corresponding bar width and length
-            al_caseLV,                                                                // its logical volume
-            "al_case",                                                                // its name
-            layerLV,                                                                  // its mother  volume
-            false,                                                                    // no boolean operation
-            1,                                                                        // copy number
-            fCheckOverlaps);                                                          // checking overlaps
+                          -(mu40dims::bar_lenz / 2 + mu40dims::layer_wallthick / 2 + 0.1 * mm)), // offset it by corresponding bar width and length
+            al_caseLV,                                                                           // its logical volume
+            "al_case",                                                                           // its name
+            layerLV,                                                                             // its mother  volume
+            false,                                                                               // no boolean operation
+            1,                                                                                   // copy number
+            fCheckOverlaps);                                                                     // checking overlaps
         (void)al_case1PV;
         (void)al_case2PV;
 
@@ -948,7 +946,7 @@ namespace MuGeoBuilder
                                    G4Transform3D(G4RotationMatrix(), // rotation
                                                  G4ThreeVector(mu40dims::detector_ground_offset[0],
                                                                mu40dims::detector_ground_offset[1],
-                                                               mu40dims::env_earth_depth_top + 0.5 * mu40dims::env_earth_depth_mid + 0.5 * mu40dims::detector_lenz + mu40dims::detector_ground_offset[2])));
+                                                               ( mu40dims::env_earth_depth_top + 0.5 * mu40dims::env_earth_depth_mid + 0.5 * mu40dims::detector_lenz + mu40dims::detector_ground_offset[2]))));
         G4LogicalVolume *earthLV_mid = new G4LogicalVolume(
             earth_excavated_mid, // its solid
             Material::GroundMix, // its material
@@ -959,7 +957,7 @@ namespace MuGeoBuilder
         auto earthPV_mid = new G4PVPlacement(
             G4Transform3D(G4RotationMatrix(), // rotation
                           G4ThreeVector(0, 0,
-                                        -mu40dims::env_earth_depth_top - 0.5 * mu40dims::env_earth_depth_mid)), // offset
+                                        - (mu40dims::env_earth_depth_top + mu40dims::env_earth_depth_mid * 0.5))), // offset
             earthLV_mid,                                                                                        // its logical volume
             "earth_mid",                                                                                        // its name
             _worldLV,                                                                                           // its mother volume

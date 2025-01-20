@@ -9,6 +9,8 @@
 // Geant4
 #include "G4LogicalVolumeStore.hh"
 #include "G4SolidStore.hh"
+#include "G4SystemOfUnits.hh"
+#include "G4PhysicalConstants.hh"
 
 // ROOT
 #include <TROOT.h>
@@ -32,7 +34,7 @@ struct DigiConfig
 {
 
     // Speed of light in the fiber
-    float c = 29.979 / 1.89;
+    float c = CLHEP::c_light / 1.89;
 
     // Coincident timing resolution.
     // == 1/sqrt(2) times single channel resolution

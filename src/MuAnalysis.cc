@@ -26,7 +26,7 @@ namespace Analysis
     uHit::uHit(G4Step *step, G4TouchableHistory *) : G4VHit()
     {
         const auto track = step->GetTrack();
-        const auto step_point = step->GetPostStepPoint();
+        const auto step_point = step->GetPreStepPoint();
 
         this->_particle = track->GetParticleDefinition();
         this->_trackID = track->GetTrackID();
@@ -50,7 +50,8 @@ namespace Analysis
         // Get the transformation matrix from the world to the local coordinate system of the bottom-level touchable
         // and perform the coordinate transform
         this->_local_coord = touchable->GetHistory()->GetTopTransform().TransformPoint(worldPos);
-        print("Hit In volume", touchable->GetVolume()->GetName());
+        // print("Hit In volume", touchable->GetVolume()->GetName());
+        // print("   Hit mother volume", touchable->GetVolume()->GetMotherLogical()->GetName());
     }
 
     //  ---------------------------------------------------------------------------
