@@ -15,7 +15,7 @@
 
 # Initialize run
 /run/initialize
-/run/printProgress 100
+/run/printProgress 1
 # /run/numberOfThreads 1
 
 
@@ -42,5 +42,5 @@
 /gen/parma/update
 
 
-/run/beamOn 2000
+/run/beamOn 15
 #/run/dumpCouples

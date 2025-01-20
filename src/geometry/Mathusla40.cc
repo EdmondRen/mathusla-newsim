@@ -50,7 +50,7 @@ namespace MuGeoBuilder
         double layer_hbeam_width = 8 * 2.54 * cm; // Horizontal HSS 8*8*1/2
         double layer_hbeam_thick = 0.5 * 2.54 * cm;
         double layer_lenx = std::max({bar_lenx * layer_Nbars_x, bar_leny *layer_Nbars_y});
-        double layer_leny = layer_lenx; //---Derived
+        double layer_leny = layer_lenx;
         double layer_lenz = layer_hbeam_width * 2 + bar_lenz + layer_wallthick * 2;
         // 2: tower module
         int module_Nlayers = 6;
@@ -121,6 +121,7 @@ namespace MuGeoBuilder
     {
         // long long int det_id = copy_numbers[0];
         long long int det_id = 0;
+        print("copy number ", copy_numbers);
 
         // 0: tracking layers, with depth = 4
         if (copy_numbers.size() == mu40dims::GEO_DEPTH)
@@ -128,12 +129,17 @@ namespace MuGeoBuilder
             // Now we need to manually calculate which bar it is in based on the local coordinate.
             int nx = floor(local_coord.x() / mu40dims::bar_lenx_real) + mu40dims::layer_Nbars_x_real / 2;
             int ny = floor(local_coord.y() / mu40dims::bar_leny_real) + mu40dims::layer_Nbars_y_real / 2;
+            if (nx == mu40dims::layer_Nbars_x_real)
+                nx = mu40dims::layer_Nbars_x_real - 1;
+            if (ny == mu40dims::layer_Nbars_y_real)
+                ny = mu40dims::layer_Nbars_y_real - 1;
+
             det_id += ny + nx * mu40dims::layer_Nbars_y_real;
             for (size_t i = 1; i < copy_numbers.size(); i++)
             {
                 det_id += copy_numbers[i] * std::pow(10, 5 + (i - 1) * 3); // Depth 0 takes 5 digits, the rest takes 3 digits each.
             }
-            // print("Local coord x,y,z", local_coord.x(), local_coord.y(), local_coord.z(), nx, ny);
+            // print("Local coord x,y,z", local_coord.x(), local_coord.y(), local_coord.z(), nx, ny, det_id);
         }
 
         // 1: veto layers, depth = 2
@@ -168,8 +174,7 @@ namespace MuGeoBuilder
             det_id += ny + nx * ny_total;
             int veto_detector_number = 1;
             det_id += layer_number * 1e5 + veto_detector_number * 1e5 * 1e6;
-
-       }
+        }
 
         return det_id;
     }
@@ -182,7 +187,7 @@ namespace MuGeoBuilder
         // print(key, val.y_side_direction);
         // }
         // print("Now asking for ID", detector_id);
-        
+
         return this->IDMaps_inWorld.at(detector_id);
     }
 
@@ -240,6 +245,11 @@ namespace MuGeoBuilder
         {
             bar->GetLogicalVolume()->SetSensitiveDetector(detector);
         }
+
+        for (auto &bar : allSensitiveDetectorsLV)
+        {
+            bar->SetSensitiveDetector(detector);
+        }
     }
 
     G4LogicalVolume *Mathusla40_Builder::ConstructLayer(G4LogicalVolume *layerLV)
@@ -250,6 +260,8 @@ namespace MuGeoBuilder
             Material::PlasticScintillator, // its material
             "bar");                        // its name
         barLV->SetVisAttributes(Vis::styles["SensitiveAttributes1"]);
+        // Add this bar to the list of sensitive detectors
+        // allSensitiveDetectorsLV.push_back(barLV);
 
         // Fill the bars in the layer volume
         for (int i = 0; i < mu40dims::layer_Nbars_x; i++)
@@ -258,8 +270,8 @@ namespace MuGeoBuilder
             {
                 int bar_copy_number = j + i * mu40dims::layer_Nbars_y;
 
-                float barcenter_x_offset = mu40dims::bar_lenx_real * (i - mu40dims::layer_Nbars_x / 2. + 1.5);
-                float barcenter_y_offset = mu40dims::bar_leny_real * (j - mu40dims::layer_Nbars_y / 2. + 1.5);
+                float barcenter_x_offset = 0; // mu40dims::bar_lenx * (i - mu40dims::layer_Nbars_x / 2. + 1.5);
+                float barcenter_y_offset = 0; // mu40dims::bar_leny * (j - mu40dims::layer_Nbars_y / 2. + 1.5);
 
                 auto barPV = new G4PVPlacement(
                     0, // no rotation
@@ -272,8 +284,7 @@ namespace MuGeoBuilder
                     false,            // no boolean operation
                     bar_copy_number,  // copy number (bar number within a layer)
                     fCheckOverlaps);  // checking overlaps
-
-                // Add this bar to the list of sensitive detectors
+                // (void)barPV;
                 allSensitiveDetectors.push_back(barPV);
             }
         }
@@ -285,8 +296,8 @@ namespace MuGeoBuilder
             {
                 int bar_copy_number = j + i * mu40dims::layer_Nbars_y_real;
 
-                float barcenter_x_offset = mu40dims::bar_lenx_real * (i - mu40dims::layer_Nbars_x_real / 2. + 1.5);
-                float barcenter_y_offset = mu40dims::bar_leny_real * (j - mu40dims::layer_Nbars_y_real / 2. + 1.5);
+                float barcenter_x_offset = mu40dims::bar_lenx_real * (i - mu40dims::layer_Nbars_x_real / 2. + 0.5);
+                float barcenter_y_offset = mu40dims::bar_leny_real * (j - mu40dims::layer_Nbars_y_real / 2. + 0.5);
                 // Add this bar to the detector position map
                 G4ThreeVector y_side_direction = G4ThreeVector(0, 1, 0);
                 G4ThreeVector z_side_direction = G4ThreeVector(0, 0, 1);
@@ -332,9 +343,9 @@ namespace MuGeoBuilder
         auto steel_len = mu40dims::layer_lenx - 2 * mu40dims::layer_hbeam_width;
         auto hss_out = new G4Box("steel beam", steel_len / 2, mu40dims::layer_hbeam_width / 2, mu40dims::layer_hbeam_width / 2);
         auto hss_in = new G4Box("steel beam", steel_len / 2, mu40dims::layer_hbeam_width / 2 - mu40dims::layer_hbeam_thick, mu40dims::layer_hbeam_width / 2 - mu40dims::layer_hbeam_thick);
-        auto hss_LV = new G4LogicalVolume(new G4SubtractionSolid("", hss_out, hss_in), // its solid
-                                          Material::Iron,                              // its material
-                                          "steel beam 8*8*1/2");                       // its name
+        auto hss_LV = new G4LogicalVolume(new G4SubtractionSolid("steel", hss_out, hss_in), // its solid
+                                          Material::Iron,                                   // its material
+                                          "steel beam 8*8*1/2");                            // its name
         hss_LV->SetVisAttributes(Vis::styles["IronAttributes"]);
         // Create the rotation matrices for the 4 rotations (90 degrees apart)
         G4RotationMatrix *rot1 = new G4RotationMatrix();
@@ -351,7 +362,7 @@ namespace MuGeoBuilder
 
         // Position the replicas (placed around the mother volume)
         auto steel_offset = steel_len * 0.5 + mu40dims::layer_hbeam_width * 0.5;
-        auto steel_offset_v = -mu40dims::layer_hbeam_width * 0.5 - mu40dims::bar_lenz * 0.5;
+        auto steel_offset_v = -mu40dims::layer_hbeam_width * 0.5 - mu40dims::bar_lenz * 0.5 - 1 * cm;
 
         new G4PVPlacement(rot1, G4ThreeVector(0, steel_offset, steel_offset_v), hss_LV, "Edge1", layerLV, false, 0);
         new G4PVPlacement(rot2, G4ThreeVector(steel_offset, 0, steel_offset_v), hss_LV, "Edge2", layerLV, false, 1);
@@ -663,7 +674,7 @@ namespace MuGeoBuilder
 
         // Position the replicas in layer (placed around the mother volume)
         auto steel_offset = steel_len * 0.5 + mu40dims::layer_hbeam_width * 0.5;
-        double steel_zoffset = -0.5 * mu40dims::layer_hbeam_width - 0.5 * mu40dims::bar_lenz;
+        double steel_zoffset = -0.5 * mu40dims::layer_hbeam_width - 0.5 * mu40dims::bar_lenz - 1 * cm;
 
         for (int i = 0; i < mu40dims::detector_Ntowers_x; i++)
         {
@@ -721,9 +732,9 @@ namespace MuGeoBuilder
         int det_number = 1; // 1 for veto detector
         // First layer
         int layer_number = 2;
-        for (int i = 0 ; i < mu40dims::vf_Nbars_x_layer1; i++)
+        for (int i = 0; i < mu40dims::vf_Nbars_x_layer1; i++)
         {
-            for (int j = 0 ; j < mu40dims::vf_Nbars_y_layer1; j++)
+            for (int j = 0; j < mu40dims::vf_Nbars_y_layer1; j++)
             {
                 unsigned long long bar_copy_number = (j + i * mu40dims::vf_Nbars_y_layer1) + layer_number * 1e5 + det_number * 1e5 * 1e6;
 
@@ -739,9 +750,9 @@ namespace MuGeoBuilder
         }
         // Second layer
         layer_number = 3;
-        for (int i = 0 ; i < mu40dims::vf_Nbars_x_layer2; i++)
+        for (int i = 0; i < mu40dims::vf_Nbars_x_layer2; i++)
         {
-            for (int j = 0 ; j < mu40dims::vf_Nbars_y_layer2; j++)
+            for (int j = 0; j < mu40dims::vf_Nbars_y_layer2; j++)
             {
                 unsigned long long bar_copy_number = (j + i * mu40dims::vf_Nbars_y_layer2) + layer_number * 1e5 + det_number * 1e5 * 1e6;
 
@@ -818,23 +829,23 @@ namespace MuGeoBuilder
         auto trans3 = G4ThreeVector(24.8 * m, 0, mu40dims::vw_panel_lenz * 0.5);
         auto layer_veto_wall1PV = new G4PVPlacement(
             G4Transform3D(transform_rotation, // rotation
-                          trans1),           // offset),
-            layer_veto_wallLV,               // its logical volume
-            "Veto Wall Layer 0",             // its name
-            _worldLV,                        // its mother volume
-            false,                           // no boolean operation
-            0,                               // copy number (detector number within the world)
-            fCheckOverlaps);                 // checking overlaps
+                          trans1),            // offset),
+            layer_veto_wallLV,                // its logical volume
+            "Veto Wall Layer 0",              // its name
+            _worldLV,                         // its mother volume
+            false,                            // no boolean operation
+            0,                                // copy number (detector number within the world)
+            fCheckOverlaps);                  // checking overlaps
         // Second layer
         auto layer_veto_wall2PV = new G4PVPlacement(
             G4Transform3D(transform_rotation, // rotation
-                          trans2),           // offset),
-            layer_veto_wallLV,               // its logical volume
-            "Veto Wall Layer 1",             // its name
-            _worldLV,                        // its mother volume
-            false,                           // no boolean operation
-            1,                               // copy number (detector number within the world)
-            fCheckOverlaps);                 // checking overlaps
+                          trans2),            // offset),
+            layer_veto_wallLV,                // its logical volume
+            "Veto Wall Layer 1",              // its name
+            _worldLV,                         // its mother volume
+            false,                            // no boolean operation
+            1,                                // copy number (detector number within the world)
+            fCheckOverlaps);                  // checking overlaps
 
         // Calculated and save the bar positions
         // First layer
@@ -847,14 +858,13 @@ namespace MuGeoBuilder
 
                 float barcenter_x_offset = x_offset1;
                 float barcenter_y_offset = mu40dims::bar_lenx_real * (j - mu40dims::vw_Nbars_y_layer1 / 2 + 0.5);
-                float barcenter_z_offset = mu40dims::bar_leny_real * (i - mu40dims::vw_Nbars_z_layer1 / 2 + 0.5) +  mu40dims::vw_panel_lenz * 0.5;
+                float barcenter_z_offset = mu40dims::bar_leny_real * (i - mu40dims::vw_Nbars_z_layer1 / 2 + 0.5) + mu40dims::vw_panel_lenz * 0.5;
                 // Add this bar to the detector position map
                 G4ThreeVector y_side_direction = G4ThreeVector(0, 0, 1);
                 G4ThreeVector z_side_direction = G4ThreeVector(1, 0, 0);
                 G4ThreeVector bar_center_coord = G4ThreeVector(barcenter_x_offset, barcenter_y_offset, barcenter_z_offset);
                 IDMaps_inWorld.insert({bar_copy_number, BarPosition(y_side_direction, z_side_direction, bar_center_coord)});
                 // print(bar_copy_number, i,j, barcenter_y_offset, barcenter_z_offset);
-
             }
         }
         // Second layer
@@ -876,8 +886,8 @@ namespace MuGeoBuilder
             }
         }
 
-        allSensitiveDetectors.push_back(bar_veto_floor1PV);
-        allSensitiveDetectors.push_back(bar_veto_wall1PV);
+        allSensitiveDetectorsLV.push_back(bar_veto_floorLV);
+        allSensitiveDetectorsLV.push_back(bar_veto_wallLV);
 
         // Supress warnings of unused variables
         (void)bar_veto_floor1PV;

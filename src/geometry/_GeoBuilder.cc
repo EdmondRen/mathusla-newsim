@@ -143,6 +143,14 @@ namespace MuGeoBuilder
         Material::Marl->AddMaterial(Material::CaCO3, 65 * perCent);
         Material::GroundMix->AddMaterial(Material::Marl, 50 * perCent);
         Material::GroundMix->AddMaterial(Material::SiO2, 50 * perCent);
+
+        constexpr int_fast32_t nSci = 1;
+        double eSci[nSci] = { 3.10*eV };
+        double rSci[nSci] = { 1.58    };
+        auto sciProp = new G4MaterialPropertiesTable();
+        sciProp->AddProperty("RINDEX", eSci, rSci, nSci);
+        Material::PlasticScintillator->SetMaterialPropertiesTable(sciProp);
+        
         return Material::PlasticScintillator;
     }
     G4Material *temp = make_materials();

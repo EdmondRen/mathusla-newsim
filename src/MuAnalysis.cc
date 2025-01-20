@@ -23,9 +23,8 @@ namespace Analysis
     // Default hit class
     uHit::uHit() : G4VHit() {}
 
-    uHit::uHit(G4Step *step, G4TouchableHistory *touchable) : G4VHit()
+    uHit::uHit(G4Step *step, G4TouchableHistory *) : G4VHit()
     {
-        (void)touchable;
         const auto track = step->GetTrack();
         const auto step_point = step->GetPostStepPoint();
 
@@ -41,17 +40,17 @@ namespace Analysis
         // G4cout<<"-----hit_x----- "<< _position.x() <<G4endl;
 
         // Get touchable
-        const auto preStepPoint = step->GetPreStepPoint();
-        const auto touchable_pre = preStepPoint->GetTouchable();
+        const auto touchable = step_point->GetTouchable();
         // Get copy number for each depth
-        G4int totalDepth = touchable_pre->GetHistoryDepth();
+        G4int totalDepth = touchable->GetHistoryDepth();
         for (int i = 0; i < totalDepth; i++)
-            this->_copyNumber.push_back(touchable_pre->GetCopyNumber(i));
+            this->_copyNumber.push_back(touchable->GetCopyNumber(i));
 
-        G4ThreeVector worldPos = preStepPoint->GetPosition();
+        G4ThreeVector worldPos = step_point->GetPosition();
         // Get the transformation matrix from the world to the local coordinate system of the bottom-level touchable
-        // and perform the coordinate transform 
-        this->_local_coord = touchable_pre->GetHistory()->GetTopTransform().TransformPoint(worldPos);
+        // and perform the coordinate transform
+        this->_local_coord = touchable->GetHistory()->GetTopTransform().TransformPoint(worldPos);
+        print("Hit In volume", touchable->GetVolume()->GetName());
     }
 
     //  ---------------------------------------------------------------------------
