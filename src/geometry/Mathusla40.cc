@@ -182,8 +182,8 @@ namespace MuGeoBuilder
         // {
         // print(key, val.y_side_direction);
         // }
-
-        print("Now asking for ID", detector_id);
+        // print("Now asking for ID", detector_id);
+        
         return this->IDMaps_inWorld.at(detector_id);
     }
 

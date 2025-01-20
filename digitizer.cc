@@ -102,7 +102,7 @@ public:
     double particle_energy;
     int pdg_id;
     int track_id = 999999999;
-    int detector_id = 0;
+    unsigned long long detector_id = 0;
     int type = -1;
 
     // Internal states
@@ -620,7 +620,7 @@ int main(int argc, const char *argv[])
         {
             digi->type = digi_type;
             // Debug, Inspect the digits
-            print("Digi x", digi->x);
+            // print("Digi x", digi->x);
         }
 
         outfile->ExportDigis(digis);
