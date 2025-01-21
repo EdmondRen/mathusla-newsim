@@ -127,8 +127,12 @@ namespace MuGeoBuilder
     long long int GetDetectorID(std::vector<int> copy_numbers, G4ThreeVector local_coord) override;
 
     // Core function 4:
-    // (For digitizer) Make a map from detector ID to bar information dict
+    // (For digitizer) Get bar information with detector ID
     BarPosition GetBarPosition(long long detector_id) override;    
+    
+    // Core function 5:
+    // (For digitizer) Return the map from detector ID to bar information dict 
+    BarPositionMap GetBarPositionMap() override;
 
     // Helper functions:
     // void DefineMaterials();
@@ -145,11 +149,11 @@ namespace MuGeoBuilder
     bool fCheckOverlaps;
 
     // For each detector ID, store a struct of BarPosition
-    std::map<unsigned long long int, BarPosition> IDMaps_inLayer;    // depth=0
-    std::map<unsigned long long int, BarPosition> IDMaps_inTower;    // depth=1
-    std::map<unsigned long long int, BarPosition> IDMaps_inDetector; // depth=2
-    std::map<unsigned long long int, BarPosition> IDMaps_inDetectorBack; // depth=2
-    std::map<unsigned long long int, BarPosition> IDMaps_inWorld;    // depth=3
+    BarPositionMap IDMaps_inLayer;    // depth=0
+    BarPositionMap IDMaps_inTower;    // depth=1
+    BarPositionMap IDMaps_inDetector; // depth=2
+    BarPositionMap IDMaps_inDetectorBack; // depth=2
+    BarPositionMap IDMaps_inWorld;    // depth=3
   };
 
 } // namespace MuGeoBuilder

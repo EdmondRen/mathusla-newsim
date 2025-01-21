@@ -13,8 +13,8 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 ## Build type: Debug or Release
-# set (CMAKE_BUILD_TYPE Release)
-set (CMAKE_BUILD_TYPE Debug)
+set (CMAKE_BUILD_TYPE Release)
+# set (CMAKE_BUILD_TYPE Debug)
 
 ## Enable profiling for Debug build
 # Run the simulation, then use `gprof my_program gmon.out > analysis.txt` to check the result

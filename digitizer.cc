@@ -142,7 +142,7 @@ public:
                     break;
             }
 
-            // x is the other direction
+            // Find the x direction index, which is the other direction
             x_dirc_ind = 3 - abs(y_dirc_ind) - abs(z_dirc_ind);
             // print("yind, zind", y_dirc_ind, z_dirc_ind);
             // print("y_dir, z_dir", bar_position.y_side_direction.x(), bar_position.y_side_direction.y(), bar_position.y_side_direction.z(), bar_position.z_side_direction.x(), bar_position.z_side_direction.y(), bar_position.z_side_direction.z());
@@ -179,6 +179,46 @@ public:
         // Time smearing
         this->t += generator.Gaus(0.0, config.time_resolution);
         *this->pos_vec[x_dirc_ind] += generator.Gaus(0.0, config.position_resolution);
+    }
+
+    void DigitizeNoise(MuGeoBuilder::BarPosition bar_position, DigiConfig &config, float time_window)
+    {
+
+        // Make a fake hit
+        auto hit = new SimHit();
+        hit->index = 9999999;
+        hits.push_back(hit);
+
+
+        track_id = -1;
+        pdg_id = -1;
+        detector_id = -1;
+        type = -1;
+
+        // Find the y direction index
+        for (y_dirc_ind = 0; y_dirc_ind < 3; y_dirc_ind++)
+        {
+            if (round(abs(bar_position.y_side_direction[y_dirc_ind])) == 1)
+                break;
+        }
+
+        // Find the z direction index
+        for (z_dirc_ind = 0; z_dirc_ind < 3; z_dirc_ind++)
+        {
+            if (round(abs(bar_position.z_side_direction[z_dirc_ind])) == 1)
+                break;
+        }
+
+        // Find the x direction index, which is the other direction
+        x_dirc_ind = 3 - abs(y_dirc_ind) - abs(z_dirc_ind);
+
+        // Set the results
+        *this->pos_vec[y_dirc_ind] = bar_position.bar_center_coord[y_dirc_ind];
+        *this->pos_vec[z_dirc_ind] = bar_position.bar_center_coord[z_dirc_ind];
+        *this->pos_vec[x_dirc_ind] = bar_position.bar_center_coord[x_dirc_ind] + generator.Uniform(config.bar_width_x) - config.bar_width_x * 0.5;
+
+        this->t = generator.Uniform(time_window * CLHEP::s * 2) - time_window;
+        this->direction = x_dirc_ind * 100 + y_dirc_ind * 10 + z_dirc_ind;
     }
 };
 
@@ -526,6 +566,56 @@ std::vector<DigiHit *> Digitize(std::vector<SimHit *> hits, DigiConfig &config, 
     return digis;
 }
 
+class NoiseMaker
+{
+public:
+    MuGeoBuilder::BarPositionMap bar_map;
+    std::vector<unsigned long long> bar_index;
+    float noise_window, noise_counts_mean;
+    DigiConfig &config;
+
+    // noise_rate: [Hz], noise rate of each bar
+    // noise_window: [s], noise will be sampled between [-noise_window, noise_window]
+    NoiseMaker(float noise_rate, float _noise_window, DigiConfig &_config, MuGeoBuilder::Builder *geobuilder) : noise_window(_noise_window), config(_config)
+    {
+        // Get a list of all bars
+        this->bar_map = geobuilder->GetBarPositionMap();
+
+        // Give each bar an index starting from 0
+        for (const auto &[key, value] : this->bar_map)
+        {
+            bar_index.push_back(key);
+        }
+
+        // Average total number of noise events in all bars
+        this->noise_counts_mean = noise_rate * noise_window * bar_index.size() * 2;
+    }
+
+    std::vector<DigiHit *> run()
+    {
+        std::vector<DigiHit *> digis; // this is the vector of digi_hits we will return at the end of the function
+        std::vector<int> bars_selected;
+
+        if (noise_counts_mean <= 0)
+            return digis;
+
+        int noise_counts_this = generator.Poisson(noise_counts_mean);
+        for (int i = 0; i < noise_counts_this; i++)
+        {
+            int bar_ind = generator.Integer(bar_index.size());
+            auto detector_id = bar_index.at(bar_ind);
+            auto bar_position = bar_map.at(detector_id);
+
+            DigiHit *current_digi = new DigiHit();
+            current_digi->DigitizeNoise(bar_position, config, noise_window);
+            current_digi->index = i;
+            current_digi->detector_id = detector_id;
+            digis.push_back(current_digi);
+        }
+        return digis;
+    }
+};
+
 int main(int argc, const char *argv[])
 {
     // Setup argument format
@@ -538,9 +628,9 @@ int main(int argc, const char *argv[])
         ("t,time_resolution", "Coincidence time resolution [ns].", cxxopts::value<float>()->default_value("1"))
         ("T,time_limit", "Time limit [ns]", cxxopts::value<float>()->default_value("20"))
         ("E,energy_threshold", "Energy threshold for a digi [MeV]", cxxopts::value<float>()->default_value("0.65"))
-        ("n,noise", "Noise rate [avg number per file]. Set to -1 to disable (default).", cxxopts::value<int>()->default_value("-1"))
         ("p,print_progress", "Print progress every `p` events", cxxopts::value<int>()->default_value("1"))
-        ("w,window", "Noise window [ns]", cxxopts::value<float>());
+        ("n,noise_rate", "Noise rate [avg number per file]. Set to -1 to disable (default).", cxxopts::value<float>()->default_value("-1"))
+        ("w,noise_window", "Noise window [s], noise will be sampled between [-noise_window, noise_window]", cxxopts::value<float>()->default_value("1000e-9"));
     options.parse_positional({"filename"});
     auto args = options.parse(argc, argv);
     // clang-format on
@@ -559,7 +649,10 @@ int main(int argc, const char *argv[])
 
     // Make a map between generator name and the Digi_type
     DIGI_TYPE_MAP.insert({"gun", 0});
-    DIGI_TYPE_MAP.insert({"gun", 0});
+    DIGI_TYPE_MAP.insert({"cry", 1});
+    DIGI_TYPE_MAP.insert({"parma", 2});
+    DIGI_TYPE_MAP.insert({"filereader", 3});
+    DIGI_TYPE_MAP.insert({"noise", -1});
 
     // Setup random number generator
     generator.SetSeed(args["seed"].as<int>());
@@ -606,18 +699,20 @@ int main(int argc, const char *argv[])
     // 2. Add info from config
     outfile->WriteConfig(config);
 
+    // Start noise maker
+    auto noise_maker = NoiseMaker(args["noise_rate"].as<float>(), args["noise_window"].as<float>(), config, _det_selected_);
+
     for (int entry = 0; entry < (infile->entries); entry++)
     {
         // Print progress
         if (entry % print_progress == 0)
-            print("Digitizer > ---> End of event:", entry);
+            print("Digitizer > ---> Begin of event:", entry);
 
         // Load hits
         infile->Load();
 
         // Digitize
         auto digis = Digitize(infile->hits, config, _det_selected_);
-
         for (auto digi : digis)
         {
             digi->type = digi_type;
@@ -625,12 +720,30 @@ int main(int argc, const char *argv[])
             // print("Digi x", digi->x);
         }
 
+        // Make noise hits
+        if (args["noise_rate"].as<float>() > 0)
+        {
+            auto noise_digis = noise_maker.run();
+            int last_digi_index = digis.size() > 0 ? digis.back()->index : -1;
+
+            // Set the index and type of the noise hits, then add to list
+            for (auto digi : noise_digis)
+            {
+                digi->type = DIGI_TYPE_MAP["noise"];
+                digi->index = digi->index + last_digi_index + 1;
+                digis.push_back(digi);
+            }
+        }
+
+        // Export digis to output file
         outfile->ExportDigis(digis);
         outfile->Fill();
 
         // Clear the digis
         for (auto digi : digis)
             delete digi;
+        
+
     }
 
     outfile->Write();

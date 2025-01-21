@@ -4,22 +4,22 @@
 # or interactively: Idle> /control/execute run1.mac
 #
 # Change the default number of workers (in multi-threading mode) 
-#/run/numberOfThreads 4
+# /run/numberOfThreads 4
 #
-# Initialize kernel
+## Initialize kernel
 /vis/disable
 /tracking/verbose 0
 
-# Select detector
+## Select detector, one of {uoft1, mu40v0}
 /det/select mu40v0
 
-# Initialize run
+## Initialize run
 /run/initialize
 /run/printProgress 100
 # /run/numberOfThreads 1
 
 
-# Special run setting 
+## Special run setting 
 
 ## Step limiter
 /control/execute ../macros/init_limit.mac
@@ -32,15 +32,15 @@
 # 11: electron
 # 2212: proton
 # 2112: neutron
-/gen/parma/particle_pdgid 13
+/gen/parma/particle_pdgid 2212
 /gen/parma/ekin_low 0 GeV
 /gen/parma/ekin_high 200 GeV
 /gen/parma/shape 1
-/gen/parma/box 50. 50. 25. m
+/gen/parma/box 50. 50. 20. m
 
-# Update the PARMA generator settings
+## Update the PARMA generator settings
 /gen/parma/update
 
 
-/run/beamOn 20000
+/run/beamOn 10000
 #/run/dumpCouples

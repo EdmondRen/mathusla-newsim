@@ -36,7 +36,8 @@ namespace MuGeoBuilder
         size_t GEO_DEPTH = 4;
 
         // 0: bar. x: along the bar, y: width, z: thickness
-        double bar_lenx_real = 2.25 * m;
+        // double bar_lenx_real = 2.25 * m;
+        double bar_lenx_real = 4.5 * m;
         double bar_leny_real = 3.5 * cm;
         double bar_lenx = bar_lenx_real * round(900 * cm / bar_lenx_real);
         double bar_leny = bar_leny_real * round(900 * cm / bar_leny_real / 2) * 2;
@@ -74,7 +75,7 @@ namespace MuGeoBuilder
         int detector_Ntowers_x = 4;
         int detector_Ntowers_y = 4;
         double detector_decay_vol_height = 11 * m;
-        double detector_lenx = detector_Ntowers_x * module_lenx + 10 * m;
+        double detector_lenx = detector_Ntowers_x * module_lenx;
         double detector_leny = detector_Ntowers_y * module_leny;
         double detector_lenz = module_lenz;
         std::vector<double> detector_modules_xoffset = {-1.5 * module_lenx, -0.5 * module_lenx, 0.5 * module_lenx, 1.5 * module_lenx};
@@ -86,7 +87,7 @@ namespace MuGeoBuilder
         double env_air_depth = 40 * m;
         double env_ceiling_lenx = detector_lenx + 10 * m;
         double env_ceiling_leny = detector_lenx + 10 * m;
-        double env_ceiling_lenz = detector_lenz + 3 * m + detector_ground_offset[2];
+        double env_ceiling_lenz = detector_lenz + 1 * m + detector_ground_offset[2]; // about 18 m
         double env_ceiling_concrete_thickness = 10 * cm;
         double env_floor_iron_thickness = 2 * cm;
         // World
@@ -145,7 +146,7 @@ namespace MuGeoBuilder
         else if (copy_numbers.size() == 2)
         {
             int layer_number = copy_numbers[1];
-            int nx, ny, ny_total;
+            int nx, ny, ny_total = 0;
             if (layer_number == 0)
             {
                 nx = floor((-local_coord.x()) / mu40dims::bar_leny_real) + mu40dims::vw_Nbars_z_layer1 / 2;
@@ -190,18 +191,18 @@ namespace MuGeoBuilder
         return this->IDMaps_inWorld.at(detector_id);
     }
 
+    // Return the entire map
+    BarPositionMap Mathusla40_Builder::GetBarPositionMap()
+    {
+        return this->IDMaps_inWorld;
+    }    
+
     // Geometry Builder Class
     Mathusla40_Builder::Mathusla40_Builder() : Builder()
     {
         // Setup detector name and messenger
         this->DetectorName = "mu40v0";
         this->fMessenger = new G4GenericMessenger(this, "/det/" + this->DetectorName + "/", "Detector is: Mathusla40 version 0");
-
-        // Setup the storage of bar information
-        // IDMaps_inTower = new std::map<unsigned long long int, BarPosition>;
-        // IDMaps_inDetector = new std::map<unsigned long long int, BarPosition>;
-        // IDMaps_inWorld = new std::map<unsigned long long int, BarPosition>;
-        // IDMaps_inTower = new std::map<unsigned long long int, BarPosition>;
     }
 
     // Core function 1:
@@ -524,9 +525,9 @@ namespace MuGeoBuilder
             fCheckOverlaps);      // checking overlaps
         (void)detectorPV;
         // Place backwall detector in world
-        auto offset_backwall = G4ThreeVector(mu40dims::detector_modules_xoffset.back() + mu40dims::module_lenx * 0.5 + mu40dims::module_lenz * 0.5,
+        auto offset_backwall = G4ThreeVector(mu40dims::detector_modules_xoffset.back() + mu40dims::module_lenx * 0.5 + mu40dims::module_lenz * 0.5 + 5 * cm,
                                              0,
-                                             -mu40dims::module_lenx * 0.5 + mu40dims::detector_ground_offset.back());
+                                             -mu40dims::module_lenx * 0.5 + mu40dims::detector_ground_offset.back() + 75 * cm);
         auto transform_backwall = G4Transform3D(G4RotationMatrix(), // rotation
                                                 offset_backwall);   // offset
         auto detector_backwallPV = new G4PVPlacement(

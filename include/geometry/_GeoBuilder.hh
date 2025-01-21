@@ -42,6 +42,9 @@ namespace MuGeoBuilder
     // Geometry Builder Class
     // This class takes care of detector construction
     // as well as assigning sensitive detector to correct volumes
+
+    using BarPositionMap = std::unordered_map <unsigned long long int, BarPosition>;
+
     class Builder
     {
     public:
@@ -65,8 +68,12 @@ namespace MuGeoBuilder
         virtual long long int GetDetectorID(std::vector<int> copy_numbers, G4ThreeVector local_coords) = 0;
 
         // Core function 4:
-        // (For digitizer) Make a map from detector ID to bar information dict
+        // (For digitizer) Get bar information with detector ID
         virtual BarPosition GetBarPosition(long long detector_id) = 0;
+
+        // Core function 5:
+        // (For digitizer) Return the map from detector ID to bar information dict 
+        virtual BarPositionMap GetBarPositionMap() = 0;
 
         // Utilities
         // Find the position of a physical volume in world

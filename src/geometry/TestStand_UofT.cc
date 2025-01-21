@@ -106,11 +106,17 @@ namespace MuGeoBuilder
   {
     // for (auto const &[key, val] : IDMaps_inWorld)
     // {
-      // print(key, val.y_side_direction);
+    // print(key, val.y_side_direction);
     // }
 
     // print("Now asking for ID", detector_id);
     return this->IDMaps_inWorld.at(detector_id);
+  }
+
+  // Return the entire map
+  BarPositionMap Uoft1_Builder::GetBarPositionMap()
+  {
+    return this->IDMaps_inWorld;
   }
 
   // Geometry Builder Class
@@ -121,9 +127,6 @@ namespace MuGeoBuilder
     this->fMessenger = new G4GenericMessenger(this, "/det/" + this->DetectorName + "/", "Detector is: UofT teststand 1");
 
     // Setup the storage of bar information
-    // IDMaps_inTower = new std::map<unsigned long long int, BarPosition>;
-    // IDMaps_inDetector = new std::map<unsigned long long int, BarPosition>;
-    // IDMaps_inWorld = new std::map<unsigned long long int, BarPosition>;
     // IDMaps_inTower = new std::map<unsigned long long int, BarPosition>;
   }
 
@@ -217,29 +220,29 @@ namespace MuGeoBuilder
     auto al_caseLV = new G4LogicalVolume(
         al_case,            // its solid
         Material::Aluminum, // its material
-        "al_case");             // its name
+        "al_case");         // its name
     auto al_case1PV = new G4PVPlacement(
         0, // no rotation
         G4ThreeVector(0,
                       0,
                       uoftdims::bar_lenz / 2 + uoftdims::layer_wallthick / 2), // offset it by corresponding bar width and length
-        al_caseLV,            // its logical volume
-        "al_case",            // its name
-        layerLV,          // its mother  volume
-        false,            // no boolean operation
-        0,                // copy number
-        fCheckOverlaps);  // checking overlaps
+        al_caseLV,                                                             // its logical volume
+        "al_case",                                                             // its name
+        layerLV,                                                               // its mother  volume
+        false,                                                                 // no boolean operation
+        0,                                                                     // copy number
+        fCheckOverlaps);                                                       // checking overlaps
     auto al_case2PV = new G4PVPlacement(
         0, // no rotation
         G4ThreeVector(0,
                       0,
                       -(uoftdims::bar_lenz / 2 + uoftdims::layer_wallthick / 2)), // offset it by corresponding bar width and length
-        al_caseLV,            // its logical volume
-        "al_case",            // its name
-        layerLV,          // its mother  volume
-        false,            // no boolean operation
-        1,                // copy number
-        fCheckOverlaps);  // checking overlaps        
+        al_caseLV,                                                                // its logical volume
+        "al_case",                                                                // its name
+        layerLV,                                                                  // its mother  volume
+        false,                                                                    // no boolean operation
+        1,                                                                        // copy number
+        fCheckOverlaps);                                                          // checking overlaps
 
     return 0;
   }
@@ -316,7 +319,7 @@ namespace MuGeoBuilder
     {
       for (int j = 0; j < uoftdims::detector_Ntowers_y; j++)
       {
-        int tower_copy_number =  j + i*uoftdims::detector_Ntowers_y;
+        int tower_copy_number = j + i * uoftdims::detector_Ntowers_y;
         auto modulePV = new G4PVPlacement(
             G4Transform3D(G4RotationMatrix(), // rotation
                           G4ThreeVector(uoftdims::detector_modules_xoffset[i],
@@ -336,35 +339,34 @@ namespace MuGeoBuilder
           G4ThreeVector bar_center_coord = val.bar_center_coord + G4ThreeVector(uoftdims::detector_modules_xoffset[i],
                                                                                 uoftdims::detector_modules_yoffset[j],
                                                                                 0);
-          IDMaps_inDetector.insert({key + tower_copy_number * 1e8*1e3, BarPosition(val.y_side_direction, val.z_side_direction, bar_center_coord)});
+          IDMaps_inDetector.insert({key + tower_copy_number * 1e8 * 1e3, BarPosition(val.y_side_direction, val.z_side_direction, bar_center_coord)});
         }
       }
     }
 
-
     // Place detector in world
     int detector_copy_number = 0;
     auto offset = G4ThreeVector(uoftdims::detector_ground_offset[0],
-                                    uoftdims::detector_ground_offset[1],
-                                    0.5 * uoftdims::detector_lenz + uoftdims::detector_ground_offset[2]);
+                                uoftdims::detector_ground_offset[1],
+                                0.5 * uoftdims::detector_lenz + uoftdims::detector_ground_offset[2]);
     auto transform = G4Transform3D(G4RotationMatrix(), // rotation
-                      offset);// offset
+                                   offset);            // offset
     auto detectorPV = new G4PVPlacement(
-        transform, 
-        this->detectorLV,       // its logical volume
-        "layer",                // its name
-        _worldLV,               // its mother volume
-        false,                  // no boolean operation
-        detector_copy_number,   // copy number (detector number within the world)
-        fCheckOverlaps);        // checking overlaps
+        transform,
+        this->detectorLV,     // its logical volume
+        "layer",              // its name
+        _worldLV,             // its mother volume
+        false,                // no boolean operation
+        detector_copy_number, // copy number (detector number within the world)
+        fCheckOverlaps);      // checking overlaps
     (void)detectorPV;
 
     // Add the detector to the detector position map
     for (auto const &[key, val] : IDMaps_inDetector)
     {
       G4ThreeVector bar_center_coord = val.bar_center_coord + offset;
-      IDMaps_inWorld.insert({key + detector_copy_number * 1e8*1e3*1e3, BarPosition(val.y_side_direction, val.z_side_direction, bar_center_coord)});
-    }    
+      IDMaps_inWorld.insert({key + detector_copy_number * 1e8 * 1e3 * 1e3, BarPosition(val.y_side_direction, val.z_side_direction, bar_center_coord)});
+    }
     return 0;
   }
 
