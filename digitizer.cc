@@ -696,6 +696,12 @@ int main(int argc, const char *argv[])
         config.bar_width_y = MuGeoBuilder::uoftdims::bar_leny;
         config.bar_width_z = MuGeoBuilder::uoftdims::bar_lenz;
     }
+    if (infile->Geometry == "mu40v0")
+    {
+        config.bar_width_x = MuGeoBuilder::mu40dims::bar_lenx_real;
+        config.bar_width_y = MuGeoBuilder::mu40dims::bar_leny_real;
+        config.bar_width_z = MuGeoBuilder::mu40dims::bar_lenz;
+    }    
     // 2. Add info from config
     outfile->WriteConfig(config);
 

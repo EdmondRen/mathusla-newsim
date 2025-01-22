@@ -32,6 +32,17 @@ namespace MuGenerators
         return -1;
     }
 
+    float Generator::getEventWeight()
+    {
+        return 1.;
+    }
+
+    std::map<std::string, std::string> Generator::getMetaData()
+    {
+        std::map<std::string, std::string> metadata {{"null","null"}};
+        return metadata;
+    }
+
     // Wrapper for random number generator
     double GenerateRandomInRange(double min, double max)
     {

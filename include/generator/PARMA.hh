@@ -17,7 +17,6 @@ namespace MuGenerators
         MuPARMA(const std::string &name,
               const std::string &description,
               const std::string &PROJECT_SOURCE_DIR);
-        virtual ~MuPARMA() = default;
 
         // Core function 1: GeneratePrimaryVertex()
         // This will be called by GeneratorAction::GeneratePrimaries()
@@ -27,6 +26,10 @@ namespace MuGenerators
         // This is used to set generator parameters
         void SetNewValue(G4UIcommand *command,
                          G4String value) override;
+
+        // Get methods
+        std::map<std::string, std::string> getMetaData() override;
+        float getEventWeight() override;
 
         // Other helper functions
         // std::ostream &Print(std::ostream &os = std::cout) const override;
@@ -42,6 +45,10 @@ namespace MuGenerators
         std::map<std::string, float> fPARMA_additional_config;
         
         std::string PROJECT_SOURCE_DIR;
+
+        // Event information
+        long event_counter;
+        float event_weight;
 
         // Two corners of the box
         double subboxLength;

@@ -40,6 +40,8 @@ namespace MuGenerators
         fPARMA_additional_config["ekin_cut_high"] = 100 * TeV;
         fPARMA_additional_config["particle_pdgid"] = 0;
 
+        fPARMA_additional_config["weight_function"] = 0; // 0: none, 1: weight1(), 2: weight2()
+
         // PARMA initialization, using default  config file
         auto parma_defaultConfig = "/macros/generators/parma_default.conf";
         G4cout<< "Start PARMA using configuration file: "<< PROJECT_SOURCE_DIR + parma_defaultConfig << G4endl;
@@ -140,6 +142,8 @@ namespace MuGenerators
     {
         // Clear the store of generated particles
         this->genParticles.clear();
+
+        this->event_counter +=1;
 
         // Generate one event
         parma_generated = fPARMAgenerator.Generate();
@@ -276,5 +280,15 @@ namespace MuGenerators
         {
             fPARMAgenerator.UpdateParameters();
         }        
+    }
+
+    std::map<std::string, std::string> MuPARMA::getMetaData()
+    {
+
+    }
+
+    float MuPARMA::getEventWeight()
+    {
+
     }
 }

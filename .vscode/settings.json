@@ -181,6 +181,10 @@
         "ciso646": "cpp",
         "climits": "cpp",
         "queue": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "dense": "cpp",
+        "pick_action": "cpp",
+        "state": "cpp",
+        "states": "cpp"
     }
 }

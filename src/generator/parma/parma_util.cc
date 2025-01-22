@@ -173,6 +173,7 @@ namespace PARMA
         }
 
         TotalFlux = etable[nebin]; // Total Flux (/cm2/s), used for normalization
+        std::cout << "Total flux [/cm2/s]: " << TotalFlux << std::endl;
 
         // Make probability table (normalized to 1)
         for (ie = 1; ie <= nebin; ie++)

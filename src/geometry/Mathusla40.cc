@@ -85,8 +85,8 @@ namespace MuGeoBuilder
         double env_earth_depth_top = 0.1 * m;
         double env_earth_depth_mid = 100 * m;
         double env_air_depth = 40 * m;
-        double env_ceiling_lenx = detector_lenx + 10 * m;
-        double env_ceiling_leny = detector_lenx + 10 * m;
+        double env_ceiling_lenx = detector_lenx + 9.5 * m;
+        double env_ceiling_leny = detector_lenx + 9.5 * m;
         double env_ceiling_lenz = detector_lenz + 1 * m + detector_ground_offset[2]; // about 18 m
         double env_ceiling_concrete_thickness = 10 * cm;
         double env_floor_iron_thickness = 2 * cm;

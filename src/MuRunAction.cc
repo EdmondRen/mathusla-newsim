@@ -132,12 +132,12 @@ void MuRunAction::BeginOfRunAction(const G4Run * /*run*/)
   analysisManager->FinishNtuple(tupleID_metadata);
 
   // Write metadata
-  analysisManager->FillNtupleSColumn(tupleID_metadata, 0, util::py::fprint("Mathusla simulation"));
-  analysisManager->FillNtupleSColumn(tupleID_metadata, 1, util::py::fprint(MuDetectorConstruction::GetName()));
-  analysisManager->FillNtupleSColumn(tupleID_metadata, 2, util::py::fprint(MuPrimaryGeneratorAction::GetName()));
-  analysisManager->FillNtupleSColumn(tupleID_metadata, 3, util::py::fprint(_get_datetime()));
+  // analysisManager->FillNtupleSColumn(tupleID_metadata, 0, util::py::fprint("Mathusla simulation"));
+  // analysisManager->FillNtupleSColumn(tupleID_metadata, 1, util::py::fprint(MuDetectorConstruction::GetName()));
+  // analysisManager->FillNtupleSColumn(tupleID_metadata, 2, util::py::fprint(MuPrimaryGeneratorAction::GetName()));
+  // analysisManager->FillNtupleSColumn(tupleID_metadata, 3, util::py::fprint(_get_datetime()));
   
-  analysisManager->AddNtupleRow(tupleID_metadata);
+  // analysisManager->AddNtupleRow(tupleID_metadata);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -146,6 +146,14 @@ void MuRunAction::EndOfRunAction(const G4Run * /*run*/)
 {
 
   auto analysisManager = G4AnalysisManager::Instance();
+
+  // Write metadata
+  analysisManager->FillNtupleSColumn(tupleID_metadata, 0, util::py::fprint("Mathusla simulation"));
+  analysisManager->FillNtupleSColumn(tupleID_metadata, 1, util::py::fprint(MuDetectorConstruction::GetName()));
+  analysisManager->FillNtupleSColumn(tupleID_metadata, 2, util::py::fprint(MuPrimaryGeneratorAction::GetName()));
+  analysisManager->FillNtupleSColumn(tupleID_metadata, 3, util::py::fprint(_get_datetime()));
+  
+  analysisManager->AddNtupleRow(tupleID_metadata);  
 
   // Save the ROOT file
   analysisManager->Write();

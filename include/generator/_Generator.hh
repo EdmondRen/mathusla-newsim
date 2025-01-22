@@ -108,6 +108,10 @@ namespace MuGenerators
         // Data Store: save the list of generated particles in the current event
         ParticleVector genParticles;
 
+        // Get methods
+        virtual std::map<std::string, std::string> getMetaData();
+        virtual float getEventWeight();
+
         // Other helper functions
         virtual std::ostream &Print(std::ostream &os = std::cout) const;
         virtual int GetEntries() const;
