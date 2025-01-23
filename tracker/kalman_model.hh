@@ -18,10 +18,11 @@ namespace Kalman
         //  multiple_scattering: 0 = OFF, 1 = ON
         KalmanTrack4D(int multiple_scattering,
                       int ndimMeasure = 4,
-                      int ndimStates = 6);
+                      int ndimStates = 6,
+                      bool debug = false);
 
         // Initialize
-        int init_state(const Tracker::DigiHit &hit1, const Tracker::DigiHit &hit2);
+        int init_state(const Tracker::DigiHit &hit1, const Tracker::DigiHit &hit2, bool use_first = true);
 
         // make a new step. This will only update the related matrix without further calucalation.
         int new_step(const Tracker::DigiHit &hit);
@@ -36,7 +37,7 @@ namespace Kalman
         int update_Q(float step, float multiple_scattering_p = 500, float multiple_scattering_length = 0.06823501107481977);
 
         // Run filter forward
-        Tracker::Track * run_filter(Tracker::HitList hits);
+        Tracker::Track *run_filter(Tracker::HitList hits);
 
     protected:
         // Filter instance
@@ -58,6 +59,8 @@ namespace Kalman
 
         // Final output: a track object that holds all the information
         Tracker::Track *track_recon; // state, 1x6 col vector
+
+        bool DEBUG;
     };
 
 } // namespace Kalman

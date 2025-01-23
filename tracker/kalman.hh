@@ -22,9 +22,9 @@ namespace Kalman
                                       xp(Nstat),
                                       Cp(Nstat, Nstat),
                                       rp(Nstat),
-                                      Rp(Nstat, Nstat),
-                                      Rf(Nstat, Nstat),
-                                      Rp_inv(Nstat, Nstat),
+                                      Rp(Nmeas, Nmeas),
+                                      Rf(Nmeas, Nmeas),
+                                      Rp_inv(Nmeas, Nmeas),
                                       chi2_step(0)
         {
             // Make some identity matrix
@@ -56,7 +56,7 @@ namespace Kalman
         }
 
         // Calculate the predicted chi2 with the next measurement
-        double GetChi2(const VectorXd &mi)
+        double TryHit(const VectorXd &mi)
         {
             auto rp_i = mi - m_predict;
             double chi2_predict = rp_i.transpose() * this->Rp_inv * rp_i;
@@ -78,14 +78,19 @@ namespace Kalman
             // Filtered Covariance Matrix
             this->Cf = (this->Istat - K * (*this->H)) * this->Cp;
 
-            // Filtered residual (rf) and residual Covariance matrix
-            auto rf = mi - (*this->H) * xf;
+            // Filtered residual (rf) and residual Covariance matrix (Rf)
+            auto rf = mi - (*this->H) * this->xf;
             this->Rf = (this->Imeas - (*this->H) * K) * (*this->V);
 
             // Chi2 contribution
             this->chi2_step = rf.transpose() * this->Rf.inverse() * rf;
             this->chi2_total += chi2_step;
         }
+
+        VectorXd GetState(){return xf;}
+        MatrixXd GetCov(){return Cf;}
+        double GetChi2Step(){return chi2_step;}
+        double GetChi2(){return chi2_total;}
 
     protected:
         // Dimensions
@@ -108,7 +113,7 @@ namespace Kalman
         // Uncertainty and residual
         MatrixXd Cp, Cf;         // Variation Matrices. Cp: predicted, Cf: filtered
         VectorXd rp;             // predicted residual
-        MatrixXd Rp, Rf, Rp_inv; // residual cov predicted/filtered
+        MatrixXd Rp, Rf, Rp_inv; // residual (of measurement) cov predicted/filtered
 
         // Chi2
         double chi2_step, chi2_total;
