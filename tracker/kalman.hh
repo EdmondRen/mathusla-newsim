@@ -14,14 +14,11 @@ namespace Kalman
     {
     public:
         // Initialize the filter with
-        KF_Forward(VectorXd &xf0,
-                   MatrixXd &Cf0,
-                   int ndimMeasure) : Nmeas(ndimMeasure),
-                                      Nstat(xf0.rows()),
+        KF_Forward(int ndimMeasure,
+                   int ndimStates) : Nmeas(ndimMeasure),
+                                      Nstat(ndimStates),
                                       Imeas(Nmeas, Nmeas),
                                       Istat(Nstat, Nstat),
-                                      xf(xf0),
-                                      Cf(Cf0),
                                       xp(Nstat),
                                       Cp(Nstat, Nstat),
                                       rp(Nstat),
@@ -35,6 +32,14 @@ namespace Kalman
             Istat.setIdentity();
         }
 
+        void SetInitialState(VectorXd &xf0, MatrixXd &Cf0)
+        {
+            xf = xf0;
+            Cf = Cf0;
+            chi2_total = 0;
+            chi2_step = 0;
+        }
+
         // Update the predicted next state (Xp), state covariance (Cp) and residual covariance (Rp)
         void UpdateMatrix(MatrixXd &Vi, MatrixXd &Hi, MatrixXd &Fi, MatrixXd &Qi)
         {
@@ -42,6 +47,8 @@ namespace Kalman
             this->Cp = Fi * this->Cf * Fi.transpose() + Qi;
             this->Rp = Vi + Hi * Cp * Hi.transpose();
             this->Rp_inv = this->Rp.inverse();
+            this->m_predict = (*this->H) * this->xp;
+            this->m_predict_err = ((*this->H) * this->Cf * (*this->H).transpose()).diagonal();
 
             this->V = &Vi;
             this->H = &Hi;
@@ -49,15 +56,15 @@ namespace Kalman
         }
 
         // Calculate the predicted chi2 with the next measurement
-        double GetChi2(VectorXd &mi)
+        double GetChi2(const VectorXd &mi)
         {
-            auto rp_i = mi - *this->H * this->xp;
+            auto rp_i = mi - m_predict;
             double chi2_predict = rp_i.transpose() * this->Rp_inv * rp_i;
             return chi2_predict;
         }
 
         // Run filter on the next measurement
-        double Filter(VectorXd &mi)
+        double Filter(const VectorXd &mi)
         {
             // Get residual
             auto rp_new = mi - (*this->H) * this->xp;
@@ -87,13 +94,15 @@ namespace Kalman
 
         // Measurement
         // Use pointer to avoid memory copy
-        VectorXd *m;     // Measurement vector
-        MatrixXd *V, *H; // Measurement uncertainty matrix V, measurement matrix H
+        VectorXd m_predict; // Measurement vector (predicted)
+        VectorXd m_predict_err; // Measurement vector (predicted)
+        MatrixXd *V, *H;    // Measurement uncertainty matrix V, measurement matrix H
 
         // State vectors
         VectorXd xp, xf; // xp: predicted, xf: filtered
 
         // System dynamics
+        // Use pointer to avoid memory copy
         MatrixXd *F, *Q; // Fi: process matrix, Qi: process uncertainty
 
         // Uncertainty and residual
