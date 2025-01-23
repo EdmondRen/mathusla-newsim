@@ -43,16 +43,16 @@ namespace Kalman
         // Update the predicted next state (Xp), state covariance (Cp) and residual covariance (Rp)
         void UpdateMatrix(MatrixXd &Vi, MatrixXd &Hi, MatrixXd &Fi, MatrixXd &Qi)
         {
+            this->V = &Vi;
+            this->H = &Hi;
+            this->Q = &Qi;
+
             this->xp = Fi * this->xf;
             this->Cp = Fi * this->Cf * Fi.transpose() + Qi;
             this->Rp = Vi + Hi * Cp * Hi.transpose();
             this->Rp_inv = this->Rp.inverse();
-            this->m_predict = (*this->H) * this->xp;
+            this->m_predict = Hi * this->xp;
             this->m_predict_err = ((*this->H) * this->Cf * (*this->H).transpose()).diagonal();
-
-            this->V = &Vi;
-            this->H = &Hi;
-            this->Q = &Qi;
         }
 
         // Calculate the predicted chi2 with the next measurement
@@ -73,8 +73,8 @@ namespace Kalman
             auto K = this->Cp * (*this->H).transpose() * this->Rp_inv;
 
             // Filtered State
-            auto xf_new = this->xp + K * rp_new; // Combination of the predicted state, measured values, covariance matrix and Kalman Gain
-
+            this->xf = this->xp + K * rp_new; // Combination of the predicted state, measured values, covariance matrix and Kalman Gain
+            
             // Filtered Covariance Matrix
             this->Cf = (this->Istat - K * (*this->H)) * this->Cp;
 

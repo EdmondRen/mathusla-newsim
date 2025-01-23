@@ -64,7 +64,7 @@ fi
 mkdir -p build
 cd build
 
-if [[ "$CONFIG_CMAKE" -eq 1 ]]; then cmake -DCMAKE_INSTALL_PREFIX=`realpath ..` ..;   fi;
+if [[ "$CONFIG_CMAKE" -eq 1 ]]; then cmake -DCMAKE_INSTALL_PREFIX=`realpath ..` .. -DEigen3_DIR=$HOME/geant_projects/lib/share/eigen3/cmake;   fi;
 if [[ "$CLEAN_BUILD"  -eq 1 ]]; then make clean; fi;
 pwd
 

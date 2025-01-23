@@ -8,7 +8,8 @@
                 "/usr/local/include/Geant4",
                 "~/geant_projects/include",
                 "~/container/ubuntu/usr/local/include/Geant4/",
-                "~/container/ubuntu/usr/local/include/"
+                "~/container/ubuntu/usr/local/include/",
+                "~/geant_projects/eigen/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

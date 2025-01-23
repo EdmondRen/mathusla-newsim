@@ -11,28 +11,7 @@ using Eigen::VectorXd;
 
 namespace Matrix
 {   
-    // Remove an element from a vector and creat a new one.
-    Eigen::MatrixXd removeElement(const Eigen::MatrixXd &vec4, int i)
-    {
-        Eigen::MatrixXd vec3(vec4.rows()-1);
 
-        // Ensure the index is valid
-        if (i < 0 || i >= vec4.rows())
-        {
-            throw std::out_of_range("Index i is out of range. Must be between 0 and 3.");
-        }
-
-        // Copy elements excluding the i-th element
-        for (int j = 0, k = 0; j < vec4.rows(); ++j)
-        {
-            if (j != i)
-            {
-                vec3[k++] = vec4[j];
-            }
-        }
-
-        return vec3;
-    }
 } // namespace Matrix
 
 
@@ -50,12 +29,35 @@ namespace Tracker
             update_vec3();
         }
 
+        // Remove an element from a vector and creat a new one.
+        Eigen::VectorXd removeElement(const Eigen::VectorXd &vec4, int i)
+        {
+            Eigen::VectorXd vec3(vec4.rows()-1);
+
+            // Ensure the index is valid
+            if (i < 0 || i >= vec4.rows())
+            {
+                throw std::out_of_range("Index i is out of range. Must be between 0 and 3.");
+            }
+
+            // Copy elements excluding the i-th element
+            for (int j = 0, k = 0; j < vec4.rows(); ++j)
+            {
+                if (j != i)
+                {
+                    vec3(k++) = vec4(j);
+                }
+            }
+
+            return vec3;
+        }        
+
         // Update 3-vector
         // Must be called after changing the vec4 value
         void update_vec3()
         {
-            vec3 = Matrix::removeElement(vec4, param_ind);
-            vec3_err = Matrix::removeElement(vec4_err, param_ind);
+            vec3 = removeElement(vec4, param_ind);
+            vec3_err = removeElement(vec4_err, param_ind);
         }
 
         // Required data
@@ -133,7 +135,7 @@ namespace Tracker
         std::pair<DigiHit *, DigiHit *> hits;
         float score;
 
-        float Score() {}
+        float Score() {return 0;}
         float GetScore() { return score; }
     };
 

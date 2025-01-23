@@ -4,8 +4,8 @@ namespace Kalman
 {
 
     KalmanTrack4D::KalmanTrack4D(int multiple_scattering,
-                                 int ndimMeasure = 4,
-                                 int ndimStates = 6) : enMultipleScattering(multiple_scattering),
+                                 int ndimMeasure,
+                                 int ndimStates) : enMultipleScattering(multiple_scattering),
                                                        Nmeas(ndimMeasure),
                                                        Nstat(ndimStates),
                                                        xf0(Nstat),
@@ -110,10 +110,12 @@ namespace Kalman
         }
 
         this->track_recon = new Tracker::Track();
-        
+
+        return this->track_recon;
+
     }
 
-    int KalmanTrack4D::update_Q(float step, float multiple_scattering_p = 500, float multiple_scattering_length = 0.06823501107481977)
+    int KalmanTrack4D::update_Q(float step, float multiple_scattering_p, float multiple_scattering_length)
     {
     }       
 

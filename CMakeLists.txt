@@ -13,8 +13,8 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 ## Build type: Debug or Release
-set (CMAKE_BUILD_TYPE Release)
-# set (CMAKE_BUILD_TYPE Debug)
+# set (CMAKE_BUILD_TYPE Release)
+set (CMAKE_BUILD_TYPE Debug)
 
 ## Enable profiling for Debug build
 # Run the simulation, then use `gprof my_program gmon.out > analysis.txt` to check the result
@@ -44,7 +44,11 @@ set(CRY_LIBRARIES ${PROJECT_SOURCE_DIR}/external/cry_v1.7/lib/libCRY.a)
 MESSAGE ("CRY installed at: " ${CRY_INCLUDE_DIRS} )
 
 # ROOT package. Only used for digitizer and metadata
-find_package(ROOT    REQUIRED)
+find_package(ROOT   REQUIRED)
+
+# Eigen3
+find_package (Eigen3 REQUIRED NO_MODULE)
+
 
 #----------------------------------------------------------------------------
 # Setup Geant4 include directories and compile definitions
@@ -87,6 +91,20 @@ add_executable(parma parma.cc
                   ${PROJECT_SOURCE_DIR}/src/generator/parma/parma_util.cc
                   ${PROJECT_SOURCE_DIR}/src/generator/parma/parma_subroutines.cc
                   ${PROJECT_SOURCE_DIR}/include/generator/parma/parma_util.hh)
+
+## Tracker tests
+add_executable(tracker_tests ${PROJECT_SOURCE_DIR}/tracker/tests/test_kalman_model.cc 
+                  ${PROJECT_SOURCE_DIR}/tracker/types.hh
+                  ${PROJECT_SOURCE_DIR}/tracker/util_tracker.hh
+                  ${PROJECT_SOURCE_DIR}/tracker/util_tracker.cc
+                  ${PROJECT_SOURCE_DIR}/tracker/kalman.hh
+                  ${PROJECT_SOURCE_DIR}/tracker/kalman_model.cc
+                  ${PROJECT_SOURCE_DIR}/tracker/kalman_model.hh
+)
+target_include_directories(tracker_tests PUBLIC ${EIGEN3_INCLUDE_DIR})
+target_link_libraries(tracker_tests ${ROOT_LIBRARIES})
+
+
 
 # add_library(musim SHARED ${sources})
 # target_include_directories(musim PUBLIC
