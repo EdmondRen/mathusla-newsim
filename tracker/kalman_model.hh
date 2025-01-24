@@ -53,8 +53,8 @@ namespace Kalman
         // Intermediate parameters
         double step_current, step_next, step_size;
         MatrixXd Vi; // Measurement uncertaint, 3x3
-        MatrixXd Hi; // Measurement matrix, 3x6
-        MatrixXd Fi; // State transfer dynamics, 6x6
+        MatrixXdSp Hi; // Measurement matrix, 3x6
+        MatrixXdSp Fi; // State transfer dynamics, 6x6
         MatrixXd Qi; // Process noise matrix, 6x6
 
         // Final output: a track object that holds all the information

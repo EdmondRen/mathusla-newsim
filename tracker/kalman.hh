@@ -3,10 +3,13 @@
 
 #include <iostream>
 
-#include "Eigen/Dense"
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
+// typedef Eigen::SparseMatrix<double> MatrixXdSp;
+using MatrixXdSp = Eigen::SparseMatrix<double>;
 
 namespace Kalman
 {
@@ -16,16 +19,16 @@ namespace Kalman
         // Initialize the filter with
         KF_Forward(int ndimMeasure,
                    int ndimStates) : Nmeas(ndimMeasure),
-                                      Nstat(ndimStates),
-                                      Imeas(Nmeas, Nmeas),
-                                      Istat(Nstat, Nstat),
-                                      xp(Nstat),
-                                      Cp(Nstat, Nstat),
-                                      rp(Nstat),
-                                      Rp(Nmeas, Nmeas),
-                                      Rf(Nmeas, Nmeas),
-                                      Rp_inv(Nmeas, Nmeas),
-                                      chi2_step(0)
+                                     Nstat(ndimStates),
+                                     Imeas(Nmeas, Nmeas),
+                                     Istat(Nstat, Nstat),
+                                     xp(Nstat),
+                                     Cp(Nstat, Nstat),
+                                     rp(Nstat),
+                                     Rp(Nmeas, Nmeas),
+                                     Rf(Nmeas, Nmeas),
+                                     Rp_inv(Nmeas, Nmeas),
+                                     chi2_step(0)
         {
             // Make some identity matrix
             Imeas.setIdentity();
@@ -41,7 +44,7 @@ namespace Kalman
         }
 
         // Update the predicted next state (Xp), state covariance (Cp) and residual covariance (Rp)
-        void UpdateMatrix(MatrixXd &Vi, MatrixXd &Hi, MatrixXd &Fi, MatrixXd &Qi)
+        void UpdateMatrix(MatrixXd &Vi, MatrixXdSp &Hi, MatrixXdSp &Fi, MatrixXd &Qi)
         {
             this->V = &Vi;
             this->H = &Hi;
@@ -74,7 +77,7 @@ namespace Kalman
 
             // Filtered State
             this->xf = this->xp + K * rp_new; // Combination of the predicted state, measured values, covariance matrix and Kalman Gain
-            
+
             // Filtered Covariance Matrix
             this->Cf = (this->Istat - K * (*this->H)) * this->Cp;
 
@@ -87,10 +90,10 @@ namespace Kalman
             this->chi2_total += chi2_step;
         }
 
-        VectorXd GetState(){return xf;}
-        MatrixXd GetCov(){return Cf;}
-        double GetChi2Step(){return chi2_step;}
-        double GetChi2(){return chi2_total;}
+        VectorXd GetState() { return xf; }
+        MatrixXd GetCov() { return Cf; }
+        double GetChi2Step() { return chi2_step; }
+        double GetChi2() { return chi2_total; }
 
     protected:
         // Dimensions
@@ -99,16 +102,18 @@ namespace Kalman
 
         // Measurement
         // Use pointer to avoid memory copy
-        VectorXd m_predict; // Measurement vector (predicted)
+        VectorXd m_predict;     // Measurement vector (predicted)
         VectorXd m_predict_err; // Measurement vector (predicted)
-        MatrixXd *V, *H;    // Measurement uncertainty matrix V, measurement matrix H
+        MatrixXdSp *H;          // Measurement matrix H
+        MatrixXd *V;            // Measurement uncertainty matrix V
 
         // State vectors
         VectorXd xp, xf; // xp: predicted, xf: filtered
 
         // System dynamics
         // Use pointer to avoid memory copy
-        MatrixXd *F, *Q; // Fi: process matrix, Qi: process uncertainty
+        MatrixXdSp *F; // Fi: process matrix
+        MatrixXd *Q;   // Qi: process uncertainty
 
         // Uncertainty and residual
         MatrixXd Cp, Cf;         // Variation Matrices. Cp: predicted, Cf: filtered

@@ -2,12 +2,14 @@
 #define tracker_types_HH
 
 #include <iostream>
-#include "Eigen/Dense"
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 using Eigen::MatrixXd;
 using Eigen::Vector3d;
 using Eigen::Vector4d;
 using Eigen::VectorXd;
+using MatrixXdSp = Eigen::SparseMatrix<double>;
 
 namespace Tracker
 {

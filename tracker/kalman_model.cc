@@ -1,3 +1,4 @@
+
 #include "kalman_model.hh"
 
 namespace Kalman
@@ -18,11 +19,14 @@ namespace Kalman
                                                kf(KF_Forward(ndimMeasure - 1, ndimStates))
     {
         Vi.setZero();
-        Hi.setZero();
+        // Hi.setZero();
         // Measurement matrix is fixed, so we can initialize it here
-        Hi(0, 0) = Hi(1, 1) = Hi(2, 2) = 1;
+        Hi.insert(0, 0) = Hi.insert(1, 1) = Hi.insert(2, 2) = 1;
         // Set process matrix to identity
-        Fi.setIdentity();
+        for (int i = 0; i < Nstat; ++i)
+        {
+            Fi.insert(i, i) = 1; // Set at (i, i)
+        }
     }
 
     int KalmanTrack4D::init_state(const Tracker::DigiHit &hit1, const Tracker::DigiHit &hit2, bool use_first)
@@ -33,7 +37,6 @@ namespace Kalman
         float dt = hit2.get_step() - hit1.get_step();
         Vector3d v = dr / dt;
 
-
         // Initial State Vector
         if (use_first)
             this->xf0 << r1(0), r1(1), r1(2), v(0), v(1), v(2);
@@ -41,8 +44,8 @@ namespace Kalman
             this->xf0 << r2(0), r2(1), r2(2), v(0), v(1), v(2);
 
         // Initial Covariance
-        MatrixXd J(6, 8); // Jacobian matrix. Initialized to 0 by default
-        MatrixXd err(8, 8);
+        MatrixXdSp J(6, 8); // Jacobian matrix. Initialized to 0 by default
+        MatrixXdSp err(8, 8);
         // Set element of the Jacobian. Example:
         // [ 0       , 0           , 0       , 0       , 1       , 0             , 0     , 0     ],
         // [ 0       , 0           , 0       , 0       , 0       , 0             , 1     , 0     ],
@@ -50,27 +53,26 @@ namespace Kalman
         // [- 1 / dy, dx / (dy*dy) , 0       , 0       , 1 / dy  , - dx / (dy*dy), 0     , 0     ],
         // [0       , dz / (dy*dy) , - 1 / dy, 0       , 0       , - dz / (dy*dy), 1 / dy, 0     ],
         // [0       , dt / (dy*dy) , 0       , - 1 / dy, 0       , - dt / (dy*dy), 0     , 1 / dy]]
-
         for (int j = 0, k = 0; j < 4; ++j)
         {
             if (j != hit1.param_ind)
             {
-                J(k + 3, j) = -1 / dt;
-                J(k + 3, j + 4) = -J(k + 3, j);
+                J.insert(k + 3, j) = -1 / dt;
+                J.insert(k + 3, j + 4) = -J.coeff(k + 3, j);
                 if (use_first)
-                    J(k, j) = 1;
+                    J.insert(k, j) = 1;
                 else
-                    J(k, j + 4) = 1;
+                    J.insert(k, j + 4) = 1;
                 k += 1;
             }
             else
             {
-                J(3, j) = v(0) / dt;
-                J(4, j) = v(1) / dt;
-                J(5, j) = v(2) / dt;
-                J(3, j + 4) = -J(3, j);
-                J(4, j + 4) = -J(4, j);
-                J(5, j + 4) = -J(5, j);
+                J.insert(3, j) = v(0) / dt;
+                J.insert(4, j) = v(1) / dt;
+                J.insert(5, j) = v(2) / dt;
+                J.insert(3, j + 4) = -J.coeff(3, j);
+                J.insert(4, j + 4) = -J.coeff(4, j);
+                J.insert(5, j + 4) = -J.coeff(5, j);
             }
         }
         err.diagonal() << hit1.ex() * hit1.ex(), hit1.ey() * hit1.ey(), hit1.ez() * hit1.ez(), hit1.et() * hit1.et(),
@@ -98,7 +100,8 @@ namespace Kalman
         // measurement uncertainty
         this->Vi.diagonal() = hit.get_err3().array().square();
         // dynamics
-        this->Fi(0, 3) = this->Fi(1, 4) = this->Fi(2, 5) = this->step_size;
+        this->Fi.coeffRef(0, 3) = this->Fi.coeffRef(1, 4) = this->Fi.coeffRef(2, 5) = this->step_size;
+
         // multiple scattering
         if (this->enMultipleScattering)
             update_Q(this->step_size);
@@ -112,9 +115,9 @@ namespace Kalman
             std::cout << "V (measurement covariance):\n"
                       << Vi << std::endl;
             std::cout << "H (measurement matrix):\n"
-                      << Hi << std::endl;
+                      << Hi.toDense() << std::endl;
             std::cout << "F (state propogation matrix):\n"
-                      << Fi << std::endl;
+                      << Fi.toDense() << std::endl;
         }
     }
 
@@ -126,11 +129,11 @@ namespace Kalman
     {
 
         kf.Filter(hit.get_vec3());
-        if (DEBUG){
-            std::cout << "Tracker: -> Add measurement: \n " << hit.vec4.transpose() << std::endl;        
-            std::cout << "Tracker: -> New filtered state: \n " << kf.GetState().transpose() << std::endl;        
-            std::cout << "        chi2 contribution: \n " << kf.GetChi2Step() << std::endl;        
-
+        if (DEBUG)
+        {
+            std::cout << "Tracker: -> Add measurement: \n " << hit.vec4.transpose() << std::endl;
+            std::cout << "Tracker: -> New filtered state: \n " << kf.GetState().transpose() << std::endl;
+            std::cout << "         -> chi2 contribution: " << kf.GetChi2Step() << std::endl;
         }
     }
 

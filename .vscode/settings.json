@@ -185,6 +185,12 @@
         "dense": "cpp",
         "pick_action": "cpp",
         "state": "cpp",
-        "states": "cpp"
+        "states": "cpp",
+        "sparse": "cpp",
+        "strstream": "cpp",
+        "hash_map": "cpp",
+        "cfenv": "cpp",
+        "valarray": "cpp",
+        "alignedvector3": "cpp"
     }
 }

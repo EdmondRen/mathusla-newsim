@@ -15,12 +15,17 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 ## Build type: Debug or Release
 # set (CMAKE_BUILD_TYPE Release)
 set (CMAKE_BUILD_TYPE Debug)
+option(PROFILE_WITH_GPROF "Enable profiling with gprof" OFF)
 
+    
 ## Enable profiling for Debug build
 # Run the simulation, then use `gprof my_program gmon.out > analysis.txt` to check the result
-if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "Profile")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
+# if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "Profile")
+if(PROFILE_WITH_GPROF)
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+    # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
+    add_compile_options(-pg)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 endif()
 
 #----------------------------------------------------------------------------

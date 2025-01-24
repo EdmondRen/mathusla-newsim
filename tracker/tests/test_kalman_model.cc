@@ -1,12 +1,15 @@
+// stdlib
 #include <cmath>
+#include <chrono>
 
-#include "../kalman_model.hh"
 
 // ROOT
 #include <TROOT.h>
 #include <TTree.h>
 #include <TFile.h>
 #include <TRandom3.h>
+
+#include "../kalman_model.hh"
 
 TRandom3 rng;
 
@@ -55,6 +58,15 @@ Tracker::HitList genHits(double x0_span, double y0_span, double z0, double Ax_sp
     return hits;
 }
 
+void run_once()
+{
+    Tracker::HitList hits = genHits(30, 30, 0, 0.1, 0.1);
+    auto fitter = new Kalman::KalmanTrack4D(0, 4, 6, false);
+    auto track = fitter->run_filter(hits);
+    auto chi2 = track->chi2;
+    std::cout << "chi2: " << chi2 << std::endl;
+}
+
 int main()
 {
 
@@ -62,28 +74,36 @@ int main()
 
     // Look at one track
     Tracker::HitList hits = genHits(30, 30, 0, 0.1, 0.1);
-    auto fitter = new Kalman::KalmanTrack4D(0, 4, 6, true);
+    std::cout<< hits.size() <<std::endl;
+    auto fitter = new Kalman::KalmanTrack4D(0, 4, 6, false);
     auto track = fitter->run_filter(hits);
 
-    hits = genHits(30, 30, 0, 0.1, 0.1);
-    fitter->run_filter(hits);
+    // hits = genHits(30, 30, 0, 0.1, 0.1);
+    // fitter->run_filter(hits);
+    // VectorXd chi2(N);
 
-    int N = 10;
-    VectorXd chi2(N);
+    int N = 1000;
+    auto start = std::chrono::high_resolution_clock::now();
+
     for (int i = 0; i < N; i++)
-    {   
-    std::cout << "--------------------------- " << i << "------------------" << std::endl;
+    {
+        // std::cout << "--------------------------- " << i << "------------------" << std::endl;
         // auto fitter_new = Kalman::KalmanTrack4D(0, 4, 6, true);
-        auto hits_temp = genHits(30, 30, 0, 0.1, 0.1);
-        auto track2 = fitter->run_filter(hits_temp);
-        chi2(i) = track2->chi2;
-        delete track2;
-        for (auto hit:hits_temp)
-            delete hit;
+        // auto hits_temp = genHits(30, 30, 0, 0.1, 0.1);
+        auto track2 = fitter->run_filter(hits);
+        // chi2(i) = track2->chi2;
+        // delete track2;
+        // for (auto hit : hits)
+        //     std::cout << "hitx: " << hit->x() << std::endl;
+        // run_once();
     }
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << duration.count() << std::endl;
 
-    std::cout << "chi2: " << chi2.transpose() << std::endl;
-    std::cout << "chi2 mean: " << chi2.mean() << std::endl;
+
+    // // std::cout << "chi2: " << chi2.transpose() << std::endl;
+    // std::cout << "chi2 mean: " << chi2.mean() << std::endl;
 
     return 0;
 }
