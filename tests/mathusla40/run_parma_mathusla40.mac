@@ -42,5 +42,5 @@
 /gen/parma/update
 
 
-/run/beamOn 1
+/run/beamOn 10000
 #/run/dumpCouples

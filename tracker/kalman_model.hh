@@ -29,7 +29,9 @@ namespace Kalman
         int new_step(const Tracker::DigiHit &hit);
 
         // Try a measurement
-        int try_measurement(const Tracker::DigiHit &hit, float sigma_cut, float chi2_cut);
+        // If the hit passed the range and chi2 cut, return the chi2 value
+        // Else, return -1
+        float try_measurement(const Tracker::DigiHit &hit, float sigma_cut, float chi2_cut);
 
         // Add a measurement
         int add_measurement(const Tracker::DigiHit &hit);
@@ -38,7 +40,7 @@ namespace Kalman
         int update_Q(float step, float multiple_scattering_p = 500, float multiple_scattering_length = 0.06823501107481977);
 
         // Run filter forward
-        std::unique_ptr<Tracker::Track> run_filter(const std::vector<std::unique_ptr<Tracker::DigiHit>>& hits);
+        std::unique_ptr<Tracker::Track> run_filter(const std::vector<Tracker::DigiHit*> &hits);
 
     protected:
         // Filter instance

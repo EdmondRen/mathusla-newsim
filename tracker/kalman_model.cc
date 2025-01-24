@@ -126,7 +126,7 @@ namespace Kalman
         return 0;
     }
 
-    int KalmanTrack4D::try_measurement(const Tracker::DigiHit &hit, float sigma_cut, float chi2_cut)
+    float  KalmanTrack4D::try_measurement(const Tracker::DigiHit &hit, float sigma_cut, float chi2_cut)
     {
         (void)hit;
         (void)sigma_cut;
@@ -147,7 +147,7 @@ namespace Kalman
         return 0;
     }
 
-    std::unique_ptr<Tracker::Track> KalmanTrack4D::run_filter(const std::vector<std::unique_ptr<Tracker::DigiHit>> &hits)
+    std::unique_ptr<Tracker::Track> KalmanTrack4D::run_filter(const std::vector<Tracker::DigiHit*> &hits)
     {
         bool use_first_hit = false;
         init_state(*hits[0], *hits[1], use_first_hit);

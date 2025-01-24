@@ -201,19 +201,6 @@ namespace Tracker
         std::vector<std::unique_ptr<Track>> tracks;
     };
 
-    class TrackSeed
-    {
-    public:
-        TrackSeed() {}
-
-        // Required data
-        std::pair<std::unique_ptr<DigiHit>, std::unique_ptr<DigiHit>> hits;
-        float score;
-
-        float Score() { return 0; }
-        float GetScore() { return score; }
-    };
-
 } // namespace Tracker
 
 #endif
