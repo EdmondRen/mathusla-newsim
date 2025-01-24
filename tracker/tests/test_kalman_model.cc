@@ -15,7 +15,6 @@ TRandom3 rng;
 
 std::vector<std::unique_ptr<Tracker::DigiHit>> genHits(double x0_span, double y0_span, double z0, double Ax_span, double Ay_span, double v = 30, int n_layers = 6)
 {
-    // Generate a vector with 10 elements, linearly spaced from 0 to 9
     auto layer_ids = Eigen::VectorXd::LinSpaced(n_layers, 0, n_layers - 1);
     auto layer_zs = (layer_ids * 80).array() + z0; // y_coordinates
 

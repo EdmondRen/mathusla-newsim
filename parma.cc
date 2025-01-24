@@ -10,8 +10,10 @@
 
 // Project includes
 #include "util.hh"
-#include "parma_util.hh"
+#include "generator/parma/parma_util.hh"
 
+// Global variables
+std::string util::globals::PROJECT_SOURCE_DIR = "";
 
 int main(int argc, const char *argv[])
 {

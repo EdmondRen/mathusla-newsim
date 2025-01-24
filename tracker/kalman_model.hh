@@ -60,7 +60,7 @@ namespace Kalman
         MatrixXd Qi; // Process noise matrix, 6x6
 
         // Final output: a track object that holds all the information
-        Tracker::Track *track_recon; // state, 1x6 col vector
+        std::unique_ptr<Tracker::Track> track; // state, 1x6 col vector
 
         
     };

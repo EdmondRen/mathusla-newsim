@@ -146,29 +146,45 @@ namespace MuGeoBuilder
         else if (copy_numbers.size() == 2)
         {
             int layer_number = copy_numbers[1];
-            int nx, ny, ny_total = 0;
+            int nx = 0, ny = 0, ny_total = 0;
             if (layer_number == 0)
             {
                 nx = floor((-local_coord.x()) / mu40dims::bar_leny_real) + mu40dims::vw_Nbars_z_layer1 / 2;
                 ny = floor((local_coord.y()) / mu40dims::bar_lenx_real) + mu40dims::vw_Nbars_y_layer1 / 2;
+                if (nx == mu40dims::vw_Nbars_z_layer1)
+                    nx = mu40dims::vw_Nbars_z_layer1 - 1;
+                if (ny == mu40dims::vw_Nbars_y_layer1)
+                    ny = mu40dims::vw_Nbars_y_layer1 - 1;
                 ny_total = mu40dims::vw_Nbars_y_layer1;
             }
             else if (layer_number == 1)
             {
                 nx = floor((-local_coord.x()) / mu40dims::bar_lenx_real) + mu40dims::vw_Nbars_z_layer2 / 2;
                 ny = floor((local_coord.y()) / mu40dims::bar_leny_real) + mu40dims::vw_Nbars_y_layer2 / 2;
+                if (nx == mu40dims::vw_Nbars_z_layer1)
+                    nx = mu40dims::vw_Nbars_z_layer1 - 1;
+                if (ny == mu40dims::vw_Nbars_y_layer1)
+                    ny = mu40dims::vw_Nbars_y_layer1 - 1;
                 ny_total = mu40dims::vw_Nbars_y_layer2;
             }
             else if (layer_number == 2)
             {
                 nx = floor((local_coord.x()) / mu40dims::bar_leny_real) + mu40dims::vf_Nbars_x_layer1 / 2;
                 ny = floor((local_coord.y()) / mu40dims::bar_lenx_real) + mu40dims::vf_Nbars_y_layer1 / 2;
+                if (nx == mu40dims::vw_Nbars_z_layer1)
+                    nx = mu40dims::vw_Nbars_z_layer1 - 1;
+                if (ny == mu40dims::vw_Nbars_y_layer1)
+                    ny = mu40dims::vw_Nbars_y_layer1 - 1;
                 ny_total = mu40dims::vf_Nbars_y_layer1;
             }
             else if (layer_number == 3)
             {
                 nx = floor((local_coord.x()) / mu40dims::bar_lenx_real) + mu40dims::vf_Nbars_x_layer2 / 2;
                 ny = floor((local_coord.y()) / mu40dims::bar_leny_real) + mu40dims::vf_Nbars_y_layer2 / 2;
+                if (nx == mu40dims::vw_Nbars_z_layer1)
+                    nx = mu40dims::vw_Nbars_z_layer1 - 1;
+                if (ny == mu40dims::vw_Nbars_y_layer1)
+                    ny = mu40dims::vw_Nbars_y_layer1 - 1;
                 ny_total = mu40dims::vf_Nbars_y_layer2;
             }
             det_id += ny + nx * ny_total;
@@ -195,7 +211,7 @@ namespace MuGeoBuilder
     BarPositionMap Mathusla40_Builder::GetBarPositionMap()
     {
         return this->IDMaps_inWorld;
-    }    
+    }
 
     // Geometry Builder Class
     Mathusla40_Builder::Mathusla40_Builder() : Builder()
@@ -947,7 +963,7 @@ namespace MuGeoBuilder
                                    G4Transform3D(G4RotationMatrix(), // rotation
                                                  G4ThreeVector(mu40dims::detector_ground_offset[0],
                                                                mu40dims::detector_ground_offset[1],
-                                                               ( mu40dims::env_earth_depth_top + 0.5 * mu40dims::env_earth_depth_mid + 0.5 * mu40dims::detector_lenz + mu40dims::detector_ground_offset[2]))));
+                                                               (mu40dims::env_earth_depth_top + 0.5 * mu40dims::env_earth_depth_mid + 0.5 * mu40dims::detector_lenz + mu40dims::detector_ground_offset[2]))));
         G4LogicalVolume *earthLV_mid = new G4LogicalVolume(
             earth_excavated_mid, // its solid
             Material::GroundMix, // its material
@@ -958,13 +974,13 @@ namespace MuGeoBuilder
         auto earthPV_mid = new G4PVPlacement(
             G4Transform3D(G4RotationMatrix(), // rotation
                           G4ThreeVector(0, 0,
-                                        - (mu40dims::env_earth_depth_top + mu40dims::env_earth_depth_mid * 0.5))), // offset
-            earthLV_mid,                                                                                        // its logical volume
-            "earth_mid",                                                                                        // its name
-            _worldLV,                                                                                           // its mother volume
-            false,                                                                                              // no boolean operation
-            0,                                                                                                  // copy number (layer number within a module)
-            fCheckOverlaps);                                                                                    // checking overlaps
+                                        -(mu40dims::env_earth_depth_top + mu40dims::env_earth_depth_mid * 0.5))), // offset
+            earthLV_mid,                                                                                          // its logical volume
+            "earth_mid",                                                                                          // its name
+            _worldLV,                                                                                             // its mother volume
+            false,                                                                                                // no boolean operation
+            0,                                                                                                    // copy number (layer number within a module)
+            fCheckOverlaps);                                                                                      // checking overlaps
         (void)earthPV_mid;
 
         // Limit the step in earth mid logical volume

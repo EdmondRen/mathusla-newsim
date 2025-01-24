@@ -87,6 +87,7 @@ namespace MuGeoBuilder
   // Calculate detector ID based on the four copy numbers
   long long int Uoft1_Builder::GetDetectorID(std::vector<int> copy_numbers, G4ThreeVector local_coord)
   {
+    (void) local_coord;
     if (copy_numbers.size() != uoftdims::GEO_DEPTH)
     {
       G4cout << " [ERROR] Geometry: The geometry depth is wrong. Please check geometry implementation." << G4endl;
@@ -221,7 +222,7 @@ namespace MuGeoBuilder
         al_case,            // its solid
         Material::Aluminum, // its material
         "al_case");         // its name
-    auto al_case1PV = new G4PVPlacement(
+    new G4PVPlacement(
         0, // no rotation
         G4ThreeVector(0,
                       0,
@@ -232,7 +233,7 @@ namespace MuGeoBuilder
         false,                                                                 // no boolean operation
         0,                                                                     // copy number
         fCheckOverlaps);                                                       // checking overlaps
-    auto al_case2PV = new G4PVPlacement(
+    new G4PVPlacement(
         0, // no rotation
         G4ThreeVector(0,
                       0,

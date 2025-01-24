@@ -15,7 +15,9 @@ namespace Kalman
                                                Cf0(Nstat, Nstat),
                                                Vi(Nmeas, Nmeas),
                                                Hi(Nmeas, Nstat),
-                                               Fi(Nstat, Nstat), Qi(Nstat, Nstat)
+                                               Fi(Nstat, Nstat), 
+                                               Qi(Nstat, Nstat),
+                                               track(nullptr)
 
     {
         Vi.setZero();
@@ -155,17 +157,20 @@ namespace Kalman
             add_measurement(*hits[i]);
         }
 
+        // Insert the independent variable back to the parameter list and covariance matrix
+        // After the insertion, there will always be 8 parameters in sequence: {x0, y0, z0, t0, Ax, Ay, Az, At}
         auto indep_param_idx = hits.back()->param_ind;
         auto params = Tracker::Helper::insertVector(kf.GetState(), indep_param_idx, hits.back()->get_step());
         auto cov = Tracker::Helper::insertRowAndColumnOfZeros(kf.GetCov(), indep_param_idx);
+        cov = Tracker::Helper::insertRowAndColumnOfZeros(cov, indep_param_idx + 4);
         cov(indep_param_idx, indep_param_idx) = std::pow(hits.back()->get_steperr(), 2);
-        auto chi2 = kf.GetChi2();
 
-        auto track = std::make_unique<Tracker::Track>();
+        // Make the track
+        track = std::make_unique<Tracker::Track>();
         track->params = params;
         track->param_ind = indep_param_idx;
         track->cov = cov;
-        track->chi2 = chi2;
+        track->chi2 = kf.GetChi2();
 
         if (DEBUG)
         {
@@ -178,7 +183,7 @@ namespace Kalman
                       << track->chi2 << std::endl;
         }
 
-        return track;
+        return std::move(track);
     }
 
     int KalmanTrack4D::update_Q(float step, float multiple_scattering_p, float multiple_scattering_length)

@@ -34,7 +34,6 @@ endif()
 # Find Geant4 package, activating all available UI and Vis drivers by default
 # You can set WITH_GEANT4_UIVIS to OFF via the command line or ccmake/cmake-gui
 # to build a batch mode only executable
-#
 option(WITH_GEANT4_UIVIS "Build example with Geant4 UI and Vis drivers" ON)
 if(WITH_GEANT4_UIVIS)
   find_package(Geant4 REQUIRED ui_all vis_all)
@@ -49,7 +48,7 @@ set(CRY_LIBRARIES ${PROJECT_SOURCE_DIR}/external/cry_v1.7/lib/libCRY.a)
 MESSAGE ("CRY installed at: " ${CRY_INCLUDE_DIRS} )
 
 # ROOT package. Only used for digitizer and metadata
-find_package(ROOT   REQUIRED)
+find_package(ROOT REQUIRED)
 
 # Eigen3
 find_package (Eigen3 REQUIRED NO_MODULE)
@@ -59,11 +58,11 @@ find_package (Eigen3 REQUIRED NO_MODULE)
 # Setup Geant4 include directories and compile definitions
 # Setup include directory for this project
 #
-include(${Geant4_USE_FILE})
-# include(${ROOT_USE_FILE})
+include(${Geant4_USE_FILE} )
+include(${ROOT_USE_FILE})
 include_directories(${PROJECT_SOURCE_DIR}/include
-                    ${PROJECT_SOURCE_DIR}/include/generator/parma
-                    ${CRY_INCLUDE_DIRS})
+                    ${CRY_INCLUDE_DIRS}
+                    ${EIGEN3_INCLUDE_DIR})
 
 #----------------------------------------------------------------------------
 # Locate sources and headers for this project
@@ -73,55 +72,52 @@ file(GLOB_RECURSE  sources ${PROJECT_SOURCE_DIR}/src/*.cc)
 file(GLOB_RECURSE  headers ${PROJECT_SOURCE_DIR}/include/*.hh
                            ${PROJECT_SOURCE_DIR}/include/*.hpp)
 
+file(GLOB  sources_tracker ${PROJECT_SOURCE_DIR}/tracker/*.cc)
+file(GLOB  headers_tracker ${PROJECT_SOURCE_DIR}/tracker/*.hh)                           
+
 #----------------------------------------------------------------------------
-# Add the executable, and link it to the Geant4 libraries
-## Main simulation executable
-add_executable(simulation simulation.cc ${sources} ${headers})
-target_link_libraries(simulation PUBLIC
-                    ${Geant4_LIBRARIES} 
-                    ${ROOT_LIBRARIES}
-                    ${CRY_LIBRARIES})
+# Make library and executables
+
+# Make a shared library for simulation
+add_library(mu_sim SHARED ${sources})
+target_include_directories(mu_sim PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_SOURCE_DIR}/include>)
+target_link_libraries(mu_sim PUBLIC
+    ${Geant4_LIBRARIES} 
+    ${ROOT_LIBRARIES}
+    )
+
+# Make a shared library for tracker
+add_library(mu_recon SHARED ${sources_tracker})
+target_include_directories(mu_recon PUBLIC
+    ${PROJECT_SOURCE_DIR}/tracker/
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_SOURCE_DIR}/include>)
+target_link_libraries(mu_recon PUBLIC
+    ${ROOT_LIBRARIES}
+    )    
+
+## Simulation main entrance
+add_executable(simulation simulation.cc)
+target_link_libraries(simulation PUBLIC mu_sim ${CRY_LIBRARIES})
+
 
 ## Digitizer
-add_executable(digitizer digitizer.cc ${sources} ${headers})
-target_link_libraries(digitizer PUBLIC ${Geant4_LIBRARIES} ${ROOT_LIBRARIES} ${CRY_LIBRARIES})
+add_executable(digitizer digitizer.cc)
+target_link_libraries(digitizer PUBLIC mu_sim ${CRY_LIBRARIES})
 
 ## Standalone CRY cosmic generator
-add_executable(cry cry.cc src/util.cc ${headers})
-target_link_libraries(cry ${CRY_LIBRARIES})
+add_executable(cry cry.cc ${headers})
+target_link_libraries(cry PUBLIC mu_sim ${CRY_LIBRARIES})
 
 ## Standalone parma cosmic generator
-add_executable(parma parma.cc 
-                  ${PROJECT_SOURCE_DIR}/src/util.cc 
-                  ${PROJECT_SOURCE_DIR}/src/generator/parma/parma_util.cc
-                  ${PROJECT_SOURCE_DIR}/src/generator/parma/parma_subroutines.cc
-                  ${PROJECT_SOURCE_DIR}/include/generator/parma/parma_util.hh)
+add_executable(parma parma.cc)
+target_link_libraries(parma PUBLIC mu_sim ${CRY_LIBRARIES})
 
 ## Tracker tests
-add_executable(tracker_tests ${PROJECT_SOURCE_DIR}/tracker/tests/test_kalman_model.cc 
-                  ${PROJECT_SOURCE_DIR}/tracker/types.hh
-                  ${PROJECT_SOURCE_DIR}/tracker/util_tracker.hh
-                  ${PROJECT_SOURCE_DIR}/tracker/util_tracker.cc
-                  ${PROJECT_SOURCE_DIR}/tracker/kalman.hh
-                  ${PROJECT_SOURCE_DIR}/tracker/kalman_model.cc
-                  ${PROJECT_SOURCE_DIR}/tracker/kalman_model.hh
-)
-target_include_directories(tracker_tests PUBLIC ${EIGEN3_INCLUDE_DIR})
-target_link_libraries(tracker_tests ${ROOT_LIBRARIES})
-
-
-
-# add_library(musim SHARED ${sources})
-# target_include_directories(musim PUBLIC
-#     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
-#     $<INSTALL_INTERFACE:${CMAKE_SOURCE_DIR}/include>)
-# target_link_libraries(musim PUBLIC
-#     ${Geant4_LIBRARIES} 
-#     ${ROOT_LIBRARIES}
-#     )
-
-# add_executable(simulation simulation.cc ${sources} ${headers})
-# target_link_libraries(simulation PUBLIC musim ${CRY_LIBRARIES})
+add_executable(tracker_test1 ${PROJECT_SOURCE_DIR}/tracker/tests/test_kalman_model.cc)
+target_link_libraries(tracker_test1 mu_recon)
 
 
 #----------------------------------------------------------------------------
@@ -131,16 +127,8 @@ target_link_libraries(tracker_tests ${ROOT_LIBRARIES})
 
 # file(COPY macros DESTINATION ${PROJECT_BINARY_DIR})
 
-
 # set(EXAMPLEMuA_SCRIPTS
 #   exampleMu.out
-#   exampleMu.in
-#   gui.mac
-#   init_vis.mac
-#   plotHisto.C
-#   plotNtuple.C
-#   run1.mac
-#   run2.mac
 #   vis.mac
 #   )
 
@@ -156,4 +144,4 @@ target_link_libraries(tracker_tests ${ROOT_LIBRARIES})
 # Install the executable to 'bin' directory under CMAKE_INSTALL_PREFIX
 #
 install(TARGETS simulation DESTINATION bin)
-install(TARGETS cry DESTINATION bin)
+# install(TARGETS cry DESTINATION bin)

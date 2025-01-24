@@ -284,11 +284,11 @@ namespace MuGenerators
 
     std::map<std::string, std::string> MuPARMA::getMetaData()
     {
-
+        return {};
     }
 
     float MuPARMA::getEventWeight()
     {
-
+        return event_weight;
     }
 }
