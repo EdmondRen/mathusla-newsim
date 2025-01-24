@@ -7,18 +7,19 @@ namespace Kalman
     KalmanTrack4D::KalmanTrack4D(int multiple_scattering,
                                  int ndimMeasure,
                                  int ndimStates,
-                                 bool debug) : enMultipleScattering(multiple_scattering),
+                                 bool debug) : kf(KF_Forward(ndimMeasure - 1, ndimStates)),
+                                               DEBUG(debug), enMultipleScattering(multiple_scattering),
                                                Nmeas(ndimMeasure - 1),
                                                Nstat(ndimStates),
                                                xf0(Nstat),
                                                Cf0(Nstat, Nstat),
                                                Vi(Nmeas, Nmeas),
                                                Hi(Nmeas, Nstat),
-                                               Fi(Nstat, Nstat), Qi(Nstat, Nstat),
-                                               DEBUG(debug),
-                                               kf(KF_Forward(ndimMeasure - 1, ndimStates))
+                                               Fi(Nstat, Nstat), Qi(Nstat, Nstat)
+
     {
         Vi.setZero();
+        Qi.setZero();
         // Hi.setZero();
         // Measurement matrix is fixed, so we can initialize it here
         Hi.insert(0, 0) = Hi.insert(1, 1) = Hi.insert(2, 2) = 1;
@@ -119,10 +120,16 @@ namespace Kalman
             std::cout << "F (state propogation matrix):\n"
                       << Fi.toDense() << std::endl;
         }
+
+        return 0;
     }
 
     int KalmanTrack4D::try_measurement(const Tracker::DigiHit &hit, float sigma_cut, float chi2_cut)
     {
+        (void)hit;
+        (void)sigma_cut;
+        (void)chi2_cut;
+        return 0;
     }
 
     int KalmanTrack4D::add_measurement(const Tracker::DigiHit &hit)
@@ -135,13 +142,14 @@ namespace Kalman
             std::cout << "Tracker: -> New filtered state: \n " << kf.GetState().transpose() << std::endl;
             std::cout << "         -> chi2 contribution: " << kf.GetChi2Step() << std::endl;
         }
+        return 0;
     }
 
-    Tracker::Track *KalmanTrack4D::run_filter(Tracker::HitList hits)
+    std::unique_ptr<Tracker::Track> KalmanTrack4D::run_filter(const std::vector<std::unique_ptr<Tracker::DigiHit>> &hits)
     {
         bool use_first_hit = false;
         init_state(*hits[0], *hits[1], use_first_hit);
-        for (int i = 2; i < hits.size(); i++)
+        for (size_t i = 2; i < hits.size(); i++)
         {
             new_step(*hits[i]);
             add_measurement(*hits[i]);
@@ -153,27 +161,32 @@ namespace Kalman
         cov(indep_param_idx, indep_param_idx) = std::pow(hits.back()->get_steperr(), 2);
         auto chi2 = kf.GetChi2();
 
-        this->track_recon = new Tracker::Track();
-        track_recon->params = params;
-        track_recon->cov = cov;
-        track_recon->chi2 = chi2;
+        auto track = std::make_unique<Tracker::Track>();
+        track->params = params;
+        track->param_ind = indep_param_idx;
+        track->cov = cov;
+        track->chi2 = chi2;
 
         if (DEBUG)
         {
             std::cout << "Tracker: -> track finished, independent variable added to the parameter list." << std::endl;
             std::cout << "Final filtered state vec:\n"
-                      << track_recon->params << std::endl;
+                      << track->params << std::endl;
             std::cout << "Final filtered state cov:\n"
-                      << track_recon->cov << std::endl;
+                      << track->cov << std::endl;
             std::cout << "Final filtered chi2:\n"
-                      << track_recon->chi2 << std::endl;
+                      << track->chi2 << std::endl;
         }
 
-        return this->track_recon;
+        return track;
     }
 
     int KalmanTrack4D::update_Q(float step, float multiple_scattering_p, float multiple_scattering_length)
     {
+        (void)step;
+        (void)multiple_scattering_p;
+        (void)multiple_scattering_length;
+        return 0;
     }
 
 } // namespace Kalman

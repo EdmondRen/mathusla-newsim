@@ -67,7 +67,7 @@ namespace Kalman
         }
 
         // Run filter on the next measurement
-        double Filter(const VectorXd &mi)
+        double Filter(const VectorXd mi)
         {
             // Get residual
             auto rp_new = mi - (*this->H) * this->xp;
@@ -88,6 +88,8 @@ namespace Kalman
             // Chi2 contribution
             this->chi2_step = rf.transpose() * this->Rf.inverse() * rf;
             this->chi2_total += chi2_step;
+
+            return this->chi2_step;
         }
 
         VectorXd GetState() { return xf; }

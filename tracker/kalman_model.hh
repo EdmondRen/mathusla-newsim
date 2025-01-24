@@ -2,6 +2,7 @@
 #define kalman_model_HH
 
 #include <iostream>
+#include <memory>
 
 #include "Eigen/Dense"
 
@@ -37,11 +38,12 @@ namespace Kalman
         int update_Q(float step, float multiple_scattering_p = 500, float multiple_scattering_length = 0.06823501107481977);
 
         // Run filter forward
-        Tracker::Track *run_filter(Tracker::HitList hits);
+        std::unique_ptr<Tracker::Track> run_filter(const std::vector<std::unique_ptr<Tracker::DigiHit>>& hits);
 
     protected:
         // Filter instance
         KF_Forward kf;
+        bool DEBUG;
 
         // Parameters
         int enMultipleScattering;
@@ -60,7 +62,7 @@ namespace Kalman
         // Final output: a track object that holds all the information
         Tracker::Track *track_recon; // state, 1x6 col vector
 
-        bool DEBUG;
+        
     };
 
 } // namespace Kalman

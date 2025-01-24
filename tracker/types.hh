@@ -141,7 +141,7 @@ namespace Tracker
         int group;               // Which detector grop this hit belongs to
 
         // Optional
-        int index;
+        int id;
         int type;
         u_int64_t detector_id;
 
@@ -167,7 +167,7 @@ namespace Tracker
         inline Vector3d get_vec3() const { return vec3; }
         inline Vector3d get_err3() const { return vec3_err; }
     };
-    using HitList = std::vector<DigiHit *>;
+    using HitList = std::vector<std::unique_ptr<DigiHit>>;
 
     class Track
     {
@@ -181,10 +181,10 @@ namespace Tracker
         int param_ind; // Index of the independent parameter. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
 
         // Optional
-        int index;
-        std::vector<DigiHit *> hits;
+        int id;
+        std::vector<int> hit_ids;
     };
-    using TrackList = std::vector<Track *>;
+    using TrackList = std::vector<std::unique_ptr<Track>>;
 
     class Vertex
     {
@@ -198,7 +198,7 @@ namespace Tracker
 
         // Optional
         int index;
-        std::vector<Track *> tracks;
+        std::vector<std::unique_ptr<Track>> tracks;
     };
 
     class TrackSeed
@@ -207,7 +207,7 @@ namespace Tracker
         TrackSeed() {}
 
         // Required data
-        std::pair<DigiHit *, DigiHit *> hits;
+        std::pair<std::unique_ptr<DigiHit>, std::unique_ptr<DigiHit>> hits;
         float score;
 
         float Score() { return 0; }
