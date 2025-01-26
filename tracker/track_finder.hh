@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "types.hh"
+#include "util.hh"
 
 namespace Tracker
 {
@@ -34,8 +35,9 @@ namespace Tracker
     class TrackFinder
     {
     public:
-        TrackFinder(HitList &&allHits,
-                    bool debug = false);
+        TrackFinder(std::vector<DigiHit *> allHits,
+                    bool debug = false,
+                    bool debug_kalman = false);
 
         // Clear the internal states
         void Clear();
@@ -60,10 +62,14 @@ namespace Tracker
         int FindAll();
 
     protected:
-        bool DEBUG;
+        // python-like print function, enable for debug mode only.
+        template <typename... Args>
+        inline void print_dbg(Args... args) {if (DEBUG) print(args...);}
+
+        bool DEBUG, DEBUG_KALMAN;
 
         // All available hits and seeds
-        HitList hits_all;
+        std::vector<DigiHit *> hits_all;
         std::vector<TrackSeed *> seeds_unused;
         std::unordered_map<int, std::vector<DigiHit*>> hits_grouped;
         std::vector<int> hits_groups;

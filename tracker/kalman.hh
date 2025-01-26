@@ -55,13 +55,22 @@ namespace Kalman
             this->Rp = Vi + Hi * Cp * Hi.transpose();
             this->Rp_inv = this->Rp.inverse();
             this->m_predict = Hi * this->xp;
-            this->m_predict_err = ((*this->H) * this->Cf * (*this->H).transpose()).diagonal();
+            this->m_predict_err = Rp.diagonal().array().sqrt();
         }
 
         // Calculate the predicted chi2 with the next measurement
-        double TryHit(const VectorXd &mi)
+        double TryHit(const VectorXd &mi, int n_sigma = 5)
         {
-            auto rp_i = mi - m_predict;
+            auto rp_i = mi - this->m_predict;
+
+            // Return a very large value if it is obviously out of range
+            // This is simply for speed consideration, it 
+            // avoids preceeding to the chi2 calculation.
+            if (std::abs(rp_i(0)) > n_sigma*m_predict_err(0) || 
+                std::abs(rp_i(1)) > n_sigma*m_predict_err(1) || 
+                std::abs(rp_i(2)) > n_sigma*m_predict_err(2) )
+                return 999999;
+
             double chi2_predict = rp_i.transpose() * this->Rp_inv * rp_i;
             return chi2_predict;
         }
@@ -92,10 +101,12 @@ namespace Kalman
             return this->chi2_step;
         }
 
-        VectorXd GetState() { return xf; }
-        MatrixXd GetCov() { return Cf; }
-        double GetChi2Step() { return chi2_step; }
-        double GetChi2() { return chi2_total; }
+        inline VectorXd GetState() { return xf; }
+        inline MatrixXd GetCov() { return Cf; }
+        inline VectorXd GetPredict() { return m_predict; }
+        inline VectorXd GetPredictErr() { return m_predict_err; }
+        inline double GetChi2Step() { return chi2_step; }
+        inline double GetChi2() { return chi2_total; }
 
     protected:
         // Dimensions
@@ -104,8 +115,8 @@ namespace Kalman
 
         // Measurement
         // Use pointer to avoid memory copy
-        VectorXd m_predict;     // Measurement vector (predicted)
-        VectorXd m_predict_err; // Measurement vector (predicted)
+        VectorXd m_predict;     // predicted Measurement vector
+        VectorXd m_predict_err; // predicted Measurement error
         MatrixXdSp *H;          // Measurement matrix H
         MatrixXd *V;            // Measurement uncertainty matrix V
 

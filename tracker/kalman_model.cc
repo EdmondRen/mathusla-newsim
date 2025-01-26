@@ -15,7 +15,7 @@ namespace Kalman
                                                Cf0(Nstat, Nstat),
                                                Vi(Nmeas, Nmeas),
                                                Hi(Nmeas, Nstat),
-                                               Fi(Nstat, Nstat), 
+                                               Fi(Nstat, Nstat),
                                                Qi(Nstat, Nstat),
                                                track(nullptr)
 
@@ -126,12 +126,20 @@ namespace Kalman
         return 0;
     }
 
-    float  KalmanTrack4D::try_measurement(const Tracker::DigiHit &hit, float sigma_cut, float chi2_cut)
+    float KalmanTrack4D::try_measurement(const Tracker::DigiHit &hit, float sigma_cut, float chi2_cut)
     {
-        (void)hit;
-        (void)sigma_cut;
-        (void)chi2_cut;
-        return 0;
+        // First, check if the hit is within the predicted range
+        Vector3d mi = hit.get_vec3();
+        // Vector3d mp = kf.GetPredict().array();
+        // Vector3d mperr = kf.GetPredictErr().array();
+        // if (std::abs(mi.x()-mp(0)) < sigma_cut*mperr(0))
+
+        // Then, check if it have small enough chi2
+        auto chi2_temp = kf.TryHit(mi, sigma_cut);
+        if (chi2_temp < chi2_cut)
+            return chi2_temp;
+        else
+            return -1;
     }
 
     int KalmanTrack4D::add_measurement(const Tracker::DigiHit &hit)
@@ -147,7 +155,7 @@ namespace Kalman
         return 0;
     }
 
-    std::unique_ptr<Tracker::Track> KalmanTrack4D::run_filter(const std::vector<Tracker::DigiHit*> &hits)
+    std::unique_ptr<Tracker::Track> KalmanTrack4D::run_filter(const std::vector<Tracker::DigiHit *> &hits)
     {
         bool use_first_hit = false;
         init_state(*hits[0], *hits[1], use_first_hit);

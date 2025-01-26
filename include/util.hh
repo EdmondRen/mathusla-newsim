@@ -14,12 +14,11 @@
 #include <any>
 #include <variant>
 #include <map>
-
-
+#include <iomanip>
 
 namespace util
 {
-    static std::string VERSION  = "0.1";
+    static std::string VERSION = "0.1";
 
     namespace globals
     {
@@ -107,6 +106,105 @@ namespace util
             // Print the result with the specified ending
             output += end;
             return output;
+        }
+
+        // Base case for variadic template: no arguments left to process
+        inline void format_impl(std::ostringstream &oss, const std::string &format)
+        {
+            oss << format;
+        }
+
+        // Helper function to apply formatting
+        template <typename T>
+        void apply_format(std::ostringstream &oss, const std::string &spec, const T &value)
+        {
+            if (spec.empty())
+            {
+                oss << value; // No formatting specified
+                return;
+            }
+
+            int width = 0;      // Default width
+            int precision = -1; // Default precision (unset)
+            size_t dot_pos = std::string::npos;
+
+            // Skip leading ':' if present
+            std::string clean_spec = spec[0] == ':' ? spec.substr(1) : spec;
+
+            try
+            {
+                dot_pos = clean_spec.find('.');
+
+                if (dot_pos != std::string::npos)
+                {
+                    // Parse width and precision separately
+                    if (dot_pos > 0)
+                    {
+                        width = std::stoi(clean_spec.substr(0, dot_pos));
+                    }
+                    precision = std::stoi(clean_spec.substr(dot_pos + 1));
+                }
+                else if (!clean_spec.empty())
+                {
+                    // Only width specified
+                    width = std::stoi(clean_spec);
+                }
+            }
+            catch (const std::invalid_argument &)
+            {
+                throw std::invalid_argument("Invalid format specifier: " + spec);
+            }
+            catch (const std::out_of_range &)
+            {
+                throw std::out_of_range("Format specifier out of range: " + spec);
+            }
+
+            // Apply width and precision
+            if (precision >= 0)
+            {
+                oss << std::fixed << std::setprecision(precision);
+            }
+            if (width > 0)
+            {
+                oss << std::setw(width) << std::setfill(' ');
+            }
+
+            oss << value;
+        }
+
+        // Variadic template to process each argument
+        template <typename T, typename... Args>
+        void format_impl(std::ostringstream &oss, const std::string &format, const T &value, const Args &...args)
+        {
+            size_t open_brace = format.find('{');
+            size_t close_brace = format.find('}', open_brace);
+
+            if (open_brace == std::string::npos || close_brace == std::string::npos || close_brace < open_brace)
+            {
+                throw std::invalid_argument("Invalid format string: unmatched braces or missing arguments");
+            }
+
+            // Append the text before the placeholder
+            oss << format.substr(0, open_brace);
+
+            // Extract the specifier inside the braces (e.g., `.2f`)
+            std::string spec = format.substr(open_brace + 1, close_brace - open_brace - 1);
+
+            // Format and insert the value
+            apply_format(oss, spec, value);
+
+            // Process the remaining format string after the placeholder
+            format_impl(oss, format.substr(close_brace + 1), args...);
+        }
+
+        // Python-like format string
+        // Main format function
+        template <typename... Args>
+        std::string f(const std::string &format_str, const Args &...args)
+        {
+            std::ostringstream oss;
+            format_impl(oss, format_str, args...);
+            return oss.str();
         }
 
         // Python-like dictionary class
@@ -345,21 +443,21 @@ namespace util
         // Create Directory with same permission as its parent_
         int create_directory(const std::string &newDirPath);
 
-        class ParHandler {
+        class ParHandler
+        {
 
         public:
             std::map<std::string, double> config;
             bool file_opened;
             ParHandler(std::string filename);
 
-            std::map<std::string, double> & GetConfig() {return config;};
+            std::map<std::string, double> &GetConfig() { return config; };
 
             double &operator[](const std::string &key_name)
             {
                 return this->config[key_name];
-            }            
-
-        };        
+            }
+        };
 
     } // namespace io
 
@@ -481,8 +579,8 @@ namespace util
 
 }
 
-using  util::notstd::in;
-using  util::py::print;
+using util::notstd::in;
+using util::py::print;
 
 #endif // UTIL_H
 

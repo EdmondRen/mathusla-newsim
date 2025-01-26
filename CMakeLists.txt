@@ -13,8 +13,8 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 ## Build type: Debug or Release
-set (CMAKE_BUILD_TYPE Release)
-# set (CMAKE_BUILD_TYPE Debug)
+# set (CMAKE_BUILD_TYPE Release)
+set (CMAKE_BUILD_TYPE Debug)
 option(PROFILE_WITH_GPROF "Enable profiling with gprof" OFF)
 
     
@@ -85,8 +85,7 @@ target_include_directories(mu_sim PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_SOURCE_DIR}/include>)
 target_link_libraries(mu_sim PUBLIC
     ${Geant4_LIBRARIES} 
-    ${ROOT_LIBRARIES}
-    )
+    ${ROOT_LIBRARIES})
 
 # Make a shared library for tracker
 add_library(mu_recon SHARED ${sources_tracker})
@@ -95,8 +94,7 @@ target_include_directories(mu_recon PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_SOURCE_DIR}/include>)
 target_link_libraries(mu_recon PUBLIC
-    ${ROOT_LIBRARIES}
-    )    
+    ${ROOT_LIBRARIES})    
 
 ## Simulation main entrance
 add_executable(simulation simulation.cc)
@@ -118,6 +116,8 @@ target_link_libraries(parma PUBLIC mu_sim ${CRY_LIBRARIES})
 ## Tracker tests
 add_executable(tracker_test1 ${PROJECT_SOURCE_DIR}/tracker/tests/test_kalman_model.cc)
 target_link_libraries(tracker_test1 mu_recon)
+add_executable(tracker_test2 ${PROJECT_SOURCE_DIR}/tracker/tests/test_track_finder.cc)
+target_link_libraries(tracker_test2 mu_recon)
 
 
 #----------------------------------------------------------------------------

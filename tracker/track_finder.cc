@@ -4,20 +4,20 @@
 namespace Tracker
 {
 
-    TrackFinder::TrackFinder(HitList &&allHits,
-                             bool debug) : DEBUG(debug), hits_all(std::move(allHits))
+    TrackFinder::TrackFinder(std::vector<DigiHit *> allHits,
+                             bool debug, bool debug_kalman) : DEBUG(debug), DEBUG_KALMAN(debug_kalman), hits_all(allHits)
     {
         this->hits_found_temp = std::vector<DigiHit *>();
         this->tracks_found = TrackList();
 
         // Set the default parameters
-        config["track_cut_SeedRange"] = 2;                                // [ns] Proper time of the seed pair
+        config["track_cut_SeedRange"] = 1;                                // [ns] Proper time of the seed pair
         config["track_cut_HitProjectionSigma"] = 10;                      // Range to look for the next hit, in unit of sigmas
         config["track_cut_HitAddChi2"] = 15;                              // Maximum chi2 for a hit to be added
         config["track_cut_HitDropChi2"] = 15;                             // Maximum chi2 for a hit to be kept during second rtrack_oun to -1 to turn off
         config["track_cut_TrackChi2Reduced"] = 3;                         // Cut on the chi2/ndof of the track
         config["track_cut_TrackChi2Prob"] = 0.9;                          // Cut on the  chi2 probability of the track
-        config["track_cut_TrackNHitsMin"] = 4;                            //  Cut on minimum number of hits
+        config["track_cut_TrackNHitsMin"] = 4;                            // Cut on minimum number of hits
         config["track_cut_TrackSpeedLow"] = 25;                           // Cut on track speed [cm/ns]
         config["track_cut_TrackSpeedHigh"] = 35;                          // Cut on track speed [cm/ns]
         config["track_fit_MultipleScattering"] = 0;                       // Account for multiple scattering in fit. 0: OFF
@@ -35,8 +35,8 @@ namespace Tracker
         {
             for (size_t j = i + 1; j < hits_all.size(); j++)
             {
-                auto new_seed = new TrackSeed(hits_all[i].get(), hits_all[j].get());
-                if (new_seed->dt < config["track_cut_SeedRange"])
+                auto new_seed = new TrackSeed(hits_all[i], hits_all[j]);
+                if (new_seed->score < config["track_cut_SeedRange"])
                     this->seeds_unused.push_back(new_seed);
                 else
                     delete new_seed;
@@ -47,6 +47,10 @@ namespace Tracker
         std::sort(seeds_unused.begin(), seeds_unused.end(),
                   [](TrackSeed *a, TrackSeed *b) -> bool
                   { return a->dr < b->dr; });
+
+        for (auto seed : seeds_unused)
+            // print_dbg("Seed: ", seed->score, seed->dr, seed->dt, seed->hits.first->id,  seed->hits.second->id);
+            print_dbg(util::py::f("Seed [{}, {}]: score {:.4f}, dr {:.3f}, dt {:.3f}", seed->hits.first->id, seed->hits.second->id, seed->score, seed->dr, seed->dt));
     }
 
     void TrackFinder::GroupHitsByLayer()
@@ -55,7 +59,7 @@ namespace Tracker
         {
             if (hits_grouped.count(hit->group) == 0)
                 hits_grouped[hit->group] = std::vector<DigiHit *>();
-            hits_grouped[hit->group].push_back(hit.get());
+            hits_grouped[hit->group].push_back(hit);
         }
 
         // Write down all available groups
@@ -66,15 +70,17 @@ namespace Tracker
 
     int TrackFinder::FindOnce(TrackSeed *seed)
     {
-        hits_found_temp.clear();
+        print_dbg(util::py::f("Using Seed [{}, {}]", seed->hits.first->id, seed->hits.second->id));
 
-        auto finder = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, DEBUG);
+        hits_found_temp.clear();
+        auto finder = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, false);
 
         // Initialize the finder with seeds
         bool use_first_hit = true;
         int starting_group = seed->hits.first->group;
         hits_found_temp.push_back(seed->hits.first);
         finder.init_state(*seed->hits.first, *seed->hits.second, use_first_hit);
+
 
         // Loop all group except the one with the first hit
         for (const auto &pair : hits_grouped)
@@ -119,10 +125,13 @@ namespace Tracker
 
     int TrackFinder::FindAll()
     {
+        
         MakeSeeds();
-        GroupHitsByLayer();
 
-        if (hits_groups.size() < config["track_cut_TrackNHitsMin"])
+        GroupHitsByLayer();
+        print_dbg(util::py::f("Event contains hits in {} layers", hits_grouped.size()));
+
+        if (hits_grouped.size() < config["track_cut_TrackNHitsMin"])
             return 0;
 
         // Loop though number of hits
@@ -132,21 +141,26 @@ namespace Tracker
         while (this->seeds_unused.size() > 0)
         {
             // Round 1: find hits based on seed
-            int nhits_found = FindOnce(seeds_unused[-1]);
+            int nhits_found = FindOnce(seeds_unused.back());
             seeds_unused.pop_back();
 
             // Cuts
+            print_dbg(util::py::f("-> Found {} hits", nhits_found));
             if (nhits_found < nhits_min)
-                continue;
+                {continue;}
 
             // Sort his by descending time.
             std::sort(hits_found_temp.begin(), hits_found_temp.end(),
                       [](DigiHit *a, DigiHit *b) -> bool
-                      { return a->t() > b-> t(); });
-            
+                      { return a->t() > b->t(); });
+
             // Round 3: run filter again backwards
-            auto track_model = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, DEBUG);
-            track_model.run_filter(hits_found_temp);
+            auto track_model = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, DEBUG_KALMAN);
+            auto track_found = track_model.run_filter(hits_found_temp);
+            this->tracks_found.push_back(std::move(track_found));
+
+            // Finally, remove other seeds that have hits in this track
+            print_dbg(util::py::f("-> Found track #{}: chi2 {:.3f}", this->tracks_found.size() + 1, this->tracks_found.back()->chi2));
         }
 
         return -1;
