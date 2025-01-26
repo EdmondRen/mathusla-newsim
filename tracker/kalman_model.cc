@@ -99,7 +99,6 @@ namespace Kalman
     int KalmanTrack4D::new_step(const Tracker::DigiHit &hit)
     {
         this->step_size = hit.get_step() - this->step_current;
-        this->step_current = hit.get_step();
         // measurement uncertainty
         this->Vi.diagonal() = hit.get_err3().array().square();
         // dynamics
@@ -145,6 +144,7 @@ namespace Kalman
     int KalmanTrack4D::add_measurement(const Tracker::DigiHit &hit)
     {
 
+        this->step_current = hit.get_step();
         kf.Filter(hit.get_vec3());
         if (DEBUG)
         {

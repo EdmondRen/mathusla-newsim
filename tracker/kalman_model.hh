@@ -40,7 +40,9 @@ namespace Kalman
         int update_Q(float step, float multiple_scattering_p = 500, float multiple_scattering_length = 0.06823501107481977);
 
         // Run filter forward
-        std::unique_ptr<Tracker::Track> run_filter(const std::vector<Tracker::DigiHit*> &hits);
+        std::unique_ptr<Tracker::Track> run_filter(const std::vector<Tracker::DigiHit *> &hits);
+
+        double step_current, step_next, step_size;
 
     protected:
         // Filter instance
@@ -55,16 +57,13 @@ namespace Kalman
         VectorXd xf0; // state, 1x6 col vector
         MatrixXd Cf0; // covariance, 6x6
         // Intermediate parameters
-        double step_current, step_next, step_size;
-        MatrixXd Vi; // Measurement uncertaint, 3x3
+        MatrixXd Vi;   // Measurement uncertaint, 3x3
         MatrixXdSp Hi; // Measurement matrix, 3x6
         MatrixXdSp Fi; // State transfer dynamics, 6x6
-        MatrixXd Qi; // Process noise matrix, 6x6
+        MatrixXd Qi;   // Process noise matrix, 6x6
 
         // Final output: a track object that holds all the information
         std::unique_ptr<Tracker::Track> track; // state, 1x6 col vector
-
-        
     };
 
 } // namespace Kalman
