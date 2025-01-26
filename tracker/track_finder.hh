@@ -61,6 +61,9 @@ namespace Tracker
         // Return number of tracks found
         int FindAll();
 
+        // Remove used hits
+        int RemoveUsed();
+
     protected:
         // python-like print function, enable for debug mode only.
         template <typename... Args>

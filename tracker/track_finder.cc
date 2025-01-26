@@ -48,9 +48,20 @@ namespace Tracker
                   [](TrackSeed *a, TrackSeed *b) -> bool
                   { return a->dr < b->dr; });
 
-        for (auto seed : seeds_unused)
-            // print_dbg("Seed: ", seed->score, seed->dr, seed->dt, seed->hits.first->id,  seed->hits.second->id);
-            print_dbg(util::py::f("Seed [{}, {}]: score {:.4f}, dr {:.3f}, dt {:.3f}", seed->hits.first->id, seed->hits.second->id, seed->score, seed->dr, seed->dt));
+        int iprint = 0;
+        print_dbg(util::py::f("Making seeds, total {} seeds. Printing best 10. Smaller score is better.", seeds_unused.size()));
+        if (DEBUG)
+        {
+            for (int i = seeds_unused.size() - 1; i >= 0; --i)
+            {
+                iprint += 1;
+                auto seed = seeds_unused[i];
+                print_dbg(util::py::f("  Seed [{}, {}]: score {:.4f}, dr {:.3f}, dt {:.3f}",
+                                      seed->hits.first->id, seed->hits.second->id, seed->score, seed->dr, seed->dt));
+                if (iprint > 10)
+                    break;
+            }
+        }
     }
 
     void TrackFinder::GroupHitsByLayer()
@@ -77,18 +88,18 @@ namespace Tracker
 
         // Initialize the finder with seeds
         bool use_first_hit = true;
-        int starting_group = seed->hits.first->group;
         hits_found_temp.push_back(seed->hits.first);
+        hits_found_temp.push_back(seed->hits.second);
         finder.init_state(*seed->hits.first, *seed->hits.second, use_first_hit);
-
 
         // Loop all group except the one with the first hit
         for (const auto &pair : hits_grouped)
         {
-            // Skip the group with the first hit
-            if (pair.first == starting_group)
+            // Skip the group with hit in seed
+            if (pair.first == seed->hits.first->group || pair.first == seed->hits.second->group)
                 continue;
             auto hits_thisgroup = pair.second;
+            print_dbg("  Searching in group", pair.first);
 
             // Update the internal matrices of finder with the position of this group
             finder.new_step(*hits_thisgroup[0]);
@@ -104,13 +115,15 @@ namespace Tracker
                 float hit_chi2 = finder.try_measurement(*hit,
                                                         config["track_cut_HitProjectionSigma"],
                                                         config["track_cut_HitAddChi2"]);
+                // print_dbg("    hit chi2:", hit_chi2);
                 // find the smallest one
-                if (hit_chi2 > 0 && hit_chi2 < chi2_min_val)
+                if (hit_chi2 >= 0 && hit_chi2 < chi2_min_val)
                 {
                     chi2_min_ind = i;
                     chi2_min_val = hit_chi2;
                 }
             }
+            print_dbg("  Minimum chi2 in this group is", chi2_min_val);
 
             // Add the hit with minimum chi2 and update the finder status
             if (chi2_min_ind != -1)
@@ -125,7 +138,7 @@ namespace Tracker
 
     int TrackFinder::FindAll()
     {
-        
+
         MakeSeeds();
 
         GroupHitsByLayer();
@@ -145,9 +158,11 @@ namespace Tracker
             seeds_unused.pop_back();
 
             // Cuts
-            print_dbg(util::py::f("-> Found {} hits", nhits_found));
+            print_dbg(util::py::f("-> Found track with {} hits", nhits_found));
             if (nhits_found < nhits_min)
-                {continue;}
+            {
+                continue;
+            }
 
             // Sort his by descending time.
             std::sort(hits_found_temp.begin(), hits_found_temp.end(),
@@ -160,10 +175,43 @@ namespace Tracker
             this->tracks_found.push_back(std::move(track_found));
 
             // Finally, remove other seeds that have hits in this track
-            print_dbg(util::py::f("-> Found track #{}: chi2 {:.3f}", this->tracks_found.size() + 1, this->tracks_found.back()->chi2));
+            RemoveUsed();
+
+            print_dbg(util::py::f("-> Track #{}: chi2 {:.3f}", this->tracks_found.size(), this->tracks_found.back()->chi2));
+            print_dbg("Remaining seeds:", seeds_unused.size());
         }
 
         return -1;
     }
 
+    int TrackFinder::RemoveUsed()
+    {
+        std::vector<TrackSeed *> seeds_unused_temp;
+        std::vector<TrackSeed *> seeds_used_temp;
+        std::string seeds_removed_list;
+        for (size_t i = 0; i < seeds_unused.size(); i++)
+        {
+            bool veto_this = false;
+            auto seed = seeds_unused[i];
+            for (auto hit : hits_found_temp)
+            {
+                if (seed->hits.first->id == hit->id ||
+                    seed->hits.second->id == hit->id)
+                {
+                    veto_this = true;
+                    break;
+                }
+            }
+            if (veto_this)
+            {
+                seeds_removed_list += "[" + std::to_string(seed->hits.first->id) + ","+ std::to_string(seed->hits.second->id) + "] ";
+                delete seed;
+            }
+            else
+                seeds_unused_temp.push_back(seed);
+        }
+        print_dbg(util::py::f("  Seed removed: {}", seeds_removed_list));
+        seeds_unused = seeds_unused_temp;
+        return 0;
+    }
 } // namespace Tracker
