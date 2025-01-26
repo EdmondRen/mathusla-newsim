@@ -16,6 +16,7 @@ namespace Tracker
         {
             float c = 299.7; // speed of light [mm/ns]
             VectorXd dvec = hit2->vec4.array() - hit1->vec4.array();
+            this->dstep = std::abs(hit2->get_step() - hit1->get_step());
             this->dr = dvec.segment(0,3).norm();
             this->dt = std::abs(dvec(3));
             this->score = std::abs(dr/c - dt);
@@ -27,7 +28,7 @@ namespace Tracker
         // Required data
         std::pair<DigiHit*, DigiHit*> hits;
         float score;
-        float dr,dt;
+        float dr,dt,dstep;
 
         // float GetScore() { return score; }
     };
@@ -46,7 +47,7 @@ namespace Tracker
         void MakeSeeds();
 
         // Group hits by layer
-        void GroupHitsByLayer();
+        void GroupHits();
 
         // Find track for one seed 
         // Resutls are saved in a class variable `hits_found_temp`
@@ -61,7 +62,7 @@ namespace Tracker
         // Return number of tracks found
         int FindAll();
 
-        // Remove used hits
+        // Remove used hits in hits list and seed list
         int RemoveUsed();
 
     protected:

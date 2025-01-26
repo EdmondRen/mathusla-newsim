@@ -163,6 +163,7 @@ namespace util
 
     namespace notstd
     {
+        // a method to check if a substring is in a string.
         const in_helper::in_t in{}; // Define `in` here
 
         bool strfind(const std::string &substring, const std::string &str)

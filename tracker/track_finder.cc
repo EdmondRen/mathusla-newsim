@@ -46,7 +46,7 @@ namespace Tracker
         // Larger ones are at the end because pop_back is easier for vector
         std::sort(seeds_unused.begin(), seeds_unused.end(),
                   [](TrackSeed *a, TrackSeed *b) -> bool
-                  { return a->dr < b->dr; });
+                  { return a->dstep < b->dstep; });
 
         int iprint = 0;
         print_dbg(util::py::f("Making seeds, total {} seeds. Printing best 10. Smaller score is better.", seeds_unused.size()));
@@ -64,7 +64,7 @@ namespace Tracker
         }
     }
 
-    void TrackFinder::GroupHitsByLayer()
+    void TrackFinder::GroupHits()
     {
         for (const auto &hit : this->hits_all)
         {
@@ -81,7 +81,7 @@ namespace Tracker
 
     int TrackFinder::FindOnce(TrackSeed *seed)
     {
-        print_dbg(util::py::f("Using Seed [{}, {}]", seed->hits.first->id, seed->hits.second->id));
+        print_dbg(util::py::f("\nUsing Seed [{}, {}]", seed->hits.first->id, seed->hits.second->id));
 
         hits_found_temp.clear();
         auto finder = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, false);
@@ -123,7 +123,7 @@ namespace Tracker
                     chi2_min_val = hit_chi2;
                 }
             }
-            print_dbg("  Minimum chi2 in this group is", chi2_min_val);
+            print_dbg("    Minimum chi2 in this group is", chi2_min_val);
 
             // Add the hit with minimum chi2 and update the finder status
             if (chi2_min_ind != -1)
@@ -138,11 +138,12 @@ namespace Tracker
 
     int TrackFinder::FindAll()
     {
-
+        // Seeding
         MakeSeeds();
 
-        GroupHitsByLayer();
-        print_dbg(util::py::f("Event contains hits in {} layers", hits_grouped.size()));
+        // Sort hits into groups
+        GroupHits();
+        print_dbg(util::py::f("Event contains hits in {} groups", hits_grouped.size()));
 
         if (hits_grouped.size() < config["track_cut_TrackNHitsMin"])
             return 0;
@@ -156,11 +157,10 @@ namespace Tracker
             // Round 1: find hits based on seed
             int nhits_found = FindOnce(seeds_unused.back());
             seeds_unused.pop_back();
-
             // Cuts
-            print_dbg(util::py::f("-> Found track with {} hits", nhits_found));
             if (nhits_found < nhits_min)
             {
+                print_dbg(util::py::f("-x Track rejected, not enough hits"));
                 continue;
             }
 
@@ -169,16 +169,22 @@ namespace Tracker
                       [](DigiHit *a, DigiHit *b) -> bool
                       { return a->t() > b->t(); });
 
+            // Debug print
+            std::string hits_found_ids = "";
+            for (auto hit: hits_found_temp)
+                hits_found_ids += std::to_string(hit->id) + " ";
+            print_dbg(util::py::f("-> Found track with {} hits:", nhits_found), hits_found_ids);
+
+
             // Round 3: run filter again backwards
             auto track_model = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, DEBUG_KALMAN);
             auto track_found = track_model.run_filter(hits_found_temp);
             this->tracks_found.push_back(std::move(track_found));
+            print_dbg(util::py::f("-> Track #{} added: chi2 {:.3f}", this->tracks_found.size(), this->tracks_found.back()->chi2));
 
             // Finally, remove other seeds that have hits in this track
             RemoveUsed();
-
-            print_dbg(util::py::f("-> Track #{}: chi2 {:.3f}", this->tracks_found.size(), this->tracks_found.back()->chi2));
-            print_dbg("Remaining seeds:", seeds_unused.size());
+            print_dbg("  Remaining seeds:", seeds_unused.size());
         }
 
         return -1;
@@ -186,6 +192,7 @@ namespace Tracker
 
     int TrackFinder::RemoveUsed()
     {
+        // removing used seeds
         std::vector<TrackSeed *> seeds_unused_temp;
         std::vector<TrackSeed *> seeds_used_temp;
         std::string seeds_removed_list;
@@ -204,7 +211,7 @@ namespace Tracker
             }
             if (veto_this)
             {
-                seeds_removed_list += "[" + std::to_string(seed->hits.first->id) + ","+ std::to_string(seed->hits.second->id) + "] ";
+                seeds_removed_list += "[" + std::to_string(seed->hits.first->id) + "," + std::to_string(seed->hits.second->id) + "] ";
                 delete seed;
             }
             else
@@ -212,6 +219,22 @@ namespace Tracker
         }
         print_dbg(util::py::f("  Seed removed: {}", seeds_removed_list));
         seeds_unused = seeds_unused_temp;
+
+        // removing used hits
+        for (auto hit : hits_found_temp)
+        {
+            for (int i = hits_grouped[hit->group].size() - 1; i >= 0; i--)
+            {
+                if (hits_grouped[hit->group][i]->id == hit->id)
+                {
+                    hits_grouped[hit->group].erase(hits_grouped[hit->group].begin() + i);
+                }
+
+            }
+            if ( hits_grouped[hit->group].size()==0)
+                hits_grouped.erase(hit->group);
+        }
+
         return 0;
     }
 } // namespace Tracker

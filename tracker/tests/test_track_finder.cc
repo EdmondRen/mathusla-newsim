@@ -15,7 +15,7 @@ TRandom3 rng;
 std::vector<Tracker::DigiHit *> genHits(double x0_span, double y0_span, double z0, double Ax_span, double Ay_span, double v = 300, int n_layers = 6)
 {
     auto layer_ids = Eigen::VectorXd::LinSpaced(n_layers, 0, n_layers - 1);
-    auto layer_gap = 800.; // 80 cm
+    auto layer_gap = 800.;                                // 80 cm
     auto layer_zs = (layer_ids * layer_gap).array() + z0; // y_coordinates
 
     float det_width = 35;
@@ -39,7 +39,7 @@ std::vector<Tracker::DigiHit *> genHits(double x0_span, double y0_span, double z
     std::vector<Tracker::DigiHit *> hits;
     for (int i = 0; i < n_layers; i++)
     {
-        auto dz = layer_zs[i] - layer_zs[0];
+        auto dz = layer_zs[i];
         double hit_truth[6] = {x0 + Ax * dz, y0 + Ay * dz, t0 + At * dz, Ax, Ay, At};
         Tracker::DigiHit *hit;
         if (i % 2 == 0)
@@ -62,13 +62,31 @@ std::vector<Tracker::DigiHit *> genHits(double x0_span, double y0_span, double z
     return hits;
 }
 
+std::vector<Tracker::DigiHit *> genHitsTracks(int ntracks)
+{
+    std::vector<Tracker::DigiHit *> hits;
+
+    for (int i = 0; i < ntracks; i++)
+    {
+        auto hits_temp = genHits(0, 0, 3000, 0.5, 0.5);
+        hits.insert(hits.end(), std::make_move_iterator(hits_temp.begin()), std::make_move_iterator(hits_temp.end()));
+    }
+
+    for (size_t i = 0; i < hits.size(); i++)
+    {
+        hits[i]->id = i;
+    }
+    return hits;
+}
+
 int main()
 {
 
     rng.SetSeed(0);
 
     // Look at one track
-    std::vector<Tracker::DigiHit *> hits = genHits(300, 300, 0, 0.3, 0.3);
+    // std::vector<Tracker::DigiHit *> hits = genHits(300, 300, 0, 0.3, 0.3);
+    std::vector<Tracker::DigiHit *> hits = genHitsTracks(5);
     auto track_finder = Tracker::TrackFinder(hits, true);
     track_finder.FindAll();
 
