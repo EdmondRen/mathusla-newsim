@@ -168,10 +168,12 @@ namespace Kalman
         // Insert the independent variable back to the parameter list and covariance matrix
         // After the insertion, there will always be 8 parameters in sequence: {x0, y0, z0, t0, Ax, Ay, Az, At}
         auto indep_param_idx = hits.back()->param_ind;
-        auto params = Tracker::Helper::insertVector(kf.GetState(), indep_param_idx, hits.back()->get_step());
-        auto cov = Tracker::Helper::insertRowAndColumnOfZeros(kf.GetCov(), indep_param_idx);
-        cov = Tracker::Helper::insertRowAndColumnOfZeros(cov, indep_param_idx + 4);
-        cov(indep_param_idx, indep_param_idx) = std::pow(hits.back()->get_steperr(), 2);
+        // auto params = Tracker::Helper::insertVector(kf.GetState(), indep_param_idx, hits.back()->get_step());
+        // auto cov = Tracker::Helper::insertRowAndColumnOfZeros(kf.GetCov(), indep_param_idx);
+        // cov = Tracker::Helper::insertRowAndColumnOfZeros(cov, indep_param_idx + 4);
+        // cov(indep_param_idx, indep_param_idx) = std::pow(hits.back()->get_steperr(), 2);
+        auto params = kf.GetState();
+        auto cov = kf.GetCov();
 
         // Make the track
         track = std::make_unique<Tracker::Track>();

@@ -175,14 +175,22 @@ namespace Tracker
         Track() {}
 
         // Required data
-        VectorXd params; // {x0, y0, z0, t0, Ax, Ay, Az, At}
-        MatrixXd cov;    // covariance of {x0, y0, z0, t0, Ax, Ay, Az, At}
+        VectorXd params; // {x0, y0, z0, t0, Ax, Ay, Az, At}, except for the one that is used as independent parameter
+        MatrixXd cov;    // covariance of {x0, y0, z0, t0, Ax, Ay, Az, At}, except for the one that is used as independent parameter
         float chi2;
         int param_ind; // Index of the independent parameter. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
 
-        // Optional
+        // Optional data
         int id;
         std::vector<int> hit_ids;
+
+        // Methods
+
+        // Get the closest point of approach (CPA) of the track to a given point
+        double get_closest_point(Vector4d point)
+        {
+
+        }
     };
     using TrackList = std::vector<std::unique_ptr<Track>>;
 
