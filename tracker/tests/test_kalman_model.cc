@@ -47,14 +47,14 @@ std::vector<Tracker::DigiHit*> genHits(double x0_span, double y0_span, double z0
                                                 layer_zs[i],
                                                 hit_truth[2] + rng.Gaus(0, unc_time), 
                                                 unc_trans, unc_longi, unc_verti, unc_time,
-                                                independent_var_ind, 0));
+                                                independent_var_ind, i, 0));
         else
             hits.push_back( new Tracker::DigiHit(hit_truth[0] + rng.Gaus(0, unc_longi),
                                                 round(hit_truth[1] / det_width) * det_width,
                                                 layer_zs[i],
                                                 hit_truth[2] + rng.Gaus(0, unc_time), 
                                                 unc_longi, unc_trans, unc_verti, unc_time,
-                                                independent_var_ind, 0));
+                                                independent_var_ind, i, 0));
     }
     return hits;
 }

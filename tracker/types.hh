@@ -2,6 +2,8 @@
 #define tracker_types_HH
 
 #include <iostream>
+#include <memory>
+
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
@@ -20,106 +22,21 @@ namespace Tracker
     public:
         Helper() {}
         // Remove i^th element from a vector and creat a new one.
-        static Eigen::VectorXd removeElement(const Eigen::VectorXd &vec4, int i)
-        {
-            Eigen::VectorXd vec3(vec4.rows() - 1);
-            // Ensure the index is valid
-            if (i < 0 || i >= vec4.rows())
-                throw std::out_of_range("Index i is out of range. Must be between 0 and 3.");
-
-            // Copy elements excluding the i-th element
-            for (int j = 0, k = 0; j < vec4.rows(); ++j)
-            {
-                if (j != i)
-                    vec3(k++) = vec4(j);
-            }
-            return vec3;
-        }
-
+        static Eigen::VectorXd removeElement(const Eigen::VectorXd &vec4, int i);
         // Inseart value to a vector at given index i
-        static Eigen::VectorXd insertVector(const Eigen::VectorXd &vec4, int i, float val)
-        {
-            Eigen::VectorXd vec5(vec4.rows() + 1);
-
-            // Copy elements excluding the i-th element
-            for (int j = 0, k = 0; j < vec5.rows(); ++j)
-            {
-                if (j != i)
-                    vec5(j) = vec4(k++);
-                else
-                    vec5(j) = val;
-            }
-            return vec5;
-        }        
-
+        static Eigen::VectorXd insertVector(const Eigen::VectorXd &vec4, int i, float val);
         // Function to insert a row at a specific index
-        static Eigen::MatrixXd insertRow(const Eigen::MatrixXd &mat, const Eigen::RowVectorXd &row, int insert_pos)
-        {
-            // Check if the insert position is valid
-            if (insert_pos < 0 || insert_pos > mat.rows())
-                throw std::invalid_argument("Invalid insert position, Index i is out of range");
-
-            // Create a new matrix with one additional row
-            Eigen::MatrixXd new_mat(mat.rows() + 1, mat.cols());
-
-            new_mat.topRows(insert_pos) = mat.topRows(insert_pos);                                 // Copy the top rows (before the insert position)
-            new_mat.row(insert_pos) = row;                                                         // Insert the new row
-            new_mat.bottomRows(mat.rows() - insert_pos) = mat.bottomRows(mat.rows() - insert_pos); // Copy the bottom rows (after the insert position)
-
-            return new_mat;
-        }
-
+        static Eigen::MatrixXd insertRow(const Eigen::MatrixXd &mat, const Eigen::RowVectorXd &row, int insert_pos);
         // Function to insert a column at a specific index
-        static Eigen::MatrixXd insertColumn(const Eigen::MatrixXd &mat, const Eigen::VectorXd &col, int insert_pos)
-        {
-            // Check if the insert position is valid
-            if (insert_pos < 0 || insert_pos > mat.cols())
-                throw std::invalid_argument("Invalid insert position");
-
-            // Create a new matrix with one additional column
-            Eigen::MatrixXd new_mat(mat.rows(), mat.cols() + 1);
-
-            // Copy the left columns (before the insert position)
-            new_mat.leftCols(insert_pos) = mat.leftCols(insert_pos);
-            // Insert the new column
-            new_mat.col(insert_pos) = col;
-            // Copy the right columns (after the insert position)
-            new_mat.rightCols(mat.cols() - insert_pos) = mat.rightCols(mat.cols() - insert_pos);
-
-            return new_mat;
-        }
-
+        static Eigen::MatrixXd insertColumn(const Eigen::MatrixXd &mat, const Eigen::VectorXd &col, int insert_pos);
         // Function to insert a row and column of zeros at the i-th index
-        static Eigen::MatrixXd insertRowAndColumnOfZeros(const Eigen::MatrixXd &mat, int i)
-        {
-            // Check if the insert position is valid
-            if (i < 0 || i > mat.rows() || i > mat.cols())
-                throw std::invalid_argument("Invalid insert position");
-
-            // Create a new matrix with one additional row and column
-            Eigen::MatrixXd new_mat(mat.rows() + 1, mat.cols() + 1);
-
-            // Copy the top-left block (before the i-th row and column)
-            new_mat.topLeftCorner(i, i) = mat.topLeftCorner(i, i);
-            // Copy the top-right block (before the i-th row, after the i-th column)
-            new_mat.topRightCorner(i, mat.cols() - i) = mat.topRightCorner(i, mat.cols() - i);
-            // Copy the bottom-left block (after the i-th row, before the i-th column)
-            new_mat.bottomLeftCorner(mat.rows() - i, i) = mat.bottomLeftCorner(mat.rows() - i, i);
-            // Copy the bottom-right block (after the i-th row and column)
-            new_mat.bottomRightCorner(mat.rows() - i, mat.cols() - i) = mat.bottomRightCorner(mat.rows() - i, mat.cols() - i);
-
-            // Set the i-th row and column to zeros
-            new_mat.row(i).setZero();
-            new_mat.col(i).setZero();
-
-            return new_mat;
-        }
+        static Eigen::MatrixXd insertRowAndColumnOfZeros(const Eigen::MatrixXd &mat, int i);
     };
 
     class DigiHit
     {
     public:
-        DigiHit(double _x, double _y, double _z, double _t, double _ex, double _ey, double _ez, double _et, int _param_ind, int _group) : param_ind(_param_ind), group(_group)
+        DigiHit(double _x, double _y, double _z, double _t, double _ex, double _ey, double _ez, double _et, int _param_ind, int _layer, int _group) : param_ind(_param_ind), layer(_layer), group(_group)
         {
             vec4 << _x, _y, _z, _t;
             vec4_err << _ex, _ey, _ez, _et;
@@ -138,6 +55,7 @@ namespace Tracker
         Vector4d vec4, vec4_err; // {x,y,z,t} and their uncertainty
         Vector3d vec3, vec3_err; // Independent variable removed
         int param_ind;           // Index of the independent variable. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
+        int layer;               // Which detector layer this hit belongs to
         int group;               // Which detector grop this hit belongs to
 
         // Optional
@@ -175,22 +93,30 @@ namespace Tracker
         Track() {}
 
         // Required data
-        VectorXd params; // {x0, y0, z0, t0, Ax, Ay, Az, At}, except for the one that is used as independent parameter
-        MatrixXd cov;    // covariance of {x0, y0, z0, t0, Ax, Ay, Az, At}, except for the one that is used as independent parameter
+        VectorXd params; // {x0, y0, z0, t0, Ax, Ay, Az, At}, except for the ones that is used as independent variable
+        MatrixXd cov;    // covariance of {x0, y0, z0, t0, Ax, Ay, Az, At}, except for the ones that is used as independent variable
         float chi2;
-        int param_ind; // Index of the independent parameter. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
+        int param_ind;   // Index of the independent variable. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
+        int param_value; // Value of the independent variable
+        int param_error; // Uncertainty of the independent variable
 
         // Optional data
         int id;
         std::vector<int> hit_ids;
 
-        // Methods
+        float t0;
+        VectorXd params_time; // {x0, y0, z0, vx, vy, vz}
+        MatrixXd cov_time;    // covariance of {x0, y0, z0, vx, vy, vz}
 
-        // Get the closest point of approach (CPA) of the track to a given point
-        double get_closest_point(Vector4d point)
-        {
+        // Convert to using time as independent variable
+        VectorXd convert_to_time();
 
-        }
+        // Calculate closest-approach midpoint and distance
+        // Return: pair of <closest distance, {x,y,z,t}>
+        static std::pair<double, Vector4d> get_closest_midpoint(const Track &track1, const Track &track2);
+
+        // Get the <dist, chi2> of the closest point of approach (CPA) of the track to a given point
+        std::pair<double, double> get_closest_point_dist_chi2(Vector4d point, double speed_constraint = -1.0);
     };
     using TrackList = std::vector<std::unique_ptr<Track>>;
 
@@ -206,8 +132,9 @@ namespace Tracker
 
         // Optional
         int index;
-        std::vector<std::unique_ptr<Track>> tracks;
+        std::vector<Track *> tracks;
     };
+    using VertexLilst = std::vector<std::unique_ptr<Vertex>>;
 
 } // namespace Tracker
 

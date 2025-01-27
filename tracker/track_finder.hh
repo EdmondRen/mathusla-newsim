@@ -62,6 +62,7 @@ namespace Tracker
         // Find all tracks
         // Return number of tracks found
         int FindAll();
+        TrackList GetResults() {return std::move(tracks_found);}
 
         // Remove used hits in hits list and seed list
         int RemoveUsed();

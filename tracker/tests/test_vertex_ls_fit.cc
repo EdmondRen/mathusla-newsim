@@ -8,9 +8,11 @@
 #include <TFile.h>
 #include <TRandom3.h>
 
-#include "../track_finder.hh"
 #include "util.hh"
 #include "libs/cxxopts.hpp"
+
+#include "../track_finder.hh"
+#include "../kalman_model.hh"
 
 TRandom3 rng;
 
@@ -105,26 +107,52 @@ int main(int argc, const char *argv[])
 
     // Look at one track
     // std::vector<Tracker::DigiHit *> hits = genHits(300, 300, 0, 0.3, 0.3);
-    std::vector<Tracker::DigiHit *> hits = genHitsTracks(40);
+    std::vector<Tracker::DigiHit *> hits = genHitsTracks(10);
     auto track_finder = Tracker::TrackFinder(hits, false);
     track_finder.FindAll();
     auto summary = track_finder.Summary();
     print(summary);
 
+    // Make a list of track pointers
+    Tracker::TrackList track_found = track_finder.GetResults();
+    std::vector<Tracker::Track *> tracks;
+    for (const auto & track: track_found)
+    {
+        track->convert_to_time();
+        tracks.push_back(track.get());
+        }
+
+
+
+    auto vertex_fitter = Kalman::LSVertex4DFitter();  
+    vertex_fitter.fit(tracks);
+
+    print("Vertex Fit result (x,y,z,t)", vertex_fitter.parameters); 
+
     int N = 100;
     VectorXd chi2(N);
 
-    auto start = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < N; i++)
-    {
-        // std::cout << "--------------------------- " << i << "------------------" << std::endl;
-        hits = genHitsTracks(40);
-        auto track_finder = Tracker::TrackFinder(hits, false);
-        track_finder.FindAll();
-    }
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    std::cout << duration.count() << std::endl;
+    // auto start = std::chrono::high_resolution_clock::now();
+    // for (int i = 0; i < N; i++)
+    // {
+    //     // std::cout << "--------------------------- " << i << "------------------" << std::endl;
+    //     hits = genHitsTracks(40);
+    //     auto track_finder = Tracker::TrackFinder(hits, false);
+    //     track_finder.FindAll();
+
+    //      track_found.clear();
+    //     tracks.clear();
+    //     for (const auto & track: track_found)
+    //     {
+    //         track->convert_to_time();
+    //         tracks.push_back(track.get());
+    //     }
+    //     vertex_fitter.fit(tracks);
+
+    // }
+    // auto stop = std::chrono::high_resolution_clock::now();
+    // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    // std::cout << duration.count() << std::endl;
 
     // // std::cout << "chi2: " << chi2.transpose() << std::endl;
     // std::cout << "chi2 mean: " << chi2.mean() << std::endl;

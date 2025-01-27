@@ -41,14 +41,14 @@ else()
   find_package(Geant4 REQUIRED)
 endif()
 
-# Find CRY package
+# CRY cosmic generator
 find_library(CRY NAMES CRY PATHS ${PROJECT_SOURCE_DIR}/external/cry_v1.7/lib NO_DEFAULT_PATH )
 set(CRY_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/external/cry_v1.7/src)
 set(CRY_LIBRARIES ${PROJECT_SOURCE_DIR}/external/cry_v1.7/lib/libCRY.a)
 MESSAGE ("CRY installed at: " ${CRY_INCLUDE_DIRS} )
 
-# ROOT package. Only used for digitizer and metadata
-find_package(ROOT REQUIRED)
+# ROOT package
+find_package(ROOT REQUIRED COMPONENTS MathCore Minuit)
 
 # Eigen3
 find_package (Eigen3 REQUIRED NO_MODULE)
@@ -118,6 +118,8 @@ add_executable(tracker_test1 ${PROJECT_SOURCE_DIR}/tracker/tests/test_kalman_mod
 target_link_libraries(tracker_test1 mu_recon)
 add_executable(tracker_test2 ${PROJECT_SOURCE_DIR}/tracker/tests/test_track_finder.cc)
 target_link_libraries(tracker_test2 mu_recon)
+add_executable(tracker_test3 ${PROJECT_SOURCE_DIR}/tracker/tests/test_vertex_ls_fit.cc)
+target_link_libraries(tracker_test3 mu_recon)
 
 
 #----------------------------------------------------------------------------

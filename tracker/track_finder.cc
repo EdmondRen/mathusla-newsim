@@ -40,8 +40,8 @@ namespace Tracker
         {
             for (size_t j = i + 1; j < hits_all.size(); j++)
             {
-                // Skip hits in the same or adjacent group
-                if (std::abs(hits_all[i]->group - hits_all[j]->group) <= 1)
+                // Skip hits in the same or adjacent layer
+                if (std::abs(hits_all[i]->layer - hits_all[j]->layer) <= 1)
                     continue;
 
                 auto new_seed = new TrackSeed(hits_all[i], hits_all[j]);
@@ -77,9 +77,9 @@ namespace Tracker
     {
         for (const auto &hit : this->hits_all)
         {
-            if (hits_grouped.count(hit->group) == 0)
-                hits_grouped[hit->group] = std::unordered_map<int, DigiHit *>();
-            hits_grouped[hit->group][hit->id] = hit;
+            if (hits_grouped.count(hit->layer) == 0)
+                hits_grouped[hit->layer] = std::unordered_map<int, DigiHit *>();
+            hits_grouped[hit->layer][hit->id] = hit;
         }
 
         // Write down all available groups
@@ -101,18 +101,18 @@ namespace Tracker
         hits_found_temp.push_back(seed->hits.second);
         finder.init_state(*seed->hits.first, *seed->hits.second, use_first_hit);
 
-        // Loop all group except the one with the first hit
+        // Loop all layers except the one with the first hit
         for (const auto &pair : hits_grouped)
         {
-            // Skip the group with hit in seed
-            if (pair.first == seed->hits.first->group || pair.first == seed->hits.second->group)
+            // Skip the layer with hit in seed
+            if (pair.first == seed->hits.first->layer || pair.first == seed->hits.second->layer)
                 continue;
             auto hits_thisgroup = pair.second;
 
-            // Update the internal matrices of finder with the position of this group
+            // Update the internal matrices of finder with the position of this layer
             finder.new_step(*hits_thisgroup.begin()->second);
 
-            // Calculate the chi2 contribution of each hit in this group
+            // Calculate the chi2 contribution of each hit in this layer
             // Only keep the minimum one
             int chi2_min_ind = -1;
             float chi2_min_val = std::numeric_limits<float>::infinity();
@@ -138,7 +138,7 @@ namespace Tracker
                     chi2_min_val = hit_chi2;
                 }
             }
-            print_dbg(util::py::f("  Searching group {}. Minimum chi2 is {:.3f}, from hit {}.", pair.first, chi2_min_val, chi2_min_ind));
+            print_dbg(util::py::f("  Searching layer {}. Minimum chi2 is {:.3f}, from hit {}.", pair.first, chi2_min_val, chi2_min_ind));
 
             // Add the hit with minimum chi2 and update the finder status
             if (chi2_min_ind != -1)
@@ -325,9 +325,9 @@ namespace Tracker
         // removing used hits
         for (auto hit : hits_found_temp)
         {
-            hits_grouped[hit->group].erase(hit->id);
-            if (hits_grouped[hit->group].size() == 0)
-                hits_grouped.erase(hit->group);
+            hits_grouped[hit->layer].erase(hit->id);
+            if (hits_grouped[hit->layer].size() == 0)
+                hits_grouped.erase(hit->layer);
         }
 
         return 0;
