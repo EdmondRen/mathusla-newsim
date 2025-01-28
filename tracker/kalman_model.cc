@@ -384,9 +384,9 @@ namespace Kalman
             return -1;
     }
 
-    int KalmanVertex4D::add_measurement()
+    int KalmanVertex4D::add_measurement(const Tracker::Track &track)
     {
-
+        try_measurement(track, std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity());
         kf.Filter(this->mi);
         if (DEBUG)
         {
@@ -403,7 +403,7 @@ namespace Kalman
         if (seed==nullptr)
         {
             seed_temp = std::make_unique<VertexSeed>(tracks[0], tracks[1]);
-            seed_temp->GetScore();
+            seed_temp->GetChi2();
             seed = seed_temp.get();
         }
 
@@ -411,7 +411,7 @@ namespace Kalman
         for (size_t i = 2; i < tracks.size(); i++)
         {
             try_measurement(*tracks[i], 4000, 10);
-            add_measurement();
+            add_measurement(*tracks[i]);
         }
 
         // Make the track

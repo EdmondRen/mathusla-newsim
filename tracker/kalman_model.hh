@@ -73,12 +73,12 @@ namespace Kalman
         // chi2_def: which chi2 definition to use
         //  1: closest point of approach (CPA)
         //  2: same time
-        LSVertex4DFitter(int chi2_def =1) : minimizer(npar),cov(4,4), parameters(npar), parameter_errors(npar)
-        {   
+        LSVertex4DFitter(int chi2_def = 1) : minimizer(npar), cov(4, 4), parameters(npar), parameter_errors(npar)
+        {
             // Set the function to minimize
-            if (chi2_def==1)
+            if (chi2_def == 1)
                 minimizer.SetFCN(cost_cpa);
-            else if (chi2_def==2)
+            else if (chi2_def == 2)
                 minimizer.SetFCN(cost_same_time);
             else
                 minimizer.SetFCN(cost_same_time);
@@ -99,11 +99,24 @@ namespace Kalman
 
         static void cost_same_time(int &npar, double *gin, double &f, double *par, int iflag);
 
-        // Find vertex that minimize chi2
+        // Run fit (minimize chi2)
         bool fit(std::vector<Tracker::Track *> tracks,
                  std::vector<double> arg_guess = {},
                  double tolerance = 0.1,
                  double maxcalls = 50000);
+
+        // Run fit and Return the vertex directly
+        std::unique_ptr<Tracker::Vertex> run_fit(std::vector<Tracker::Track *> tracks,
+                                 std::vector<double> arg_guess = {},
+                                 double tolerance = 0.1,
+                                 double maxcalls = 50000)
+        {
+            auto vertex = std::make_unique<Tracker::Vertex>();
+            vertex->params = params;
+            vertex->cov = cov;
+            vertex->chi2 = chi2;
+            return std::move(vertex);
+        }
 
         // Holding fit results
         Vector4d params;
@@ -131,9 +144,10 @@ namespace Kalman
             auto guess = Tracker::Track::get_closest_midpoint(*track1, *track2);
             this->distance = guess.first;
             this->vertex_guess = guess.second;
+            this->ntracks_found = 0;
         }
 
-        float GetScore()
+        float GetChi2()
         {
             // float c = 299.7; // speed of light [mm/ns]
 
@@ -156,9 +170,9 @@ namespace Kalman
             this->cov = vertex_fitter.cov;
 
             // Make a score out of it
-            this->score = -chi2;
+            // this->score = -chi2;
 
-            return this->score;
+            return this->chi2;
         }
 
         // Required data
@@ -185,7 +199,7 @@ namespace Kalman
         float try_measurement(const Tracker::Track &track, float distance_cut, float chi2_cut);
 
         // Add a measurement
-        int add_measurement();
+        int add_measurement(const Tracker::Track &track);
 
         // Update process noise (multiple scattering)
         int update_Q(float step, float multiple_scattering_p = 500, float multiple_scattering_length = 0.06823501107481977);

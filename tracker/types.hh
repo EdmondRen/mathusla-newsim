@@ -54,7 +54,7 @@ namespace Tracker
         // Required data
         Vector4d vec4, vec4_err; // {x,y,z,t} and their uncertainty
         Vector3d vec3, vec3_err; // Independent variable removed
-        int iv_index;           // Index of the independent variable. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
+        int iv_index;            // Index of the independent variable. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
         int layer;               // Which detector layer this hit belongs to
         int group;               // Which detector grop this hit belongs to
 
@@ -96,7 +96,7 @@ namespace Tracker
         VectorXd params; // {x0, y0, z0, t0, Ax, Ay, Az, At}, except for the ones that is used as independent variable
         MatrixXd cov;    // covariance of {x0, y0, z0, t0, Ax, Ay, Az, At}, except for the ones that is used as independent variable
         float chi2;
-        int iv_index;   // Index of the independent variable. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
+        int iv_index; // Index of the independent variable. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
         int iv_value; // Value of the independent variable
         int iv_error; // Uncertainty of the independent variable
 
@@ -111,7 +111,7 @@ namespace Tracker
 
         // Full 8-D parameters
         VectorXd params_full; // {x0, y0, z0, t0, Ax, Ay, Az, At}
-        MatrixXd cov_full;    // covariance of {x0, y0, z0, t0, Ax, Ay, Az, At}        
+        MatrixXd cov_full;    // covariance of {x0, y0, z0, t0, Ax, Ay, Az, At}
 
         // Convert to using time as independent variable
         VectorXd convert_to_time();
@@ -120,14 +120,17 @@ namespace Tracker
         // Return: pair of <closest distance, {x,y,z,t}>
         static std::pair<double, Vector4d> get_closest_midpoint(const Track &track1, const Track &track2);
 
+        // Get the distance at the same time of a given point
+        double get_same_time_dist(Vector4d point) const;
+
         // Get the <dist, chi2> at the same time of a given point
         std::pair<double, double> get_same_time_dist_and_chi2(Vector4d point, double speed_constraint = -1.0) const;
-    
+
         // Get the <dist, cov> at the closest point of approach (CPA) on the track to a given point
-        std::pair<Vector4d, MatrixXd> get_cpa_pos_and_cov(Vector4d point, double speed_constraint = -1.0) const;        
+        std::pair<Vector4d, MatrixXd> get_cpa_pos_and_cov(Vector4d point, double speed_constraint = -1.0) const;
 
         // Get the <dist, chi2> at the closest point of approach (CPA) on the track to a given point
-        std::pair<double, double> get_cpa_dist_and_chi2(Vector4d point, double speed_constraint = -1.0) const;        
+        std::pair<double, double> get_cpa_dist_and_chi2(Vector4d point, double speed_constraint = -1.0) const;
     };
     using TrackList = std::vector<std::unique_ptr<Track>>;
 
@@ -167,8 +170,8 @@ namespace Tracker
         float chi2;
 
         // Optional
-        int index;
-        std::vector<Track *> tracks;
+        int id;
+        std::vector<int> track_ids;
     };
     using VertexLilst = std::vector<std::unique_ptr<Vertex>>;
 

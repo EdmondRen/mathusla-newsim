@@ -94,6 +94,16 @@ namespace Tracker
         return std::make_pair(distance, midpoint4d);
     }
 
+    double Track::get_same_time_dist(Vector4d point) const
+    {
+        double dt = point(3) - this->t0;
+        Vector3d pos_on_track = this->params_time.segment(0, 3) + this->params_time.segment(3, 3) * dt;
+        Vector3d pos_residual = pos_on_track - point.segment(0, 3);
+        double dist_point = pos_residual.norm();
+
+        return dist_point;
+    }    
+
     std::pair<double, double> Track::get_same_time_dist_and_chi2(Vector4d point, double speed_constraint) const
     {
         double dt = point(3) - this->t0;
