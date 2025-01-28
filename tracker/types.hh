@@ -36,7 +36,7 @@ namespace Tracker
     class DigiHit
     {
     public:
-        DigiHit(double _x, double _y, double _z, double _t, double _ex, double _ey, double _ez, double _et, int _param_ind, int _layer, int _group) : param_ind(_param_ind), layer(_layer), group(_group)
+        DigiHit(double _x, double _y, double _z, double _t, double _ex, double _ey, double _ez, double _et, int _iv_index, int _layer, int _group) : iv_index(_iv_index), layer(_layer), group(_group)
         {
             vec4 << _x, _y, _z, _t;
             vec4_err << _ex, _ey, _ez, _et;
@@ -47,14 +47,14 @@ namespace Tracker
         // Must be called after changing the vec4 value
         void update_vec3()
         {
-            vec3 = Helper::removeElement(vec4, param_ind);
-            vec3_err = Helper::removeElement(vec4_err, param_ind);
+            vec3 = Helper::removeElement(vec4, iv_index);
+            vec3_err = Helper::removeElement(vec4_err, iv_index);
         }
 
         // Required data
         Vector4d vec4, vec4_err; // {x,y,z,t} and their uncertainty
         Vector3d vec3, vec3_err; // Independent variable removed
-        int param_ind;           // Index of the independent variable. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
+        int iv_index;           // Index of the independent variable. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
         int layer;               // Which detector layer this hit belongs to
         int group;               // Which detector grop this hit belongs to
 
@@ -80,8 +80,8 @@ namespace Tracker
         inline void setey(float x) { vec4_err(1) = x; }
         inline void setez(float x) { vec4_err(2) = x; }
         inline void setet(float x) { vec4_err(3) = x; }
-        inline double get_step() const { return vec4(param_ind); }
-        inline double get_steperr() const { return vec4_err(param_ind); }
+        inline double get_step() const { return vec4(iv_index); }
+        inline double get_steperr() const { return vec4_err(iv_index); }
         inline Vector3d get_vec3() const { return vec3; }
         inline Vector3d get_err3() const { return vec3_err; }
     };
@@ -96,17 +96,22 @@ namespace Tracker
         VectorXd params; // {x0, y0, z0, t0, Ax, Ay, Az, At}, except for the ones that is used as independent variable
         MatrixXd cov;    // covariance of {x0, y0, z0, t0, Ax, Ay, Az, At}, except for the ones that is used as independent variable
         float chi2;
-        int param_ind;   // Index of the independent variable. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
-        int param_value; // Value of the independent variable
-        int param_error; // Uncertainty of the independent variable
+        int iv_index;   // Index of the independent variable. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
+        int iv_value; // Value of the independent variable
+        int iv_error; // Uncertainty of the independent variable
 
         // Optional data
         int id;
         std::vector<int> hit_ids;
 
+        // Parameters based on time
         float t0;
         VectorXd params_time; // {x0, y0, z0, vx, vy, vz}
         MatrixXd cov_time;    // covariance of {x0, y0, z0, vx, vy, vz}
+
+        // Full 8-D parameters
+        VectorXd params_full; // {x0, y0, z0, t0, Ax, Ay, Az, At}
+        MatrixXd cov_full;    // covariance of {x0, y0, z0, t0, Ax, Ay, Az, At}        
 
         // Convert to using time as independent variable
         VectorXd convert_to_time();
@@ -115,10 +120,38 @@ namespace Tracker
         // Return: pair of <closest distance, {x,y,z,t}>
         static std::pair<double, Vector4d> get_closest_midpoint(const Track &track1, const Track &track2);
 
-        // Get the <dist, chi2> of the closest point of approach (CPA) of the track to a given point
-        std::pair<double, double> get_closest_point_dist_chi2(Vector4d point, double speed_constraint = -1.0);
+        // Get the <dist, chi2> at the same time of a given point
+        std::pair<double, double> get_same_time_dist_chi2(Vector4d point, double speed_constraint = -1.0) const;
+
+        // Get the <dist, cov> at the closest point of approach (CPA) on the track to a given point
+        std::pair<Vector4d, MatrixXd> get_closest_point_and_cov(Vector4d point, double speed_constraint = -1.0) const;        
     };
     using TrackList = std::vector<std::unique_ptr<Track>>;
+
+    class TrackSeed
+    {
+    public:
+        TrackSeed(DigiHit *hit1, DigiHit *hit2) : nhits_found(-1)
+        {
+            float c = 299.7; // speed of light [mm/ns]
+            VectorXd dvec = hit2->vec4.array() - hit1->vec4.array();
+            this->dstep = std::abs(hit2->get_step() - hit1->get_step());
+            this->dr = dvec.segment(0, 3).norm();
+            this->dt = std::abs(dvec(3));
+            this->score = std::abs(dr / c - dt);
+
+            // Make a pair and put the earlier one in front
+            this->hits = hit1->t() < hit2->t() ? std::make_pair(hit1, hit2) : std::make_pair(hit2, hit1);
+        }
+
+        // Required data
+        std::pair<DigiHit *, DigiHit *> hits;
+        float score;
+        float dr, dt, dstep;
+        int nhits_found; // Number of hits found using this seed. Save time when reusing this seed.
+
+        // float GetScore() { return score; }
+    };
 
     class Vertex
     {

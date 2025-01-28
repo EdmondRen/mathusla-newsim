@@ -59,17 +59,20 @@ namespace Kalman
         }
 
         // Calculate the predicted chi2 with the next measurement
-        double TryHit(const VectorXd &mi, int n_sigma = 5)
+        double TryMeasurement(const VectorXd &mi, int n_sigma = -1)
         {
             auto rp_i = mi - this->m_predict;
 
             // Return a very large value if it is obviously out of range
-            // This is simply for speed consideration, it 
+            // This is simply for speed consideration, it
             // avoids preceeding to the chi2 calculation.
-            if (std::abs(rp_i(0)) > n_sigma*m_predict_err(0) || 
-                std::abs(rp_i(1)) > n_sigma*m_predict_err(1) || 
-                std::abs(rp_i(2)) > n_sigma*m_predict_err(2) )
-                return 999999;
+            if (n_sigma > 0)
+            {
+                if (std::abs(rp_i(0)) > n_sigma * m_predict_err(0) ||
+                    std::abs(rp_i(1)) > n_sigma * m_predict_err(1) ||
+                    std::abs(rp_i(2)) > n_sigma * m_predict_err(2))
+                    return 999999;
+            }
 
             double chi2_predict = rp_i.transpose() * this->Rp_inv * rp_i;
             return chi2_predict;
@@ -137,23 +140,22 @@ namespace Kalman
         double chi2_step, chi2_total;
     };
 
-
     class KF_FULL
     {
     public:
         // Initialize the filter with
         KF_FULL(int ndimMeasure,
-                   int ndimStates) : Nmeas(ndimMeasure),
-                                     Nstat(ndimStates),
-                                     Imeas(Nmeas, Nmeas),
-                                     Istat(Nstat, Nstat),
-                                     xp(Nstat),
-                                     Cp(Nstat, Nstat),
-                                     rp(Nstat),
-                                     Rp(Nmeas, Nmeas),
-                                     Rf(Nmeas, Nmeas),
-                                     Rp_inv(Nmeas, Nmeas),
-                                     chi2_step(0)
+                int ndimStates) : Nmeas(ndimMeasure),
+                                  Nstat(ndimStates),
+                                  Imeas(Nmeas, Nmeas),
+                                  Istat(Nstat, Nstat),
+                                  xp(Nstat),
+                                  Cp(Nstat, Nstat),
+                                  rp(Nstat),
+                                  Rp(Nmeas, Nmeas),
+                                  Rf(Nmeas, Nmeas),
+                                  Rp_inv(Nmeas, Nmeas),
+                                  chi2_step(0)
         {
             // Make some identity matrix
             Imeas.setIdentity();
@@ -184,16 +186,16 @@ namespace Kalman
         }
 
         // Calculate the predicted chi2 with the next measurement
-        double TryHit(const VectorXd &mi, int n_sigma = 5)
+        double TryMeasurement(const VectorXd &mi, int n_sigma = 5)
         {
             auto rp_i = mi - this->m_predict;
 
             // Return a very large value if it is obviously out of range
-            // This is simply for speed consideration, it 
+            // This is simply for speed consideration, it
             // avoids preceeding to the chi2 calculation.
-            if (std::abs(rp_i(0)) > n_sigma*m_predict_err(0) || 
-                std::abs(rp_i(1)) > n_sigma*m_predict_err(1) || 
-                std::abs(rp_i(2)) > n_sigma*m_predict_err(2) )
+            if (std::abs(rp_i(0)) > n_sigma * m_predict_err(0) ||
+                std::abs(rp_i(1)) > n_sigma * m_predict_err(1) ||
+                std::abs(rp_i(2)) > n_sigma * m_predict_err(2))
                 return 999999;
 
             double chi2_predict = rp_i.transpose() * this->Rp_inv * rp_i;
@@ -261,7 +263,7 @@ namespace Kalman
         // Chi2
         double chi2_step, chi2_total;
     };
-    
+
 } // namespace kalman
 
 #endif

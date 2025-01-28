@@ -13,8 +13,8 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 ## Build type: Debug or Release
-set (CMAKE_BUILD_TYPE Release)
-# set (CMAKE_BUILD_TYPE Debug)
+# set (CMAKE_BUILD_TYPE Release)
+set (CMAKE_BUILD_TYPE Debug)
 option(PROFILE_WITH_GPROF "Enable profiling with gprof" OFF)
 
     
@@ -114,11 +114,12 @@ add_executable(parma parma.cc)
 target_link_libraries(parma PUBLIC mu_sim ${CRY_LIBRARIES})
 
 ## Tracker tests
-add_executable(tracker_test1 ${PROJECT_SOURCE_DIR}/tracker/tests/test_kalman_model.cc)
+set(track_test_util ${PROJECT_SOURCE_DIR}/tracker/tests/test_util.cc ${PROJECT_SOURCE_DIR}/tracker/tests/test_util.hh)
+add_executable(tracker_test1 ${PROJECT_SOURCE_DIR}/tracker/tests/test0_track_kf_fit.cc ${track_test_util})
 target_link_libraries(tracker_test1 mu_recon)
-add_executable(tracker_test2 ${PROJECT_SOURCE_DIR}/tracker/tests/test_track_finder.cc)
+add_executable(tracker_test2 ${PROJECT_SOURCE_DIR}/tracker/tests/test1_track_kf_find.cc ${track_test_util})
 target_link_libraries(tracker_test2 mu_recon)
-add_executable(tracker_test3 ${PROJECT_SOURCE_DIR}/tracker/tests/test_vertex_ls_fit.cc)
+add_executable(tracker_test3 ${PROJECT_SOURCE_DIR}/tracker/tests/test3_vertex_fits.cc ${track_test_util})
 target_link_libraries(tracker_test3 mu_recon)
 
 

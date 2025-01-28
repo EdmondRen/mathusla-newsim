@@ -9,30 +9,6 @@
 
 namespace Tracker
 {
-    class TrackSeed
-    {
-    public:
-        TrackSeed(DigiHit *hit1, DigiHit *hit2) : nhits_found(-1)
-        {
-            float c = 299.7; // speed of light [mm/ns]
-            VectorXd dvec = hit2->vec4.array() - hit1->vec4.array();
-            this->dstep = std::abs(hit2->get_step() - hit1->get_step());
-            this->dr = dvec.segment(0, 3).norm();
-            this->dt = std::abs(dvec(3));
-            this->score = std::abs(dr / c - dt);
-
-            // Make a pair and put the earlier one in front
-            this->hits = hit1->t() < hit2->t() ? std::make_pair(hit1, hit2) : std::make_pair(hit2, hit1);
-        }
-
-        // Required data
-        std::pair<DigiHit *, DigiHit *> hits;
-        float score;
-        float dr, dt, dstep;
-        int nhits_found; // Number of hits found using this seed. Save time when reusing this seed.
-
-        // float GetScore() { return score; }
-    };
 
     class TrackFinder
     {

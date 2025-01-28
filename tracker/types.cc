@@ -7,7 +7,7 @@ namespace Tracker
 
     VectorXd Track::convert_to_time()
     {
-        if (param_ind < 3)
+        if (iv_index < 3)
         {
             params_time = VectorXd(6);
             cov_time = MatrixXd(6, 6);
@@ -17,9 +17,9 @@ namespace Tracker
             // Setting parameters
             for (int j = 0, k = 0; j < 3; ++j)
             {
-                if (j == param_ind)
+                if (j == iv_index)
                 {
-                    params_time(j) = param_value;
+                    params_time(j) = iv_value;
                     params_time(j + 3) = 1 / params(5);
                 }
                 else
@@ -32,7 +32,7 @@ namespace Tracker
             // Setting Jacobian
             for (int j = 0; j < 3; ++j)
             {
-                if (j == param_ind)
+                if (j == iv_index)
                 {
                     jac.insert(j, j) = params_time(j + 3);
                     jac.insert(j + 3, j + 3) = -params_time(j + 3) * params_time(j + 3);
@@ -40,9 +40,9 @@ namespace Tracker
                 else
                 {
                     jac.insert(j, j) = 1;
-                    jac.insert(j, param_ind) = params_time(j + 3);
-                    jac.insert(j + 3, j + 3) = params_time(param_ind + 3);
-                    jac.insert(j + 3, param_ind + 3) = -params_time(j + 3) * params_time(param_ind + 3);
+                    jac.insert(j, iv_index) = params_time(j + 3);
+                    jac.insert(j + 3, j + 3) = params_time(iv_index + 3);
+                    jac.insert(j + 3, iv_index + 3) = -params_time(j + 3) * params_time(iv_index + 3);
                 }
             }
             cov_time = jac * cov * jac.transpose();
@@ -51,7 +51,7 @@ namespace Tracker
         {
             params_time = params; // Do nothing if it is already using time as independent variable.
             cov_time = cov;
-            t0 = param_value;
+            t0 = iv_value;
         }
 
         return params_time;
@@ -82,7 +82,7 @@ namespace Tracker
         return std::make_pair(distance, midpoint4d);
     }
 
-    std::pair<double, double> Track::get_closest_point_dist_chi2(Vector4d point, double speed_constraint)
+    std::pair<double, double> Track::get_same_time_dist_chi2(Vector4d point, double speed_constraint) const
     {
         double dt = point(3) - this->t0;
         Vector3d pos_new = this->params_time.segment(0, 3) + this->params_time.segment(3, 3) * dt;
@@ -95,6 +95,31 @@ namespace Tracker
         double dist_point = pos_residual.norm();
 
         return std::make_pair(dist_point, chi2_point);
+    }
+
+    std::pair<Vector4d, MatrixXd> Track::get_closest_point_and_cov(Vector4d point, double speed_constraint) const
+    {
+        Vector4d r0 = this->params_full.segment(0, 4);
+        Vector4d v0 = this->params_full.segment(4, 4);
+        double v0_2 = std::pow(v0.norm(), 2);
+        double dt = (point - r0).dot(v0) / v0_2;
+        Vector4d closest_point = r0 + v0*dt;
+
+        MatrixXd J_r0(4, 4), J_v0(4, 4), cov_point(4, 4);
+
+        J_r0.setIdentity();
+        J_r0 += -v0 * v0.transpose() / v0_2;
+
+        J_v0.setIdentity();
+        J_v0.diagonal() *= dt;
+        J_v0 += r0 * (point - r0 - 2 * dt * v0).transpose() / v0_2;
+
+        cov_point = J_r0 * cov_full.topLeftCorner(4, 4) * J_r0.transpose() +
+                    J_r0 * cov_full.topRightCorner(4, 4) * J_v0.transpose() +
+                    J_v0 * cov_full.bottomLeftCorner(4, 4) * J_r0.transpose() +
+                    J_v0 * cov_full.bottomRightCorner(4, 4) * J_v0.transpose();
+
+        return std::make_pair(closest_point, cov_point);
     }
 
     // -------------------------------------------------------------------------------------------
