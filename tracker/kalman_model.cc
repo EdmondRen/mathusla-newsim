@@ -216,7 +216,7 @@ namespace Kalman
 
     std::vector<Tracker::Track *> LSVertex4DFitter::tracks = {};
 
-    void LSVertex4DFitter::cost(int &npar, double *gin, double &f, double *par, int iflag)
+    void LSVertex4DFitter::cost_cpa(int &npar, double *gin, double &f, double *par, int iflag)
     {
         (void)npar;
         (void)gin;
@@ -227,12 +227,30 @@ namespace Kalman
 
         for (auto track : LSVertex4DFitter::tracks)
         {
-            auto dist_chi2 = track->get_same_time_dist_chi2(vertex);
-            chi2_total += dist_chi2.second;
+            auto dist_and_chi2 = track->get_cpa_dist_and_chi2(vertex);
+            chi2_total += dist_and_chi2.second;
         }
 
         f = chi2_total; // There is no return value. Return is passed by argument "f"
     }
+
+    void LSVertex4DFitter::cost_same_time(int &npar, double *gin, double &f, double *par, int iflag)
+    {
+        (void)npar;
+        (void)gin;
+        (void)iflag;
+
+        double chi2_total = 0;
+        Vector4d vertex(par[0], par[1], par[2], par[3]); // Fetch the parameters {x,y,z,t}
+
+        for (auto track : LSVertex4DFitter::tracks)
+        {
+            auto dist_and_chi2 = track->get_same_time_dist_and_chi2(vertex);
+            chi2_total += dist_and_chi2.second;
+        }
+
+        f = chi2_total; // There is no return value. Return is passed by argument "f"
+    }    
 
     bool LSVertex4DFitter::fit(std::vector<Tracker::Track *> _tracks, std::vector<double> arg_guess, double tolerance, double maxcalls)
     {
@@ -269,9 +287,9 @@ namespace Kalman
         // get covariance matrix
         minimizer.mnemat(&cov_matrix[0][0], npar);
         // Copy the data from the C-style array to Eigen matrix
-        for (int i = 0; i < 3; ++i)
+        for (int i = 0; i < npar; ++i)
         {
-            for (int j = 0; j < 3; ++j)
+            for (int j = 0; j < npar; ++j)
                 this->cov(i, j) = cov_matrix[i][j];
         }
 
@@ -337,7 +355,7 @@ namespace Kalman
     float KalmanVertex4D::try_measurement(const Tracker::Track &track, float distance_cut, float chi2_cut)
     {
         // measurement uncertainty
-        auto meas_quality = track.get_closest_point_and_cov(this->kf.GetState());
+        auto meas_quality = track.get_cpa_pos_and_cov(this->kf.GetState());
         this->Vi = meas_quality.second;
         this->mi = meas_quality.first;
         auto distance_to_vertex = (this->mi-this->kf.GetState()).segment(0,3).norm();

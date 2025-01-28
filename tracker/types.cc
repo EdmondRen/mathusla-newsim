@@ -1,3 +1,4 @@
+#include <math.h>
 #include "types.hh"
 
 namespace Tracker
@@ -20,22 +21,24 @@ namespace Tracker
                 if (j == iv_index)
                 {
                     params_time(j) = iv_value;
-                    params_time(j + 3) = 1 / params(5);
+                    params_time(j + 3) = 1 / params(iv_index + 3);
                 }
                 else
                 {
                     params_time(j) = params(k++);
-                    params_time(j + 3) = params(j + 3) / params(5);
+                    params_time(j + 3) = params(j + 3) / params(iv_index + 3);
                 }
             }
 
             // Setting Jacobian
+            this->t0_err = std::pow(cov_time(2, 2), 0.5);
             for (int j = 0; j < 3; ++j)
             {
                 if (j == iv_index)
                 {
                     jac.insert(j, j) = params_time(j + 3);
                     jac.insert(j + 3, j + 3) = -params_time(j + 3) * params_time(j + 3);
+                    jac.insert(j, j + 3) = -params_time(j + 3) * params_time(j + 3) * t0_err;
                 }
                 else
                 {
@@ -43,15 +46,24 @@ namespace Tracker
                     jac.insert(j, iv_index) = params_time(j + 3);
                     jac.insert(j + 3, j + 3) = params_time(iv_index + 3);
                     jac.insert(j + 3, iv_index + 3) = -params_time(j + 3) * params_time(iv_index + 3);
+                    jac.insert(j, j + 3) = params_time(iv_index + 3) * t0_err;
+                    jac.insert(j, iv_index + 3) = -params_time(j + 3) * params_time(iv_index + 3) * t0_err;
                 }
             }
             cov_time = jac * cov * jac.transpose();
+            // std::cout << "Jac \n"
+            //           << jac << std::endl;
+            // std::cout << "cov original \n"
+            //           << cov << std::endl;
+            // std::cout << "cov time \n"
+            //           << cov_time << std::endl;
         }
         else
         {
             params_time = params; // Do nothing if it is already using time as independent variable.
             cov_time = cov;
             t0 = iv_value;
+            t0_err = iv_error;
         }
 
         return params_time;
@@ -82,28 +94,40 @@ namespace Tracker
         return std::make_pair(distance, midpoint4d);
     }
 
-    std::pair<double, double> Track::get_same_time_dist_chi2(Vector4d point, double speed_constraint) const
+    std::pair<double, double> Track::get_same_time_dist_and_chi2(Vector4d point, double speed_constraint) const
     {
         double dt = point(3) - this->t0;
-        Vector3d pos_new = this->params_time.segment(0, 3) + this->params_time.segment(3, 3) * dt;
-        Vector3d pos_residual = pos_new - point.segment(0, 3);
+        Vector3d pos_on_track = this->params_time.segment(0, 3) + this->params_time.segment(3, 3) * dt;
+        Vector3d pos_residual = pos_on_track - point.segment(0, 3);
         MatrixXd cov_residual = this->cov_time.topLeftCorner(3, 3) +
                                 this->cov_time.topRightCorner(3, 3) * dt +
                                 this->cov_time.bottomLeftCorner(3, 3) * dt +
                                 this->cov_time.bottomRightCorner(3, 3) * dt * dt;
+
+        // cov_residual.diagonal() += (this->params_time.segment(3, 3).array() * this->params_time.segment(3, 3).array()).matrix() * this->t0_err * this->t0_err;
         double chi2_point = pos_residual.transpose() * cov_residual.inverse() * pos_residual;
         double dist_point = pos_residual.norm();
 
         return std::make_pair(dist_point, chi2_point);
     }
 
-    std::pair<Vector4d, MatrixXd> Track::get_closest_point_and_cov(Vector4d point, double speed_constraint) const
+    std::pair<double, double> Track::get_cpa_dist_and_chi2(Vector4d point, double speed_constraint) const
+    {
+        auto point_and_cov = get_cpa_pos_and_cov(point, speed_constraint);
+        Vector4d residual4d = point_and_cov.first - point;
+        double dist_point = residual4d.segment(0, 3).norm();
+        double chi2_point = residual4d.transpose() * point_and_cov.second.inverse() * residual4d;
+
+        return std::make_pair(dist_point, chi2_point);
+    }
+
+    std::pair<Vector4d, MatrixXd> Track::get_cpa_pos_and_cov(Vector4d point, double speed_constraint) const
     {
         Vector4d r0 = this->params_full.segment(0, 4);
         Vector4d v0 = this->params_full.segment(4, 4);
         double v0_2 = std::pow(v0.norm(), 2);
         double dt = (point - r0).dot(v0) / v0_2;
-        Vector4d closest_point = r0 + v0*dt;
+        Vector4d closest_point = r0 + v0 * dt;
 
         MatrixXd J_r0(4, 4), J_v0(4, 4), cov_point(4, 4);
 

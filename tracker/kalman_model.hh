@@ -70,9 +70,20 @@ namespace Kalman
     class LSVertex4DFitter
     {
     public:
-        LSVertex4DFitter() : minimizer(npar),cov(4,4), parameters(npar), parameter_errors(npar)
-        {
-            minimizer.SetFCN(cost);
+        // chi2_def: which chi2 definition to use
+        //  1: closest point of approach (CPA)
+        //  2: same time
+        LSVertex4DFitter(int chi2_def =1) : minimizer(npar),cov(4,4), parameters(npar), parameter_errors(npar)
+        {   
+            // Set the function to minimize
+            if (chi2_def==1)
+                minimizer.SetFCN(cost_cpa);
+            else if (chi2_def==2)
+                minimizer.SetFCN(cost_same_time);
+            else
+                minimizer.SetFCN(cost_same_time);
+
+            // Suppress the minimizer output
             int QUIET_MODE = -1;
             minimizer.SetPrintLevel(QUIET_MODE);
         }
@@ -84,7 +95,9 @@ namespace Kalman
         // - &f: save the function value here
         // - *par: list of parameters
         // It has to be a static member
-        static void cost(int &npar, double *gin, double &f, double *par, int iflag);
+        static void cost_cpa(int &npar, double *gin, double &f, double *par, int iflag);
+
+        static void cost_same_time(int &npar, double *gin, double &f, double *par, int iflag);
 
         // Find vertex that minimize chi2
         bool fit(std::vector<Tracker::Track *> tracks,

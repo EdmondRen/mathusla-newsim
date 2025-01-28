@@ -243,6 +243,7 @@ namespace Tracker
                 // Setting the metadata of this track
                 track_found->id = this->tracks_found.size();
                 track_found->hit_ids = std::vector<int>();
+                track_found->convert_to_time(); // Add a set of track parameter using time as independent variable.
 
                 hits_found_ids = "";
                 for (auto hit : hits_found_temp)

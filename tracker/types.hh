@@ -105,7 +105,7 @@ namespace Tracker
         std::vector<int> hit_ids;
 
         // Parameters based on time
-        float t0;
+        float t0, t0_err;
         VectorXd params_time; // {x0, y0, z0, vx, vy, vz}
         MatrixXd cov_time;    // covariance of {x0, y0, z0, vx, vy, vz}
 
@@ -121,10 +121,13 @@ namespace Tracker
         static std::pair<double, Vector4d> get_closest_midpoint(const Track &track1, const Track &track2);
 
         // Get the <dist, chi2> at the same time of a given point
-        std::pair<double, double> get_same_time_dist_chi2(Vector4d point, double speed_constraint = -1.0) const;
-
+        std::pair<double, double> get_same_time_dist_and_chi2(Vector4d point, double speed_constraint = -1.0) const;
+    
         // Get the <dist, cov> at the closest point of approach (CPA) on the track to a given point
-        std::pair<Vector4d, MatrixXd> get_closest_point_and_cov(Vector4d point, double speed_constraint = -1.0) const;        
+        std::pair<Vector4d, MatrixXd> get_cpa_pos_and_cov(Vector4d point, double speed_constraint = -1.0) const;        
+
+        // Get the <dist, chi2> at the closest point of approach (CPA) on the track to a given point
+        std::pair<double, double> get_cpa_dist_and_chi2(Vector4d point, double speed_constraint = -1.0) const;        
     };
     using TrackList = std::vector<std::unique_ptr<Track>>;
 
