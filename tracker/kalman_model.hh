@@ -7,7 +7,7 @@
 #include <Eigen/Dense>
 #include <TMinuit.h>
 
-#include "types.hh"
+#include "types_and_helper.hh"
 #include "kalman.hh"
 
 namespace Kalman

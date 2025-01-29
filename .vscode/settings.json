@@ -191,6 +191,10 @@
         "hash_map": "cpp",
         "cfenv": "cpp",
         "valarray": "cpp",
-        "alignedvector3": "cpp"
+        "alignedvector3": "cpp",
+        "qrot": "cpp",
+        "rotf": "cpp",
+        "senum": "cpp",
+        "CreateSampleTree.C": "cpp"
     }
 }

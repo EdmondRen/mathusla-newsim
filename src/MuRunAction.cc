@@ -120,7 +120,7 @@ void MuRunAction::BeginOfRunAction(const G4Run * /*run*/)
   // auto thisDetectorConstruction = dynamic_cast<const MuDetectorConstruction*>(detectorConstruction);
   auto sensitiveDetectorData = MuDetectorConstruction::GetSDdata();
   if (sensitiveDetectorData)
-    Analysis::MuCreateNTuple(*sensitiveDetectorData, "raw"); // Tree name is "raw"
+    Analysis::MuCreateNTuple(*sensitiveDetectorData, "data"); // Tree name is "data"
 
 
   // Create another ntuple for metadata

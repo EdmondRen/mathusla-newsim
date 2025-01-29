@@ -95,7 +95,7 @@ namespace MuGenerators
             // Open the root file with analysis reader
             // Tom: won't work with Geant4.10. GetNtuple is badly implemented
             // analysisReader->SetFileName(value);
-            // G4int ntupleid = analysisReader->GetNtuple("raw");
+            // G4int ntupleid = analysisReader->GetNtuple("data");
             // auto tree = analysisReader->GetNtuple(ntupleid);
             // EVENTS_TOTAL = tree->entries();
             // analysisReader->SetNtupleIColumn("Seed_0", data_seed_0_raw);
@@ -114,7 +114,7 @@ namespace MuGenerators
             if (!InputFile)
                 return;
 
-            auto input_tree_name = "raw";
+            auto input_tree_name = "data";
             InputTree = (TTree *)InputFile->Get(input_tree_name);
             if (!InputTree)
                 return;

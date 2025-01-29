@@ -4,7 +4,7 @@
 #include <iostream>
 #include <memory>
 
-#include "types.hh"
+#include "types_and_helper.hh"
 #include "util.hh"
 
 namespace Tracker

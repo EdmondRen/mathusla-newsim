@@ -92,8 +92,8 @@ struct SimHit
           track_id(_track_id), pdg_id(_pdg_id), det_id(_det_id) {}
 };
 
-// Container for Digi hits
-class DigiHit
+// Container for Digitizer hits
+class DigitizerHit
 {
 public:
     std::size_t index;
@@ -260,7 +260,7 @@ public:
         if (!inputFile)
             return;
 
-        treeRaw = (TTree *)inputFile->Get("raw");
+        treeRaw = (TTree *)inputFile->Get("data");
         treeMetadata = (TTree *)inputFile->Get("metadata");
         entries = treeRaw->GetEntries();
 
@@ -369,7 +369,7 @@ public:
 
     OutputTreeHandeler(std::string filename)
     {
-        auto output_tree_name = "digi";
+        auto output_tree_name = "data";
         outputFile = TFile::Open(filename.c_str(), "RECREATE");
         outputTreeRaw = new TTree(output_tree_name, "Digitized Tree");
         outputTreeMetadata = new TTree("metadata", "Metadata for digitization");
@@ -417,7 +417,7 @@ public:
         Digi_hitInds.clear();
     }
 
-    void ExportDigis(std::vector<DigiHit *> digi_list)
+    void ExportDigis(std::vector<DigitizerHit *> digi_list)
     {
         this->clear();
 
@@ -470,10 +470,10 @@ public:
 
 bool time_sort(SimHit *hit1, SimHit *hit2) { return (hit1->t < hit2->t); }
 
-std::vector<DigiHit *> Digitize(std::vector<SimHit *> hits, DigiConfig &config, MuGeoBuilder::Builder *geobulder)
+std::vector<DigitizerHit *> Digitize(std::vector<SimHit *> hits, DigiConfig &config, MuGeoBuilder::Builder *geobulder)
 {
     // this is the vector of digi_hits we will return at the end of the function
-    std::vector<DigiHit *> digis;
+    std::vector<DigitizerHit *> digis;
     // looping through each detector ID
     std::vector<SimHit *> current_hits;
     std::vector<SimHit *> current_remaining_hits = hits;
@@ -528,7 +528,7 @@ std::vector<DigiHit *> Digitize(std::vector<SimHit *> hits, DigiConfig &config, 
 
             if (e_sum > config.sipm_energy_threshold)
             {
-                DigiHit *current_digi = new DigiHit();
+                DigitizerHit *current_digi = new DigitizerHit();
                 for (auto hit : used_hits)
                 {
                     current_digi->AddHit(hit, geobulder->GetBarPosition(hit->det_id));
@@ -591,9 +591,9 @@ public:
         this->noise_counts_mean = noise_rate * noise_window * bar_index.size() * 2;
     }
 
-    std::vector<DigiHit *> run()
+    std::vector<DigitizerHit *> run()
     {
-        std::vector<DigiHit *> digis; // this is the vector of digi_hits we will return at the end of the function
+        std::vector<DigitizerHit *> digis; // this is the vector of digi_hits we will return at the end of the function
         std::vector<int> bars_selected;
 
         if (noise_counts_mean <= 0)
@@ -606,7 +606,7 @@ public:
             auto detector_id = bar_index.at(bar_ind);
             auto bar_position = bar_map.at(detector_id);
 
-            DigiHit *current_digi = new DigiHit();
+            DigitizerHit *current_digi = new DigitizerHit();
             current_digi->DigitizeNoise(bar_position, config, noise_window);
             current_digi->index = i;
             current_digi->detector_id = detector_id;

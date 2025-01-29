@@ -6,6 +6,10 @@
 
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
+#include <TFile.h>
+#include <TTree.h>
+
+#include "util_root.hh"
 
 using Eigen::MatrixXd;
 using Eigen::Vector3d;
@@ -174,6 +178,118 @@ namespace Tracker
         std::vector<int> track_ids;
     };
     using VertexLilst = std::vector<std::unique_ptr<Vertex>>;
+
+    // Read the file after digitization, and arrange them into <DigiHit> type
+    class TreeReaderDigi
+    {
+    private:
+        TFile *File;
+        TTree *TreeData;
+        TTree *TreeMetadata;
+
+        // Buffer for digitized data to read
+        std::vector<float> Digi_x;
+        std::vector<float> Digi_y;
+        std::vector<float> Digi_z;
+        std::vector<float> Digi_t;
+        std::vector<float> Digi_edep;
+        std::vector<int> Digi_trackID;
+        std::vector<int> Digi_pdgID;
+        std::vector<long long> Digi_detectorID; // Which layer the hit is from. Layer is obtained from the copy number of depth 1 in GENAT4
+        std::vector<int> Digi_type;             // Soure of the event. -1: noise, 0: GUN, 1: PARMA, 2: CRY
+        std::vector<int> Digi_hitInds;          // The index of truth hits of each digitized hit
+        std::vector<int> Digi_direction;        // Indicates the direction of the bar with last three digits . For example, .....012 means x->x, y->y, z->z
+
+        // Buffer for metadata;
+        std::string SimulationName;
+        std::string Geometry;
+        std::string Generator;
+        float Uncertainty_t;
+        float Uncertainty_x;
+        float Uncertainty_y;
+        float Uncertainty_z;
+
+        // Container for processed data
+        Vector4d digi_unc;
+        std::vector<std::unique_ptr<DigiHit>> hits;
+
+        // Counter of current entry
+        long long entries_total;
+        long long entry_current;
+
+    public:
+        TreeReaderDigi(std::string filename);
+        ~TreeReaderDigi()
+        {
+            File->Close();
+        }
+
+        std::vector<std::unique_ptr<DigiHit>> GetEntry(long long entry);
+        long long GetCurrentEntry() { return entry_current; }
+        long long GetEntries() { return entries_total; }
+        TTree *GetTreeData() { return TreeData; }
+        TTree *GetTreeMetadata() { return TreeMetadata; }
+    };
+
+    // Write output file
+    //  with option to merge the digi and raw data together
+    class TreeWriterRecon
+    {
+    private:
+        TFile *outputFile;
+        TTree *outputTreeRaw;
+        TTree *outputTreeMetadata;
+
+        // Buffer for recon data to write
+        std::vector<float> Track_x0;
+        std::vector<float> Track_y0;
+        std::vector<float> Track_z0;
+        std::vector<float> Track_t0;
+        std::vector<float> Track_kx;
+        std::vector<float> Track_ky;
+        std::vector<float> Track_kz;
+        std::vector<float> Track_kt;
+        std::vector<float> Track_cov;
+        std::vector<float> Track_chi2;
+        std::vector<int> Track_id;
+        std::vector<int> Track_iv_ind;
+        std::vector<int> Track_iv_err;
+        std::vector<int> Track_digiInds;
+
+        std::vector<float> Vertex_x0;
+        std::vector<float> Vertex_y0;
+        std::vector<float> Vertex_z0;
+        std::vector<float> Vertex_t0;
+        std::vector<float> Vertex_cov;
+        std::vector<float> Vertex_chi2;
+        std::vector<int> Vertex_id;
+        std::vector<int> Vertex_trackInds;
+
+        // Buffer for metadata;
+
+        // Utility for copying raw and digits to the recon file
+        iroot::file::EntryCopy *copy_raw, *copy_digi;
+
+        // Counter of current entry
+        long long entries_total;
+        long long entry_current;
+
+        // Boolean
+        bool EN_COPY_RAW;
+        bool EN_COPY_DIGI;
+
+    public:
+        TreeWriterRecon(std::string filename_recon, TreeReaderDigi *digi_reader = nullptr, std::string filename_sim = "");
+        ~TreeWriterRecon()
+        {
+            outputFile->Close();
+        }
+
+        int GetRecon(TrackList &tracks, VertexLilst &vertices);
+        int GetCopy(long long entry);
+        void Fill();
+        void Write() {outputTreeRaw->Write();}
+    };
 
 } // namespace Tracker
 
