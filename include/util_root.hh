@@ -64,7 +64,8 @@ namespace iroot
             setTableauPalette();
         }
     } // namespace style
-
+    
+    /*
     namespace plt
     {
 
@@ -276,6 +277,7 @@ namespace iroot
         };
 
     } // namespace plt
+    */
 
     namespace file
     {

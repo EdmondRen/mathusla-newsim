@@ -11,6 +11,8 @@
 #include "libs/cxxopts.hpp"
 #include "test_util.hh"
 
+std::string util::globals::PROJECT_SOURCE_DIR = "";
+
 void setTableauPalette()
 {
     // Define RGB values for Tableau colors
@@ -51,18 +53,15 @@ int main(int argc, const char *argv[])
         ("h,help", "Print help")
         ("filename", "ROOT file to digitize", cxxopts::value<std::string>())
         ("s,seed", "Seed for random number generator", cxxopts::value<int>()->default_value("-1"))
-        ("t,time_resolution", "Coincidence time resolution [ns].", cxxopts::value<float>()->default_value("1"))
-        ("T,time_limit", "Time limit [ns]", cxxopts::value<float>()->default_value("20"))
-        ("E,energy_threshold", "Energy threshold for a digi [MeV]", cxxopts::value<float>()->default_value("0.65"))
-        ("p,print_progress", "Print progress every `p` events", cxxopts::value<int>()->default_value("1"))
-        ("n,noise_rate", "Noise rate [avg number per file]. Set to -1 to disable (default).", cxxopts::value<float>()->default_value("-1"))
+        ("n,ntracks", "N.", cxxopts::value<int>()->default_value("5"))
+        ("e,nevents", "N.", cxxopts::value<int>()->default_value("1000"))
         ("w,noise_window", "Noise window [s], noise will be sampled between [-noise_window, noise_window]", cxxopts::value<float>()->default_value("1000e-9"));
     options.parse_positional({"filename"});
     auto args = options.parse(argc, argv);
 
     rng.SetSeed(args["seed"].as<int>());
 
-    int N_TRACKS_PER_EVENT = 5;
+    int N_TRACKS_PER_EVENT = args["ntracks"].as<int>();
     // clang-format on
 
     // Look at one track
@@ -95,12 +94,12 @@ int main(int argc, const char *argv[])
     print("Vertex KF Fit result (x,y,z,t):", vertex->params.transpose());
     print("Vertex LS Fit cov (x,y,z,t)\n", vertex->cov);
 
-    int N = 1000;
+    int N = args["nevents"].as<int>();
     auto start = std::chrono::high_resolution_clock::now();
     auto stop = std::chrono::high_resolution_clock::now();
     float duration = 0;
 
-    // Generate 1000 tracks first
+    // Generate 1000 Events first
     std::vector<std::vector<Tracker::Track *>> tracklist_all;
     for (auto i = 0; i < N; i++)
     {
@@ -183,6 +182,10 @@ int main(int argc, const char *argv[])
     gROOT->SetStyle("Modern");
     // gStyle->SetPalette(kRainBow);
     setTableauPalette();
+
+
+    // Plot and save output
+    util::io::create_directory("plots");
 
     TCanvas *c1 = new TCanvas("c1", "Residual R", 800, 600);
     h1->SetLineColor(gStyle->GetColorPalette(0));

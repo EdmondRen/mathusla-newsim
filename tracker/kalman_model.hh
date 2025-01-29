@@ -106,16 +106,18 @@ namespace Kalman
                  double maxcalls = 50000);
 
         // Run fit and Return the vertex directly
-        std::unique_ptr<Tracker::Vertex> run_fit(std::vector<Tracker::Track *> tracks,
+        Tracker::Vertex *run_fit(std::vector<Tracker::Track *> tracks,
                                  std::vector<double> arg_guess = {},
                                  double tolerance = 0.1,
                                  double maxcalls = 50000)
         {
-            auto vertex = std::make_unique<Tracker::Vertex>();
+            fit(tracks, arg_guess, tolerance, maxcalls);
+
+            auto vertex = new Tracker::Vertex();
             vertex->params = params;
             vertex->cov = cov;
             vertex->chi2 = chi2;
-            return std::move(vertex);
+            return vertex;
         }
 
         // Holding fit results
@@ -144,7 +146,7 @@ namespace Kalman
             auto guess = Tracker::Track::get_closest_midpoint(*track1, *track2);
             this->distance = guess.first;
             this->vertex_guess = guess.second;
-            this->ntracks_found = 0;
+            this->ntracks_found = 2;
         }
 
         float GetChi2()
@@ -170,7 +172,7 @@ namespace Kalman
             this->cov = vertex_fitter.cov;
 
             // Make a score out of it
-            // this->score = -chi2;
+            this->score = -chi2;
 
             return this->chi2;
         }
@@ -182,6 +184,8 @@ namespace Kalman
         float score;
         float distance, chi2; // Distance between the two tracks
         int ntracks_found;    // Number of track compatible with this seed
+
+        std::vector<std::pair<int, double>> track_distance_list;
     };
 
     class KalmanVertex4D

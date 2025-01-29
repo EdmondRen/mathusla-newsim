@@ -3,11 +3,11 @@
 
 TRandom3 rng;
 
-std::vector<Tracker::DigiHit *> genHits(double x0_span, double y0_span, double z0, double Ax_span, double Ay_span, double v, int n_layers)
-{
+std::vector<Tracker::DigiHit *> genHits(double x0_span, double y0_span, double z0, double Ax_span, double Ay_span, double v, int n_layers, const std::vector<double> &vertex_pos)
+{   
     auto layer_ids = Eigen::VectorXd::LinSpaced(n_layers, 0, n_layers - 1);
     auto layer_gap = 800.;                                // 80 cm
-    auto layer_zs = (layer_ids * layer_gap).array() + z0; // y_coordinates
+    auto layer_zs = (layer_ids * layer_gap).array() + z0 + vertex_pos[2]; // verticle_coordinates
 
     float det_width = 35;
     float det_height = 10;
@@ -18,9 +18,9 @@ std::vector<Tracker::DigiHit *> genHits(double x0_span, double y0_span, double z
     float unc_longi = unc_time * v / refraction_index;
     float unc_verti = det_height / std::sqrt(12.);
 
-    auto x0 = rng.Uniform(x0_span * 2) - x0_span;
-    auto y0 = rng.Uniform(y0_span * 2) - y0_span;
-    auto t0 = 0.0;
+    auto x0 = rng.Uniform(x0_span * 2) - x0_span + vertex_pos[0];
+    auto y0 = rng.Uniform(y0_span * 2) - y0_span + vertex_pos[1];
+    auto t0 = 0.0 + vertex_pos[3];
     auto Ax = rng.Uniform(Ax_span * 2) - Ax_span;
     auto Ay = rng.Uniform(Ay_span * 2) - Ay_span;
     auto At = std::sqrt(1. + std::pow(Ax, 2) + std::pow(Ay, 2)) / v;
@@ -53,13 +53,13 @@ std::vector<Tracker::DigiHit *> genHits(double x0_span, double y0_span, double z
     return hits;
 }
 
-std::vector<Tracker::DigiHit *> genHitsTracks(int ntracks)
+std::vector<Tracker::DigiHit *> genHitsTracks(int ntracks, const std::vector<double> &vertex_pos)
 {
     std::vector<Tracker::DigiHit *> hits;
 
     for (int i = 0; i < ntracks; i++)
     {
-        auto hits_temp = genHits(0, 0, 4000, 1, 1);
+        auto hits_temp = genHits(0, 0, 4000, 1, 1, 300, 6, vertex_pos);
         hits.insert(hits.end(), std::make_move_iterator(hits_temp.begin()), std::make_move_iterator(hits_temp.end()));
     }
 

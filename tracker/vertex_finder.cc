@@ -15,9 +15,9 @@ namespace Tracker
         this->vertices_found = VertexLilst();
 
         // Set the default parameters
-        config["vertex_cut_SeedDist"] = 300;                               // [mm] Maxmum distance between two tracks
+        config["vertex_cut_SeedDist"] = 3000;                               // [mm] Maxmum distance between two tracks
         config["vertex_cut_SeedChi2"] = 50;                                // maximum chi2 of the seed
-        config["vertex_cut_TrackAddDist"] = 300;                           //  Distance cut to add a track
+        config["vertex_cut_TrackAddDist"] = 3000;                           //  Distance cut to add a track
         config["vertex_cut_TrackAddChi2"] = 9;                             // chi2 cut to add a track
         config["vertex_cut_TrackDropChi2"] = 3;                            // chi2 cut to drop a track
         config["vertex_cut_VertexChi2Reduced"] = 5;                        // Vertex chi2-square cut
@@ -50,13 +50,25 @@ namespace Tracker
         }
 
         // Calculate score of the seed
-        for (auto seed : seeds_unused)
+        for (auto &seed : seeds_unused)
         {
             // Check how many tracks could be associated with each seed
-            for (auto track : tracks_all)
+            // Save the distance between each track and the seed
+            for (auto &track : tracks_all)
             {
-                if (track->get_same_time_dist(seed->vertex_fit) < config["vertex_cut_TrackAddDist"])
+                if (track->id == seed->tracks.first->id ||
+                    track->id == seed->tracks.second->id)
+                    continue;
+
+                double track_to_seed_dist = track->get_same_time_dist(seed->vertex_fit);
+                seed->track_distance_list.push_back(std::make_pair(track->id, track_to_seed_dist));
+                if (track_to_seed_dist < config["vertex_cut_TrackAddDist"])
                     seed->ntracks_found += 1;
+
+                // Sort distance descending. Minimum distance at the end. Use backwards.
+                std::sort(seed->track_distance_list.begin(), seed->track_distance_list.end(),
+                          [](std::pair<int, double> &a, std::pair<int, double> &b)
+                          { return a.second > b.second; });
             }
         }
 
@@ -98,36 +110,43 @@ namespace Tracker
         tracks_found_temp.push_back(seed->tracks.second);
         finder.init_state(*seed);
 
-        // Calculate the chi2 contribution of each remaining track
-        // Only keep the minimum one
-        int chi2_min_ind = -1;
-        float chi2_min_val = std::numeric_limits<float>::infinity();
-
-        for (const auto &pair : tracks_unused)
+        // Try all tracks that are recorded in the seed
+        for (int i = seed->track_distance_list.size() - 1; i >= 0; i--)
         {
-            auto track_id = pair.first;
-            auto track = pair.second;
-            
+            auto track_pair_dist = seed->track_distance_list[i];
+            auto track_id = track_pair_dist.first;
+            auto track_dist = track_pair_dist.second;
+
+            if (track_dist > config["vertex_cut_TrackAddDist"] * 2 ||
+                tracks_unused.count(track_id) == 0)
+            {   
+                if (tracks_unused.count(track_id) != 0)
+                {
+                    print_dbg(util::py::f("  Track {} is ignored due to large distance of {} [mm]", track_id, track_dist));
+                }
+
+                // Delete it from the seed and skip this round of loop
+                if (i != 0)
+                {
+                    seed->track_distance_list.erase(seed->track_distance_list.begin() + i);
+                    continue;
+                }
+                else
+                    break;
+            }
+
+            auto &track = tracks_unused[track_id];
 
             float track_chi2;
             track_chi2 = finder.try_measurement(*track,
                                                 config["vertex_cut_TrackAddDist"],
                                                 config["vertex_cut_TrackAddChi2"]);
-            // print_dbg("    hit chi2:", hit_chi2);
-            // find the smallest one
-            if (track_chi2 >= 0 && track_chi2 < chi2_min_val)
+            if (track_chi2 != -1)
             {
-                chi2_min_ind = track_id;
-                chi2_min_val = track_chi2;
+                print_dbg(util::py::f("  Track {} is added with chi2 {:.3f}.", track_id, track_chi2));
+                tracks_found_temp.push_back(tracks_unused[track_id]); // add to list
+                finder.add_measurement(*tracks_unused[track_id]);     // update finder
             }
-        }
-        print_dbg(util::py::f("  Minimum chi2 is {:.3f}, from track {}.", chi2_min_val, chi2_min_ind));
-
-        // Add the hit with minimum chi2 and update the finder status
-        if (chi2_min_ind != -1)
-        {
-            tracks_found_temp.push_back(tracks_unused[chi2_min_ind]); // add to list
-            finder.add_measurement(*tracks_unused[chi2_min_ind]);     // update finder
         }
 
         return tracks_found_temp.size();
@@ -160,12 +179,13 @@ namespace Tracker
                 continue;
             }
 
+            // Print out the index of identified tracks
             std::string tracks_found_ids = "";
             for (auto track : tracks_found_temp)
             {
                 tracks_found_ids += std::to_string(track->id) + " ";
             }
-            print_dbg(util::py::f("-> Found vertex with {} tracks:", tracks_found_ids.size()), tracks_found_ids);
+            print_dbg(util::py::f("-> Found vertex with {} tracks:", tracks_found_temp.size()), tracks_found_ids);
 
             // Round 2: Drop outliers
             // Discard this track if the seed contributes too much to chi2
@@ -200,7 +220,8 @@ namespace Tracker
             print_dbg(util::py::f("-> Found vertex with {} tracks:", tracks_found_temp.size()), tracks_found_ids);
 
             // Add vertex to the list
-            this->vertices_found.push_back(std::move(vertex_found));
+            std::unique_ptr<Tracker::Vertex> vertex_uniqueptr(vertex_found);
+            this->vertices_found.push_back(std::move(vertex_uniqueptr));
             print_dbg(util::py::f("-> Vertex #{} added: chi2 {:.3f}", this->vertices_found.size(), this->vertices_found.back()->chi2));
 
             // Finally, remove other seeds that have hits in this vertex
@@ -208,7 +229,7 @@ namespace Tracker
             print_dbg("  Remaining seeds:", seeds_unused.size());
         }
 
-        return -1;
+        return vertices_found.size();
     }
 
     int VertexFinder::RemoveUsed()
