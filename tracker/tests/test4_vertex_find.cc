@@ -12,8 +12,6 @@
 #include "test_util.hh"
 #include "../vertex_finder.hh"
 
-std::string util::globals::PROJECT_SOURCE_DIR = "";
-
 void setTableauPalette()
 {
     // Define RGB values for Tableau colors

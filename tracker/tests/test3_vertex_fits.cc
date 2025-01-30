@@ -11,7 +11,6 @@
 #include "libs/cxxopts.hpp"
 #include "test_util.hh"
 
-std::string util::globals::PROJECT_SOURCE_DIR = "";
 
 void setTableauPalette()
 {

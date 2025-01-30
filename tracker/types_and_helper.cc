@@ -70,7 +70,7 @@ namespace Tracker
     }
 
     std::pair<double, Vector4d> Track::get_closest_midpoint(const Track &track1, const Track &track2)
-    {   
+    {
         VectorXd s1 = track1.params_time;
         VectorXd s2 = track2.params_time;
 
@@ -135,7 +135,7 @@ namespace Tracker
 
     std::pair<Vector4d, MatrixXd> Track::get_cpa_pos_and_cov(Vector4d point, double speed_constraint) const
     {
-        (void) speed_constraint;
+        (void)speed_constraint;
         Vector4d r0 = this->params_full.segment(0, 4);
         Vector4d v0 = this->params_full.segment(4, 4);
         double v0_2 = std::pow(v0.norm(), 2);
@@ -336,59 +336,99 @@ namespace Tracker
             // if (hits_dict.count(group) == 0)
             //     hits_dict[group] = std::vector<DigiHit *>();
             // else
-                hits_dict[group].push_back(hit.get());
+            hits_dict[group].push_back(hit.get());
         }
 
         return hits_dict;
     }
 
     // Class TreeWriterRecon------------------------------------------------------------------------------------------------
-    TreeWriterRecon::TreeWriterRecon(std::string filename_recon, TreeReaderDigi *digi_reader, std::string filename_sim)
+    TreeWriterRecon::TreeWriterRecon(std::string filename_recon,
+                                     std::string filename_digi,
+                                     std::string filename_sim,
+                                     bool save_raw_reduced) : iroot::file::EntryCopy()
     {
-        (void)digi_reader;
-        (void)filename_sim;
 
         auto output_tree_name = "data";
         outputFile = TFile::Open(filename_recon.c_str(), "RECREATE");
-        outputTreeRaw = new TTree(output_tree_name, "Reconstruction Tree");
+        outputTree = new TTree(output_tree_name, "Reconstruction Tree");
         outputTreeMetadata = new TTree("metadata", "Metadata for reconstruction");
 
         // Write metadata
-        // outputTreeMetadata->Branch("SimulationName", &SimulationName);
-        // outputTreeMetadata->Branch("Geometry", &Geometry);
-        // outputTreeMetadata->Branch("Generator", &Generator);
-        // outputTreeMetadata->Branch("Uncertainty_t", &Uncertainty_t);
-        // outputTreeMetadata->Branch("Uncertainty_x", &Uncertainty_x);
-        // outputTreeMetadata->Branch("Uncertainty_y", &Uncertainty_y);
-        // outputTreeMetadata->Branch("Uncertainty_z", &Uncertainty_z);
+        outputTreeMetadata->Branch("ReconstructionConfigStr", &meta_ReconstructionConfigStr);
 
         // Setup tree pointer to data buffer
-        outputTreeRaw->Branch("Track_x0", &Track_x0);
-        outputTreeRaw->Branch("Track_y0", &Track_y0);
-        outputTreeRaw->Branch("Track_z0", &Track_z0);
-        outputTreeRaw->Branch("Track_t0", &Track_t0);
-        outputTreeRaw->Branch("Track_kx", &Track_kx);
-        outputTreeRaw->Branch("Track_ky", &Track_ky);
-        outputTreeRaw->Branch("Track_kz", &Track_kz);
-        outputTreeRaw->Branch("Track_kt", &Track_kt);
-        outputTreeRaw->Branch("Track_cov", &Track_cov); // Have to be flattened, each track takes 6x6=36 elements
-        outputTreeRaw->Branch("Track_chi2", &Track_chi2);
-        outputTreeRaw->Branch("Track_id", &Track_id);
-        outputTreeRaw->Branch("Track_iv_ind", &Track_iv_ind);
-        outputTreeRaw->Branch("Track_iv_err", &Track_iv_err);
-        outputTreeRaw->Branch("Track_digiInds", &Track_digiInds);
-        outputTreeRaw->Branch("Vertex_x0", &Vertex_x0);
-        outputTreeRaw->Branch("Vertex_y0", &Vertex_y0);
-        outputTreeRaw->Branch("Vertex_z0", &Vertex_z0);
-        outputTreeRaw->Branch("Vertex_t0", &Vertex_t0);
-        outputTreeRaw->Branch("Vertex_cov", &Vertex_cov); // Have to be flattened, each track takes 6x6=36 elements
-        outputTreeRaw->Branch("Vertex_chi2", &Vertex_chi2);
-        outputTreeRaw->Branch("Vertex_id", &Vertex_id);
-        outputTreeRaw->Branch("Vertex_trackInds", &Vertex_trackInds);
+        outputTree->Branch("SimEntry", &SimEntry);
+        outputTree->Branch("Track_x0", &Track_x0);
+        outputTree->Branch("Track_y0", &Track_y0);
+        outputTree->Branch("Track_z0", &Track_z0);
+        outputTree->Branch("Track_t0", &Track_t0);
+        outputTree->Branch("Track_kx", &Track_kx);
+        outputTree->Branch("Track_ky", &Track_ky);
+        outputTree->Branch("Track_kz", &Track_kz);
+        outputTree->Branch("Track_kt", &Track_kt);
+        outputTree->Branch("Track_cov", &Track_cov); // Have to be flattened, each track takes 6x6=36 elements
+        outputTree->Branch("Track_chi2", &Track_chi2);
+        outputTree->Branch("Track_id", &Track_id);
+        outputTree->Branch("Track_iv_ind", &Track_iv_ind);
+        outputTree->Branch("Track_iv_err", &Track_iv_err);
+        outputTree->Branch("Track_digiInds", &Track_digiInds);
+        outputTree->Branch("Vertex_x0", &Vertex_x0);
+        outputTree->Branch("Vertex_y0", &Vertex_y0);
+        outputTree->Branch("Vertex_z0", &Vertex_z0);
+        outputTree->Branch("Vertex_t0", &Vertex_t0);
+        outputTree->Branch("Vertex_cov", &Vertex_cov); // Have to be flattened, each track takes 6x6=36 elements
+        outputTree->Branch("Vertex_chi2", &Vertex_chi2);
+        outputTree->Branch("Vertex_id", &Vertex_id);
+        outputTree->Branch("Vertex_trackInds", &Vertex_trackInds);
+
+        // Setup copy methods for raw/digi data
+        EN_COPY_DIGI = filename_digi.size() > 0 ? true : false;
+        EN_COPY_RAW = filename_sim.size() > 0 ? true : false;
+        if (EN_COPY_DIGI)
+        {
+            digiFile = TFile::Open(filename_digi.c_str());
+            digiTree = (TTree *)digiFile->Get(output_tree_name);
+            digiTreeMetadata = (TTree *)digiFile->Get("metadata");
+            Setup(digiTree, outputTree); // Setup for copying from digiTree to outputTree
+        }
+        if (EN_COPY_RAW)
+        {
+            simFile = TFile::Open(filename_sim.c_str());
+            simTree = (TTree *)simFile->Get(output_tree_name);
+            simTreeMetadata = (TTree *)simFile->Get("metadata");
+            SetSimBranches(save_raw_reduced);
+            Setup(simTree, outputTree); // Setup for copying from rawTree to outputTree
+        }
     }
 
-    int TreeWriterRecon::ApplyRecon(TrackList &tracks, VertexLilst &vertices)
+    void TreeWriterRecon::SetSimBranches(bool save_raw_reduced)
     {
+        if (EN_COPY_RAW)
+        {
+            if (save_raw_reduced)
+            {
+                std::vector<std::string> branches_enabled = {"Run_number",
+                                                             "Evt_number",
+                                                             "Evt_weight",
+                                                             "Seed_0",
+                                                             "Seed_1",
+                                                             "Gen_*"};
+
+                // Disable all branches first
+                simTree->SetBranchStatus("*", 0);
+
+                // Enable selected ones
+                for (auto &br : branches_enabled)
+                    simTree->SetBranchStatus(br.c_str(), 1);
+            }
+        }
+    }
+
+    int TreeWriterRecon::ApplyRecon(TrackList &tracks, VertexLilst &vertices, int &simulation_entry_number)
+    {
+        SimEntry = simulation_entry_number;
+
         for (auto &track : tracks)
         {
             Track_x0.push_back(track->params_full[0]);
@@ -431,6 +471,16 @@ namespace Tracker
         return 0;
     }
 
+    int TreeWriterRecon::ApplyCopy(long long entry)
+    {
+        if (EN_COPY_DIGI)
+            ReadSource(digiTree, entry);
+        if (EN_COPY_RAW)
+            ReadSource(simTree, entry);
+
+        return 0;
+    }
+
     void TreeWriterRecon::Clear()
     {
         Track_x0.clear();
@@ -459,7 +509,7 @@ namespace Tracker
 
     void TreeWriterRecon::Fill()
     {
-        outputTreeRaw->Fill();
+        outputTree->Fill();
         this->Clear();
     }
 

@@ -54,13 +54,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Project includes
 #include "libs/cxxopts.hpp"
 #include "util.hh"
+#include "util_globals.hh"
 
-std::string util::globals::PROJECT_SOURCE_DIR = "";
+std::string util::globals::PROJECT_SOURCE_DIR = util::path::getExecutablePath().parent_path().parent_path().string();
 
 int main(int argc, const char *argv[])
 {
-  auto PROJECT_SOURCE_DIR = util::path::getExecutablePath().parent_path().parent_path().string();
-
   // clang-format off
   cxxopts::Options options("CRY cosmic generator", "CRY cosmic generator with text output");
   options.add_options()

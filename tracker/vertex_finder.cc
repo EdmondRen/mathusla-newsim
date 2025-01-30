@@ -26,6 +26,16 @@ namespace Tracker
         config["vertex_multiple_scattering_length"] = 0.06823501107481977; // Material thickness in the unit of scattering length. Calculated for 1 cm plastic scintillator and 0.6 mm aluminum.
     }
 
+    void VertexFinder::Config(std::map<std::string, double> &config_ext)
+    {
+        for (auto &pair : config)
+        {
+            if (config_ext.count(pair.first)>0)
+                config[pair.first] = config_ext[pair.first];
+        }
+
+    }
+
     void VertexFinder::Clear()
     {
     }

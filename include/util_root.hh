@@ -284,10 +284,6 @@ namespace iroot
         class EntryCopy
         {
         private:
-            // Trees
-            TTree &sourceTree;
-            TTree &destTree;
-
             // Create a vector to hold pointers to the variables used for branch data
             std::vector<std::variant<
                 std::unique_ptr<Int_t>,
@@ -297,36 +293,39 @@ namespace iroot
                 std::unique_ptr<Char_t>,
                 std::unique_ptr<std::vector<float>>,
                 std::unique_ptr<std::vector<double>>,
-                std::unique_ptr<std::vector<int>>>>
+                std::unique_ptr<std::vector<int>>,
+                std::unique_ptr<std::vector<Long64_t>>>>
                 branchData;
 
-            static const int n = 200;
-            std::vector<float> *branchData_vfloat[n];
-            std::vector<double> *branchData_vdouble[n];
-            std::vector<int> *branchData_vint[n];
+            static const int N = 200;
+            std::vector<float> *branchData_vfloat[N];
+            std::vector<double> *branchData_vdouble[N];
+            std::vector<int> *branchData_vint[N];
+            std::vector<Long64_t> *branchData_vint64[N];
             int vfloat_n = 0;
             int vdouble_n = 0;
             int vint_n = 0;
+            int vint64_n = 0;
 
         public:
-            EntryCopy(TTree &_sourceTree,
-                      TTree &_destTree) : sourceTree(_sourceTree),
-                                          destTree(_destTree)
-            {
-            }
+            EntryCopy(){}
 
             // Setup same branches in the destTree as the sourceTree
-            void Setup()
+            void Setup(TTree *sourceTree,
+                      TTree *destTree, int verbose=0)
             {
 
                 // Get the list of branches in the source tree
-                TObjArray *branches = sourceTree.GetListOfBranches();
+                TObjArray *branches = sourceTree->GetListOfBranches();
 
                 // Iterate over all branches in the source tree
                 for (Int_t i = 0; i < branches->GetEntries(); i++)
                 {
                     TBranch *branch = (TBranch *)branches->At(i);
                     const char *branchName = branch->GetName();
+
+                    if (sourceTree->GetBranchStatus(branchName) == false)
+                        continue;
 
                     // Get the leaf associated with the branch
                     TLeaf *leaf = branch->GetLeaf(branchName);
@@ -335,42 +334,43 @@ namespace iroot
 
                     // Determine the type of the leaf
                     const char *leafType = leaf->GetTypeName();
-                    std::cout << "  Leaf type: " << leafType << " for branch " << branchName << std::endl;
+                    if (verbose>0)
+                        std::cout << "  Leaf type: " << leafType << " for branch " << branchName << std::endl;
 
                     // Create a new branch in the destination tree with the same name and type
                     if (strcmp(leafType, "Int_t") == 0)
                     {
                         auto value = std::make_unique<Int_t>();
-                        destTree.Branch(branchName, value.get());
-                        sourceTree.SetBranchAddress(branchName, value.get());
+                        destTree->Branch(branchName, value.get());
+                        sourceTree->SetBranchAddress(branchName, value.get());
                         branchData.push_back(std::move(value));
                     }
                     else if (strcmp(leafType, "Float_t") == 0)
                     {
                         auto value = std::make_unique<Float_t>();
-                        destTree.Branch(branchName, value.get());
-                        sourceTree.SetBranchAddress(branchName, value.get());
+                        destTree->Branch(branchName, value.get());
+                        sourceTree->SetBranchAddress(branchName, value.get());
                         branchData.push_back(std::move(value));
                     }
                     else if (strcmp(leafType, "Double_t") == 0)
                     {
                         auto value = std::make_unique<Double_t>();
-                        destTree.Branch(branchName, value.get());
-                        sourceTree.SetBranchAddress(branchName, value.get());
+                        destTree->Branch(branchName, value.get());
+                        sourceTree->SetBranchAddress(branchName, value.get());
                         branchData.push_back(std::move(value));
                     }
                     else if (strcmp(leafType, "Bool_t") == 0)
                     {
                         auto value = std::make_unique<Bool_t>();
-                        destTree.Branch(branchName, value.get());
-                        sourceTree.SetBranchAddress(branchName, value.get());
+                        destTree->Branch(branchName, value.get());
+                        sourceTree->SetBranchAddress(branchName, value.get());
                         branchData.push_back(std::move(value));
                     }
                     else if (strcmp(leafType, "Char_t") == 0)
                     {
                         auto value = std::make_unique<Char_t>();
-                        destTree.Branch(branchName, value.get());
-                        sourceTree.SetBranchAddress(branchName, value.get());
+                        destTree->Branch(branchName, value.get());
+                        sourceTree->SetBranchAddress(branchName, value.get());
                         branchData.push_back(std::move(value));
                     }
 
@@ -378,25 +378,33 @@ namespace iroot
                     {
                         auto value = new std::vector<float>();
                         branchData_vfloat[vfloat_n] = value;
-                        destTree.Branch(branchName, &(*branchData_vfloat[vfloat_n]));          // Use the raw pointer
-                        sourceTree.SetBranchAddress(branchName, &branchData_vfloat[vfloat_n]); // Use the raw pointer
+                        destTree->Branch(branchName, &(*branchData_vfloat[vfloat_n]));          // Use the raw pointer
+                        sourceTree->SetBranchAddress(branchName, &branchData_vfloat[vfloat_n]); // Use the raw pointer
                         vfloat_n += 1;
                     }
                     else if (strcmp(leafType, "vector<double>") == 0)
                     {
                         auto value = new std::vector<double>();
                         branchData_vdouble[vdouble_n] = value;
-                        destTree.Branch(branchName, &(*branchData_vdouble[vdouble_n]));          // Use the raw pointer
-                        sourceTree.SetBranchAddress(branchName, &branchData_vdouble[vdouble_n]); // Use the raw pointer
+                        destTree->Branch(branchName, &(*branchData_vdouble[vdouble_n]));          // Use the raw pointer
+                        sourceTree->SetBranchAddress(branchName, &branchData_vdouble[vdouble_n]); // Use the raw pointer
                         vdouble_n += 1;
                     }
                     else if (strcmp(leafType, "vector<int>") == 0)
                     {
                         auto value = new std::vector<int>();
                         branchData_vint[vint_n] = value;
-                        destTree.Branch(branchName, &(*branchData_vint[vint_n]));          // Use the raw pointer
-                        sourceTree.SetBranchAddress(branchName, &branchData_vint[vint_n]); // Use the raw pointer
+                        destTree->Branch(branchName, &(*branchData_vint[vint_n]));          // Use the raw pointer
+                        sourceTree->SetBranchAddress(branchName, &branchData_vint[vint_n]); // Use the raw pointer
                         vint_n += 1;
+                    }
+                    else if (strcmp(leafType, "vector<Long64_t>") == 0)
+                    {
+                        auto value = new std::vector<Long64_t>();
+                        branchData_vint64[vint64_n] = value;
+                        destTree->Branch(branchName, &(*branchData_vint64[vint64_n]));          // Use the raw pointer
+                        sourceTree->SetBranchAddress(branchName, &branchData_vint64[vint64_n]); // Use the raw pointer
+                        vint64_n += 1;
                     }
 
                     else
@@ -411,10 +419,10 @@ namespace iroot
             // Read data from the sourceTree
             // (don't write to destTree yet,
             //  because we may want to add other things to the destTree)
-            void ReadSource(Long64_t entry)
+            void ReadSource(TTree *sourceTree, Long64_t entry)
             {
                 // Copy the data from the source tree to the destination tree
-                sourceTree.GetEntry(entry);
+                sourceTree->GetEntry(entry);
             }
         };
 

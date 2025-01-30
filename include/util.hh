@@ -18,14 +18,6 @@
 
 namespace util
 {
-    static std::string VERSION = "0.1";
-
-    namespace globals
-    {
-        extern std::string PROJECT_SOURCE_DIR;
-
-    } // namespace globals
-
     /*
     Python-like interface, such as dict, print...
     */
@@ -445,6 +437,8 @@ namespace util
 
         class ParHandler
         {
+        private:
+            std::string filename;
 
         public:
             std::map<std::string, double> config;
@@ -452,6 +446,7 @@ namespace util
             ParHandler(std::string filename);
 
             std::map<std::string, double> &GetConfig() { return config; };
+            std::string GetString();
 
             double &operator[](const std::string &key_name)
             {

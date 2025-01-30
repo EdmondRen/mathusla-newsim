@@ -24,6 +24,8 @@
 // Include ALL detector geometries that you want to use
 #include "geometry/TestStand_UofT.hh"
 #include "geometry/Mathusla40.hh"
+// Global variables
+#include "util_globals.hh"
 
 TRandom3 generator;
 

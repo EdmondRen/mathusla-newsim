@@ -1,6 +1,8 @@
 /// \file simulation.cc
 /// \brief Main program of the mathusla simulation
 
+#include <sys/stat.h>
+
 // Geant4 include
 #include "G4UImanager.hh"
 #include "G4UIcommand.hh"
@@ -12,22 +14,22 @@
 #include "Randomize.hh"
 
 // Project include
+#include "libs/cxxopts.hpp"
 #include "MuDetectorConstruction.hh"
 #include "MuActionInitialization.hh"
 #include "MuPrimaryGeneratorAction.hh"
 #include "util.hh"
-#include "libs/cxxopts.hpp"
-
-#include <sys/stat.h>
 
 // Global variables
-std::string util::globals::PROJECT_SOURCE_DIR = "";
+#include "util_globals.hh"
+
+std::string util::globals::PROJECT_SOURCE_DIR = util::path::getExecutablePath().parent_path().parent_path().string();
+
 
 int main(int argc, char **argv)
 {
 
   // Get the source file directory
-  auto PROJECT_SOURCE_DIR = util::path::getExecutablePath().parent_path().parent_path().string();
   G4cout << PROJECT_SOURCE_DIR << G4endl;
   util::globals::PROJECT_SOURCE_DIR = PROJECT_SOURCE_DIR;
 

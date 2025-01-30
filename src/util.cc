@@ -123,7 +123,7 @@ namespace util
 #endif
         }
 
-        ParHandler::ParHandler(std::string par_card_str)
+        ParHandler::ParHandler(std::string par_card_str) : filename(par_card_str)
         {
 
             std::string par_path = std::string(__FILE__);
@@ -157,6 +157,25 @@ namespace util
                 file_opened = false;
                 std::cout << "Error opening parameter card file" << std::endl;
             }
+        }
+
+        std::string ParHandler::GetString()
+        {
+            // Create an input file stream
+            std::ifstream file(filename);
+
+            // Check if the file was opened successfully
+            if (!file.is_open())
+            {
+                throw std::runtime_error("Could not open file: " + filename);
+            }
+
+            // Use a stringstream to read the file contents
+            std::ostringstream sstr;
+            sstr << file.rdbuf();
+
+            // Return the contents as a string
+            return sstr.str();
         }
 
     } // namespace io

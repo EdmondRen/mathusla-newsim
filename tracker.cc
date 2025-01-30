@@ -19,6 +19,10 @@
 #include "types_and_helper.hh"
 #include "track_finder.hh"
 #include "vertex_finder.hh"
+// Global variables
+#include "util_globals.hh"
+
+std::string util::globals::PROJECT_SOURCE_DIR = "";
 
 int main(int argc, const char *argv[])
 {
@@ -27,15 +31,17 @@ int main(int argc, const char *argv[])
     cxxopts::Options options("./tracker", "Reconstruct the track and vertex in the simulation");
     options.add_options()
         ("h,help", "Print help")
-        ("r,rawfile", "Filename for simulation truth. If provided, it will be merged to the output.", cxxopts::value<std::string>())
-        ("c,config", "Filename for configuration.", cxxopts::value<std::string>()->default_value(""))
+        ("r,rawfile", "Filename for simulation truth. If provided, it will be merged to the output.", cxxopts::value<std::string>()->default_value(""))
+        ("R,raw_reduced", "Use this flag to save just the random seed and generator status from the simulation.", cxxopts::value<bool>()->default_value("false"))
+        ("c,config", "Filename for configuration.", cxxopts::value<std::string>()->default_value("../macros/tracker/tracker_default.conf"))
+        ("k,save_option", "Save only events with track (1) or vertex (2)", cxxopts::value<int>()->default_value("0"))
         ("s,seed", "Seed for random number generator", cxxopts::value<int>()->default_value("-1"))
         ("p,print_progress", "Print progress every `p` events", cxxopts::value<int>()->default_value("100"))
         ("d,debug_track", "Enable debugging information for track reconstruction", cxxopts::value<bool>()->default_value("false"))
         ("D,debug_vertex", "Enable debugging information for vertex reconstruction", cxxopts::value<bool>()->default_value("false"))
         ("filename", "Digi file to perform reconstruction", cxxopts::value<std::string>());
     options.parse_positional({"filename"});
-    options.positional_help("filename"); // Add positional help description
+    options.positional_help("digit_filename"); // Add positional help description
     auto args = options.parse(argc, argv);
     // clang-format on
 
@@ -53,14 +59,17 @@ int main(int argc, const char *argv[])
     print(" ");
     print("**************************************************************");
 
-    // Configuration
+
 
     // Input and output file
+    int save_option = args["save_option"].as<int>();        // 0: all, 1: track:, 2: vertex
+    bool save_raw_reduced = args["raw_reduced"].as<bool>(); // save just the seed from simulation file
+
     std::filesystem::path input_filename = args["filename"].as<std::string>();
     std::filesystem::path output_filename = input_filename;
     output_filename.replace_filename(output_filename.stem().string() + "_recon" + output_filename.extension().string());
     auto input_reader = std::make_unique<Tracker::TreeReaderDigi>(input_filename.string());
-    auto output_writer = std::make_unique<Tracker::TreeWriterRecon>(output_filename.string(), input_reader.get());
+    auto output_writer = std::make_unique<Tracker::TreeWriterRecon>(output_filename.string(), input_filename.string(), args["rawfile"].as<std::string>(), save_raw_reduced);
     auto start = std::chrono::high_resolution_clock::now();
     auto start_i = std::chrono::high_resolution_clock::now();
     auto stop_i = std::chrono::high_resolution_clock::now();
@@ -70,6 +79,14 @@ int main(int argc, const char *argv[])
     // Track and vertex finder
     auto track_finder = Tracker::TrackFinder(args["debug_track"].as<bool>());
     auto vertex_finder = Tracker::VertexFinder(args["debug_vertex"].as<bool>());
+    // Configuration
+    auto setup_filename = args["config"].as<std::string>();
+    auto parcard = util::io::ParHandler(setup_filename);
+    std::map<std::string, double> config = parcard.GetConfig();
+    print("  Using config file:", setup_filename);
+    track_finder.Config(config);
+    vertex_finder.Config(config);
+
     struct
     {
         int total_events = 0;
@@ -125,18 +142,28 @@ int main(int argc, const char *argv[])
         info.vf_nvertices += vertex_finder.info_nvertices;
         info.vf_ntracks += vertex_finder.info_ntracks;
 
-        // 3. Append to the output file
-        output_writer->ApplyRecon(tracks_found, vertices_found);
-        output_writer->Fill();
-
         // Update the stats
         if (tracks_found.size() > 0)
             info.nevt_with_track += 1;
         if (vertices_found.size() > 0)
             info.nevt_with_vertex += 1;
+
+        // 3. Append to the output file
+        // Disable saving if there is no tracks/vertices
+        if ((save_option == 1 && tracks_found.size() == 0) ||
+            (save_option == 2 && vertices_found.size() == 0))
+            continue;
+        output_writer->ApplyRecon(tracks_found, vertices_found, i);
+        output_writer->ApplyCopy(i); // Copy digi & raw data
+        output_writer->Fill();
     }
 
+    // Write some metadata to the output file
+
     float duration = std::chrono::duration<float>(stop_i - start).count();
+    std::string config_str = parcard.GetString();
+    output_writer->meta_ReconstructionConfigStr = config_str;
+    output_writer->FillMetadata();
 
     print("===============================================");
     print("  Reconstruction Summary:");

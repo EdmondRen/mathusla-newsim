@@ -60,7 +60,7 @@ namespace Tracker
         // Required data
         Vector4d vec4, vec4_err; // {x,y,z,t} and their uncertainty
         Vector3d vec3, vec3_err; // Independent variable removed
-        const int iv_index;            // Index of the independent variable. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
+        const int iv_index;      // Index of the independent variable. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
         int layer;               // Which detector layer this hit belongs to
         int group;               // Which detector grop this hit belongs to
 
@@ -86,7 +86,7 @@ namespace Tracker
         inline void setey(float x) { vec4_err(1) = x; }
         inline void setez(float x) { vec4_err(2) = x; }
         inline void setet(float x) { vec4_err(3) = x; }
-        inline double get_step() const {return vec4(iv_index); } // std::cout<<vec4<<" index: "<<(iv_index)<<std::endl; 
+        inline double get_step() const { return vec4(iv_index); } // std::cout<<vec4<<" index: "<<(iv_index)<<std::endl;
         inline double get_steperr() const { return vec4_err(iv_index); }
         inline Vector3d get_vec3() const { return vec3; }
         inline Vector3d get_err3() const { return vec3_err; }
@@ -230,24 +230,33 @@ namespace Tracker
 
         // Group hits by detector copy number
         // detID has format AAABBBCCCDDDD, in which BBB is the detector copy number
-        std::unordered_map<int, std::vector<DigiHit *>> ProcessHits(std::vector<std::unique_ptr<DigiHit>> & hits);
+        std::unordered_map<int, std::vector<DigiHit *>> ProcessHits(std::vector<std::unique_ptr<DigiHit>> &hits);
 
         long long GetCurrentEntry() { return entry_current; }
         long long GetEntries() { return entries_total; }
-        TTree *GetTreeData() { return TreeData; }
-        TTree *GetTreeMetadata() { return TreeMetadata; }
+        TTree *GetdataTree() { return TreeData; }
+        TTree *GetmetadataTree() { return TreeMetadata; }
     };
 
     // Write output file
     //  with option to merge the digi and raw data together
-    class TreeWriterRecon
+    class TreeWriterRecon : public iroot::file::EntryCopy
     {
     private:
         TFile *outputFile;
-        TTree *outputTreeRaw;
+        TTree *outputTree;
         TTree *outputTreeMetadata;
 
+        TFile *digiFile;
+        TTree *digiTree;
+        TTree *digiTreeMetadata;
+
+        TFile *simFile;
+        TTree *simTree;
+        TTree *simTreeMetadata;
+
         // Buffer for recon data to write
+        int SimEntry;
         std::vector<float> Track_x0;
         std::vector<float> Track_y0;
         std::vector<float> Track_z0;
@@ -272,10 +281,8 @@ namespace Tracker
         std::vector<int> Vertex_id;
         std::vector<int> Vertex_trackInds;
 
-        // Buffer for metadata;
-
         // Utility for copying raw and digits to the recon file
-        iroot::file::EntryCopy *copy_raw, *copy_digi;
+        // iroot::file::EntryCopy *copier_raw, *copier_digi;
 
         // Counter of current entry
         long long entries_total;
@@ -286,18 +293,34 @@ namespace Tracker
         bool EN_COPY_DIGI;
 
     public:
-        TreeWriterRecon(std::string filename_recon, TreeReaderDigi *digi_reader = nullptr, std::string filename_sim = "");
+        TreeWriterRecon(std::string filename_recon, std::string filename_digi = "", std::string filename_sim = "", bool save_raw_reduced = false);
         ~TreeWriterRecon()
         {
             outputFile->Close();
         }
 
-        int ApplyRecon(TrackList &tracks, VertexLilst &vertices);
+        void SetSimBranches(bool save_raw_reduced);
+
+        int ApplyRecon(TrackList &tracks, VertexLilst &vertices, int &simulation_entry_number);
         int ApplyCopy(long long entry);
         void Fill();
         void Clear();
-        void Write() { outputTreeRaw->Write(); }
+        void Write()
+        {
+            outputFile->cd();
+            outputTree->Write();
+            outputTreeMetadata->Write();
+            if (EN_COPY_DIGI)
+                digiTreeMetadata->Write();
+            if (EN_COPY_RAW)
+                simTreeMetadata->Write();
+        }
         void Close() { outputFile->Close(); }
+
+        // Buffer for metadata
+        //   Put this in public. Too troublesome to write set for each of them
+        void FillMetadata(){outputTreeMetadata->Fill();}
+        std::string meta_ReconstructionConfigStr;
     };
 
 } // namespace Tracker

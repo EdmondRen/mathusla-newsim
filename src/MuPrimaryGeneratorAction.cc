@@ -9,6 +9,8 @@
 // Project include
 #include "MuPrimaryGeneratorAction.hh"
 #include "util.hh"
+// Global variables
+#include "util_globals.hh"
 
 #include "generator/ParticleGun.hh"
 #include "generator/CRY.hh"

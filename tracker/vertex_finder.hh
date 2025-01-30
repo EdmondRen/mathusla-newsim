@@ -45,7 +45,10 @@ namespace Tracker
         // Get the event summary
         std::string Summary();
         int info_nvertices;
-        int info_ntracks;                
+        int info_ntracks;
+
+        // Configuration
+        void Config(std::map<std::string, double> &config_ext);
 
     protected:
         // python-like print function, enable for debug mode only.

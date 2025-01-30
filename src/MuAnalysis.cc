@@ -60,8 +60,11 @@ namespace Analysis
     {
         // Setup the data container
         // clang-format off
+        //  - Idealy we want a unique ID for each event, defined as (run_number*1e9 + event_number). This means each run can have at most 1e9 events.
+        //  - But Geant4 does not support int64. So let's break it into Run_number and Evt_number.
         fdata = new util::py::Dict();
-        fdata->Add("UID",               util::py::__single__, util::py::__double__); // Unique ID for each event, defined as (run_number*1e9 + event_number). This means each run can have at most 1e9 events.
+        fdata->Add("Run_number",               util::py::__single__, util::py::__int__); 
+        fdata->Add("Evt_number",               util::py::__single__, util::py::__int__); 
         fdata->Add("Seed_0",            util::py::__single__, util::py::__int__);
         fdata->Add("Seed_1",            util::py::__single__, util::py::__int__);
         fdata->Add("Hit_x",             util::py::__vector__, util::py::__float__);
@@ -158,7 +161,8 @@ namespace Analysis
             return;
 
         // Set single values
-        data["UID"] = run_number * 1e9 + event_id;
+        data["Run_number"] = run_number;
+        data["Evt_number"] = event_id;
         data["Seed_0"] = *reinterpret_cast<int *>(&seedInfo[1]); // Cast the address of the unsigned long to an int pointer
         data["Seed_1"] = *reinterpret_cast<int *>(&seedInfo[2]); // Cast the address of the unsigned long to an int pointer
 
