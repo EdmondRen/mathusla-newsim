@@ -51,7 +51,6 @@ int main(int argc, const char *argv[])
     {
         // std::cout << "--------------------------- " << i << "------------------" << std::endl;
         hits = genHitsTracks(40);
-        auto track_finder = Tracker::TrackFinder(false);
         track_finder.FindAll(hits);
     }
     auto stop = std::chrono::high_resolution_clock::now();

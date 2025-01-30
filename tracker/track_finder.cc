@@ -36,6 +36,8 @@ namespace Tracker
 
     void TrackFinder::MakeSeeds()
     {
+        seeds_unused.clear();
+
         for (size_t i = 0; i < hits_all.size() - 1; i++)
         {
             for (size_t j = i + 1; j < hits_all.size(); j++)
@@ -75,10 +77,12 @@ namespace Tracker
 
     void TrackFinder::GroupHits()
     {
+        hits_grouped.clear();
+
         for (const auto &hit : this->hits_all)
         {
-            if (hits_grouped.count(hit->layer) == 0)
-                hits_grouped[hit->layer] = std::unordered_map<int, DigiHit *>();
+            // if (hits_grouped.count(hit->layer) == 0)
+            //     hits_grouped[hit->layer] = std::unordered_map<int, DigiHit *>();
             hits_grouped[hit->layer][hit->id] = hit;
         }
 
@@ -90,7 +94,7 @@ namespace Tracker
 
     int TrackFinder::FindOnce(TrackSeed *seed)
     {
-        print_dbg(util::py::f("\nUsing Seed [{},{}]", seed->hits.first->id, seed->hits.second->id));
+        print_dbg(util::py::f("Using Seed [{},{}]", seed->hits.first->id, seed->hits.second->id));
 
         hits_found_temp.clear();
         auto finder = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, false);
@@ -104,6 +108,7 @@ namespace Tracker
         // Loop all layers except the one with the first hit
         for (const auto &pair : hits_grouped)
         {
+            // pair: {layer, hits}
             // Skip the layer with hit in seed
             if (pair.first == seed->hits.first->layer || pair.first == seed->hits.second->layer)
                 continue;
@@ -157,7 +162,7 @@ namespace Tracker
 
         // Sort hits into groups
         GroupHits();
-        print_dbg(util::py::f("Event contains hits in {} groups", hits_grouped.size()));
+        print_dbg(util::py::f("\nTrack Finder: Event contains {} hits in {} groups", hits_all.size(), hits_grouped.size()));
 
         // Seeding
         MakeSeeds();
@@ -170,7 +175,7 @@ namespace Tracker
         int nhits_min = config["track_cut_TrackNHitsMin"];
         for (int nhits_curr = hits_groups.size(); nhits_curr >= nhits_min; nhits_curr--)
         {
-            print_dbg(util::py::f("\n\n-> Searching for tracks with at least {} hits", nhits_curr));
+            print_dbg(util::py::f("-> Searching for tracks with at least {} hits", nhits_curr));
 
             while (this->seeds_unused.size() > 0)
             {
@@ -190,6 +195,19 @@ namespace Tracker
                 {
                     print_dbg(util::py::f("-x Track rejected, only {} hits", nhits_found));
                     seeds_unused.pop_back();
+
+                    // Loop all layers except the one with the first hit
+                    for (const auto &pair : hits_grouped)
+                    {
+                        auto hits_thisgroup = pair.second;
+                        // for (const auto &hit_and_id : hits_thisgroup)
+                        // {
+                        //     auto hit_id = hit_and_id.first;
+                        //     auto hit = hit_and_id.second;
+                        //     // print("------- hit ", hit_id, hit->group);
+                        // }
+                    }
+
                     continue;
                 }
                 else if (nhits_found < nhits_curr)
@@ -355,6 +373,11 @@ namespace Tracker
             }
             summary += util::py::f("   # tracks with {} hits: {}\n", nhits_curr, ntrack);
         }
+
+        info_ntracks = tracks_found.size();
+        info_nhits = 0;
+        for (const auto &track : tracks_found)
+            info_nhits += track->hit_ids.size();
 
         return summary;
     }

@@ -31,7 +31,9 @@ namespace Tracker
     }
 
     void VertexFinder::MakeSeeds()
-    {
+    {   
+        this->seeds_unused.clear();
+
         for (size_t i = 0; i < tracks_all.size() - 1; i++)
         {
             for (size_t j = i + 1; j < tracks_all.size(); j++)
@@ -155,14 +157,15 @@ namespace Tracker
     {
         this->tracks_all = allTracks;
 
+        if (tracks_all.size() < config["vertex_cut_VertexNHitsMin"])
+            return 0;
+
         // Sort hits into groups
-        print_dbg(util::py::f("Event contains {} tracks", tracks_all.size()));
+        print_dbg(util::py::f("\nVertex Finder: Event contains {} tracks", tracks_all.size()));
 
         // Seeding
         MakeSeeds();
 
-        if (tracks_unused.size() < config["vertex_cut_VertexNHitsMin"])
-            return 0;
 
         // Loop though required number of hits
         this->tracks_found_temp.clear();
@@ -282,6 +285,12 @@ namespace Tracker
         {
             summary += util::py::f("   vertex: with {} hits\n", vertex->track_ids.size());
         }
+
+
+        info_nvertices = vertices_found.size();
+        info_ntracks = 0;
+        for (auto &vertex : vertices_found)
+            info_ntracks += vertex->track_ids.size();        
 
         return summary;
     }

@@ -250,7 +250,7 @@ namespace Kalman
         }
 
         f = chi2_total; // There is no return value. Return is passed by argument "f"
-    }    
+    }
 
     bool LSVertex4DFitter::fit(std::vector<Tracker::Track *> _tracks, std::vector<double> arg_guess, double tolerance, double maxcalls)
     {
@@ -258,7 +258,7 @@ namespace Kalman
 
         std::vector<double> guess(4);
         if (arg_guess.size() != 0)
-            guess = arg_guess;
+            std::copy(arg_guess.begin(), arg_guess.begin() + 4, guess.begin());
         else
         {
             auto pair = Tracker::Track::get_closest_midpoint(*tracks[0], *tracks[1]);
@@ -358,7 +358,7 @@ namespace Kalman
         auto meas_quality = track.get_cpa_pos_and_cov(this->kf.GetState());
         this->Vi = meas_quality.second;
         this->mi = meas_quality.first;
-        auto distance_to_vertex = (this->mi-this->kf.GetState()).segment(0,3).norm();
+        auto distance_to_vertex = (this->mi - this->kf.GetState()).segment(0, 3).norm();
 
         // dynamics: Do nothing, Fi matrix is always identity.
 
@@ -377,7 +377,7 @@ namespace Kalman
         }
 
         // Then, check if it have small enough chi2
-        auto chi2_temp = kf.TryMeasurement( this->mi, -1);
+        auto chi2_temp = kf.TryMeasurement(this->mi, -1);
         if (chi2_temp < chi2_cut && distance_to_vertex < distance_cut)
             return chi2_temp;
         else
@@ -398,9 +398,9 @@ namespace Kalman
     }
 
     std::unique_ptr<Tracker::Vertex> KalmanVertex4D::run_filter(const std::vector<Tracker::Track *> &tracks, VertexSeed *seed)
-    {   
+    {
         std::unique_ptr<VertexSeed> seed_temp;
-        if (seed==nullptr)
+        if (seed == nullptr)
         {
             seed_temp = std::make_unique<VertexSeed>(tracks[0], tracks[1]);
             seed_temp->GetChi2();

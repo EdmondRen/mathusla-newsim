@@ -44,6 +44,8 @@ namespace Tracker
 
         // Get the event summary
         std::string Summary();
+        int info_nvertices;
+        int info_ntracks;                
 
     protected:
         // python-like print function, enable for debug mode only.
@@ -71,6 +73,7 @@ namespace Tracker
 
         // Summary of vertex finding results
         std::string summary;
+
     }; // class VertexFinder
 } // namespace Tracker
 

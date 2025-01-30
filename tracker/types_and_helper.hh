@@ -60,12 +60,12 @@ namespace Tracker
         // Required data
         Vector4d vec4, vec4_err; // {x,y,z,t} and their uncertainty
         Vector3d vec3, vec3_err; // Independent variable removed
-        int iv_index;            // Index of the independent variable. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
+        const int iv_index;            // Index of the independent variable. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable.
         int layer;               // Which detector layer this hit belongs to
         int group;               // Which detector grop this hit belongs to
 
         // Optional
-        int id;
+        const int id;
         int type;
         u_int64_t detector_id;
 
@@ -86,7 +86,7 @@ namespace Tracker
         inline void setey(float x) { vec4_err(1) = x; }
         inline void setez(float x) { vec4_err(2) = x; }
         inline void setet(float x) { vec4_err(3) = x; }
-        inline double get_step() const { return vec4(iv_index); }
+        inline double get_step() const {return vec4(iv_index); } // std::cout<<vec4<<" index: "<<(iv_index)<<std::endl; 
         inline double get_steperr() const { return vec4_err(iv_index); }
         inline Vector3d get_vec3() const { return vec3; }
         inline Vector3d get_err3() const { return vec3_err; }
@@ -190,22 +190,22 @@ namespace Tracker
         TTree *TreeMetadata;
 
         // Buffer for digitized data to read
-        std::vector<float> Digi_x;
-        std::vector<float> Digi_y;
-        std::vector<float> Digi_z;
-        std::vector<float> Digi_t;
-        std::vector<float> Digi_edep;
-        std::vector<int> Digi_trackID;
-        std::vector<int> Digi_pdgID;
-        std::vector<long long> Digi_detectorID; // Which layer the hit is from. Layer is obtained from the copy number of depth 1 in GENAT4
-        std::vector<int> Digi_type;             // Soure of the event. -1: noise, 0: GUN, 1: PARMA, 2: CRY
-        std::vector<int> Digi_hitInds;          // The index of truth hits of each digitized hit
-        std::vector<int> Digi_direction;        // Indicates the direction of the bar with last three digits . For example, .....012 means x->x, y->y, z->z
+        std::vector<float> *Digi_x;
+        std::vector<float> *Digi_y;
+        std::vector<float> *Digi_z;
+        std::vector<float> *Digi_t;
+        std::vector<float> *Digi_edep;
+        std::vector<int> *Digi_trackID;
+        std::vector<int> *Digi_pdgID;
+        std::vector<long long> *Digi_detectorID; // Which layer the hit is from. Layer is obtained from the copy number of depth 1 in GENAT4
+        std::vector<int> *Digi_type;             // Soure of the event. -1: noise, 0: GUN, 1: PARMA, 2: CRY
+        std::vector<int> *Digi_hitInds;          // The index of truth hits of each digitized hit
+        std::vector<int> *Digi_direction;        // Indicates the direction of the bar with last three digits . For example, .....012 means x->x, y->y, z->z
 
         // Buffer for metadata;
-        std::string SimulationName;
-        std::string Geometry;
-        std::string Generator;
+        std::string *SimulationName;
+        std::string *Geometry;
+        std::string *Generator;
         float Uncertainty_t;
         float Uncertainty_x;
         float Uncertainty_y;
@@ -230,7 +230,7 @@ namespace Tracker
 
         // Group hits by detector copy number
         // detID has format AAABBBCCCDDDD, in which BBB is the detector copy number
-        std::unordered_map<int, std::vector<Tracker::DigiHit *>> ProcessHits(std::vector<std::unique_ptr<DigiHit>> hits);
+        std::unordered_map<int, std::vector<DigiHit *>> ProcessHits(std::vector<std::unique_ptr<DigiHit>> & hits);
 
         long long GetCurrentEntry() { return entry_current; }
         long long GetEntries() { return entries_total; }
@@ -295,6 +295,7 @@ namespace Tracker
         int ApplyRecon(TrackList &tracks, VertexLilst &vertices);
         int ApplyCopy(long long entry);
         void Fill();
+        void Clear();
         void Write() { outputTreeRaw->Write(); }
         void Close() { outputFile->Close(); }
     };

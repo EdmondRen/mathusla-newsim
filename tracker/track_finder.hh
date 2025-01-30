@@ -44,6 +44,8 @@ namespace Tracker
 
         // Get the event summary
         std::string Summary();
+        int info_ntracks;
+        int info_nhits;        
 
     protected:
         // python-like print function, enable for debug mode only.
@@ -73,6 +75,7 @@ namespace Tracker
 
         // Summary of track finding results
         std::string summary;
+
     };
 } // namespace Tracker
 

@@ -70,7 +70,7 @@ namespace Tracker
     }
 
     std::pair<double, Vector4d> Track::get_closest_midpoint(const Track &track1, const Track &track2)
-    {
+    {   
         VectorXd s1 = track1.params_time;
         VectorXd s2 = track2.params_time;
 
@@ -135,6 +135,7 @@ namespace Tracker
 
     std::pair<Vector4d, MatrixXd> Track::get_cpa_pos_and_cov(Vector4d point, double speed_constraint) const
     {
+        (void) speed_constraint;
         Vector4d r0 = this->params_full.segment(0, 4);
         Vector4d v0 = this->params_full.segment(4, 4);
         double v0_2 = std::pow(v0.norm(), 2);
@@ -297,45 +298,44 @@ namespace Tracker
         std::vector<std::unique_ptr<DigiHit>> hits_tmp;
 
         TreeData->GetEntry(entry);
-        for (size_t i = 0; i < Digi_x.size(); i++)
+        for (size_t i = 0; i < (*Digi_x).size(); i++)
         {
-            int dir_x = (Digi_direction[i] / 100) % 10;
-            int dir_y = (Digi_direction[i] / 10) % 10;
-            int dir_z = (Digi_direction[i]) % 10;
+            int dir_x = ((*Digi_direction)[i] / 100) % 10;
+            int dir_y = ((*Digi_direction)[i] / 10) % 10;
+            int dir_z = ((*Digi_direction)[i]) % 10;
             double unc[3] = {0, 0, 0};
             unc[dir_x] = digi_unc[0];
             unc[dir_y] = digi_unc[1];
             unc[dir_z] = digi_unc[2];
-
-            int hit_layer = (Digi_detectorID[i] / 100000) % 1000;
-            int hit_group = (Digi_detectorID[i] / 100000000) % 1000;
-
-            auto hit = std::make_unique<Tracker::DigiHit>(Digi_x[i],
-                                                          Digi_y[i],
-                                                          Digi_z[i],
-                                                          Digi_t[i],
+            int hit_layer = ((*Digi_detectorID)[i] / 100000) % 1000;
+            int hit_detector_group = ((*Digi_detectorID)[i] / 100000000000) % 1000;
+            // std::cout<<"Add hit: " << i <<" " << hit_layer << std::endl;
+            auto hit = std::make_unique<Tracker::DigiHit>((*Digi_x)[i],
+                                                          (*Digi_y)[i],
+                                                          (*Digi_z)[i],
+                                                          (*Digi_t)[i],
                                                           unc[0], unc[1], unc[2], digi_unc[3],
                                                           dir_z,
                                                           hit_layer,
-                                                          hit_group, i);
+                                                          hit_detector_group, i);
 
             hits_tmp.push_back(std::move(hit));
         }
         return hits_tmp;
     }
 
-    std::unordered_map<int, std::vector<Tracker::DigiHit *>> ProcessHits(std::vector<std::unique_ptr<DigiHit>> hits_tmp)
+    std::unordered_map<int, std::vector<DigiHit *>> TreeReaderDigi::ProcessHits(std::vector<std::unique_ptr<DigiHit>> &hits_tmp)
     {
-        std::unordered_map<int, std::vector<Tracker::DigiHit *>> hits_dict;
+        std::unordered_map<int, std::vector<DigiHit *>> hits_dict;
         for (auto &hit : hits_tmp)
         {
             auto group = hit->group;
             if (group == 0)
                 continue;
 
-            if (hits_dict.count(group) == 0)
-                hits_dict[group] = std::vector<Tracker::DigiHit *>();
-            else
+            // if (hits_dict.count(group) == 0)
+            //     hits_dict[group] = std::vector<DigiHit *>();
+            // else
                 hits_dict[group].push_back(hit.get());
         }
 
@@ -391,14 +391,14 @@ namespace Tracker
     {
         for (auto &track : tracks)
         {
-            Track_x0.push_back(track->params_time[0]);
-            Track_y0.push_back(track->params_time[1]);
-            Track_z0.push_back(track->params_time[2]);
-            Track_t0.push_back(track->params_time[3]);
-            Track_kx.push_back(track->params_time[4]);
-            Track_ky.push_back(track->params_time[5]);
-            Track_kz.push_back(track->params_time[6]);
-            Track_kt.push_back(track->params_time[7]);
+            Track_x0.push_back(track->params_full[0]);
+            Track_y0.push_back(track->params_full[1]);
+            Track_z0.push_back(track->params_full[2]);
+            Track_t0.push_back(track->params_full[3]);
+            Track_kx.push_back(track->params_full[4]);
+            Track_ky.push_back(track->params_full[5]);
+            Track_kz.push_back(track->params_full[6]);
+            Track_kt.push_back(track->params_full[7]);
             Track_chi2.push_back(track->chi2);
             Track_id.push_back(track->id);
             Track_iv_ind.push_back(track->iv_index);
@@ -431,9 +431,36 @@ namespace Tracker
         return 0;
     }
 
+    void TreeWriterRecon::Clear()
+    {
+        Track_x0.clear();
+        Track_y0.clear();
+        Track_z0.clear();
+        Track_t0.clear();
+        Track_kx.clear();
+        Track_ky.clear();
+        Track_kz.clear();
+        Track_kt.clear();
+        Track_cov.clear();
+        Track_chi2.clear();
+        Track_id.clear();
+        Track_iv_ind.clear();
+        Track_iv_err.clear();
+        Track_digiInds.clear();
+        Vertex_x0.clear();
+        Vertex_y0.clear();
+        Vertex_z0.clear();
+        Vertex_t0.clear();
+        Vertex_cov.clear();
+        Vertex_chi2.clear();
+        Vertex_id.clear();
+        Vertex_trackInds.clear();
+    }
+
     void TreeWriterRecon::Fill()
     {
         outputTreeRaw->Fill();
+        this->Clear();
     }
 
 } // namespace Tracker
