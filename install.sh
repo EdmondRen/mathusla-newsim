@@ -20,6 +20,7 @@ CONFIG_CMAKE=0
 CLEAN_BUILD=0
 RUN_BUILD=0
 OTHER_ARGS=""
+EIGEN3_USER="$HOME/geant_projects/lib/share/eigen3/cmake"
 
 while [[ $# -gt 0 ]]; do
     arg="$1"
@@ -53,7 +54,7 @@ make clean
 make -j8
 cd ../..
 echo "  Finished building CRY"
-echo "------------------------------------------------"
+echo "------------------------------------------------\n"
 
 
 if [[ "$CONFIG_CMAKE" -eq 1 && "$CLEAN_BUILD" -eq 1 ]]; then
@@ -64,12 +65,16 @@ fi
 mkdir -p build
 cd build
 
-if [[ "$CONFIG_CMAKE" -eq 1 ]]; then cmake -DCMAKE_INSTALL_PREFIX=`realpath ..` .. -DEigen3_DIR=$HOME/geant_projects/lib/share/eigen3/cmake;   fi;
+if [[ "$CONFIG_CMAKE" -eq 1 ]]; then cmake -DCMAKE_INSTALL_PREFIX=`realpath ..` .. -DEigen3_DIR=$EIGEN3_USER;   fi;
 if [[ "$CLEAN_BUILD"  -eq 1 ]]; then make clean; fi;
 pwd
 
+echo "------------------------------------------------"
+echo "  Building MATHUSLA simulations"
 make -j8
-make install -j8
+# make install -j8
+echo "  Finished building MATHUSLA simulations"
+echo "------------------------------------------------\n"
 
 if [[ ! "$?" -eq 0 ]]; then
     echo -e "\nBuild Failed!\n"

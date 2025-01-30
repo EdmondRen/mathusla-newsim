@@ -1,6 +1,75 @@
 # MATHUSLA simulation V2
 
+This repository contains the simulation and reconstruction code for MATHUSLA experiment. 
+
+## Install
+
+### Dependencies
+
+There are three external libraries needed to complie this simulation code
+
+1. GEANT4 10.07
+2. ROOT 6.28/10
+3. Eigen 3.4: https://eigen.tuxfamily.org/index.php?title=Main_Page
+
+GEANT4 and ROOT have detailed instruction on the website using CMake build system. They should be compliled with C++ 17 standard as it is used by this package. 
+
+Eigen is a header-only library. It doesn't matter where you put the downloaded file, but you should still run cmake to build the automate detection files for cmake. After that a Eigen3Config.cmake file is generate, which is usually at lib/share/eigen3/cmake. This path needs to be saved in install.sh as $EIGEN3_USER
+
+### How to build
+
+There is a shell script `install.sh` to automate the build process. For the first time, run `./install --cmake`. Aftwards only `./install` is needed.
+
+    usage: ./install [--clean] [--cmake] [--run [args]]
+      clean      : rebuild all source files
+      cmake      : rebuild starting with CMake configuration
+      help       : open this help screen
+
+### Binaries
+
+There are six executables saved in `.\build\` folder after the build finishes.
+
+| Name | Description|
+|---|---|
+| `simulation` | main simulation executable |
+| `digitizer`  | convert simulation truth to measurable quantities in detector |
+| `tracker`    | reconstruct track and vertex from the digitized events | 
+| `param` | Standalone cosmic ray event generator|
+| `cry` | Standalone cosmic ray event generator|
+
+# `simulation`
+
 ## 1. General controls
+
+Options for simulation:
+
+    Usage:
+      ./simulation [OPTION...]
+    
+      -h, --help           Print help
+      -D, --debug          Enable debugging
+      -m, --macro arg      Macro name, followed by possible parameters for 
+                          macro seperated by commas. For example, 
+                          -m=run1.mac,Ek,10,theta,20
+      -g, --generator arg  Generator, one of <gun/range/parma/cry/filereader> 
+                          (default: gun)
+      -d, --detector arg   Detector, one of <math40/uoft1> (default: uoft1)
+      -e, --export arg     Export directory for geometry and other information. 
+                          Default is ./export/ (default: export)
+      -o, --output arg     Output directory. Default is ./data/ (default: data)
+      -r, --run arg        Run number (default: 0)
+      -s, --seed arg       Seed of random number generator, a positive integer. 
+                          Default to -1 for random seed. Events in the same 
+                          run share the same seed. (default: -1)
+      -S, --session arg    Session name (default: MathuslaSim)
+      -a, --all_steps      [Warning] Use cautiously. Write all steps into ROOT 
+                          file. This usually takes a lot of storage space and 
+                          more time on IO.
+      -v, --save_vrml      [Warning] Use cautiously. Write visualization of 
+                          each event into VRML file. This usually takes a lot 
+                          of storage space and more time on IO.
+      -t, --threads arg    [NOT IMPLEMENTED] Number of threads. Only works with 
+                          single (1) thread at this moment. (default: 1)
 
 ### About random number generator
 
@@ -43,21 +112,21 @@ It takes in a list of event records. Each line contains a {filename, entry} pair
 
 Digitizer takes the simulation output ROOT file, turns the simulation truth into measurable quantities (x, y, z, t) along with some other information for debugging. 
 
-        Usage:
-          CRY cosmic generator [OPTION...] positional parameters
+    Usage:
+      CRY cosmic generator [OPTION...] positional parameters
 
-          -h, --help                  Print help
-          -s, --seed arg              Seed for random number generator (default: 
-                                      -1)
-          -t, --time_resolution arg   Coincidence time resolution [ns]. (default: 
-                                      1)
-          -T, --time_limit arg        Time limit [ns] (default: 20)
-          -E, --energy_threshold arg  Energy threshold for a digi [MeV] (default: 
-                                      0.65)
-          -n, --noise arg             Noise rate [avg number per file]. Set to -1 
-                                      to disable (default). (default: -1)
-          -p, --print_progress arg    Print progress every `p` events (default: 1)
-          -w, --window arg            Noise window [ns]
+      -h, --help                  Print help
+      -s, --seed arg              Seed for random number generator (default: 
+                                  -1)
+      -t, --time_resolution arg   Coincidence time resolution [ns]. (default: 
+                                  1)
+      -T, --time_limit arg        Time limit [ns] (default: 20)
+      -E, --energy_threshold arg  Energy threshold for a digi [MeV] (default: 
+                                  0.65)
+      -n, --noise arg             Noise rate [avg number per file]. Set to -1 
+                                  to disable (default). (default: -1)
+      -p, --print_progress arg    Print progress every `p` events (default: 1)
+      -w, --window arg            Noise window [ns]
 
 ## Digitizer output format
 
