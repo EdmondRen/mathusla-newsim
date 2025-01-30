@@ -106,12 +106,12 @@ namespace Kalman
                  double maxcalls = 50000);
 
         // Run fit and Return the vertex directly
-        Tracker::Vertex *run_fit(std::vector<Tracker::Track *> tracks,
+        Tracker::Vertex *run_fit(std::vector<Tracker::Track *> _tracks_,
                                  std::vector<double> arg_guess = {},
                                  double tolerance = 0.1,
                                  double maxcalls = 50000)
         {
-            fit(tracks, arg_guess, tolerance, maxcalls);
+            fit(_tracks_, arg_guess, tolerance, maxcalls);
 
             auto vertex = new Tracker::Vertex();
             vertex->params = params;

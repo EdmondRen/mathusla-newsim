@@ -8,16 +8,15 @@
 namespace Tracker
 {
 
-    VertexFinder::VertexFinder(std::vector<Track *> allTracks,
-                               bool debug, bool debug_kalman) : DEBUG(debug), DEBUG_KALMAN(debug_kalman), tracks_all(allTracks)
+    VertexFinder::VertexFinder(bool debug, bool debug_kalman) : DEBUG(debug), DEBUG_KALMAN(debug_kalman)
     {
         this->tracks_found_temp = std::vector<Track *>();
         this->vertices_found = VertexLilst();
 
         // Set the default parameters
-        config["vertex_cut_SeedDist"] = 3000;                               // [mm] Maxmum distance between two tracks
+        config["vertex_cut_SeedDist"] = 3000;                              // [mm] Maxmum distance between two tracks
         config["vertex_cut_SeedChi2"] = 50;                                // maximum chi2 of the seed
-        config["vertex_cut_TrackAddDist"] = 3000;                           //  Distance cut to add a track
+        config["vertex_cut_TrackAddDist"] = 3000;                          //  Distance cut to add a track
         config["vertex_cut_TrackAddChi2"] = 9;                             // chi2 cut to add a track
         config["vertex_cut_TrackDropChi2"] = 3;                            // chi2 cut to drop a track
         config["vertex_cut_VertexChi2Reduced"] = 5;                        // Vertex chi2-square cut
@@ -119,7 +118,7 @@ namespace Tracker
 
             if (track_dist > config["vertex_cut_TrackAddDist"] * 2 ||
                 tracks_unused.count(track_id) == 0)
-            {   
+            {
                 if (tracks_unused.count(track_id) != 0)
                 {
                     print_dbg(util::py::f("  Track {} is ignored due to large distance of {} [mm]", track_id, track_dist));
@@ -152,8 +151,10 @@ namespace Tracker
         return tracks_found_temp.size();
     }
 
-    int VertexFinder::FindAll()
+    int VertexFinder::FindAll(std::vector<Track *> allTracks)
     {
+        this->tracks_all = allTracks;
+
         // Sort hits into groups
         print_dbg(util::py::f("Event contains {} tracks", tracks_all.size()));
 

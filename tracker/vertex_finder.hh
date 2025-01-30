@@ -15,9 +15,9 @@ namespace Tracker
     class VertexFinder
     {
     public:
-        VertexFinder(std::vector<Track *> allTracks,
-                    bool debug = false,
-                    bool debug_kalman = false);
+        VertexFinder(
+            bool debug = false,
+            bool debug_kalman = false);
 
         // Clear the internal states
         void Clear();
@@ -36,8 +36,8 @@ namespace Tracker
 
         // Find all vertices
         // Return number of vertices found
-        int FindAll();
-        VertexLilst GetResults() {return std::move(vertices_found);}
+        int FindAll(std::vector<Track *> allTracks);
+        VertexLilst GetResults() { return std::move(vertices_found); }
 
         // Remove used hits in hits list and seed list
         int RemoveUsed();

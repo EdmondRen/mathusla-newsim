@@ -13,8 +13,7 @@ namespace Tracker
     class TrackFinder
     {
     public:
-        TrackFinder(std::vector<DigiHit *> allHits,
-                    bool debug = false,
+        TrackFinder(bool debug = false,
                     bool debug_kalman = false);
 
         // Clear the internal states
@@ -37,8 +36,8 @@ namespace Tracker
 
         // Find all tracks
         // Return number of tracks found
-        int FindAll();
-        TrackList GetResults() {return std::move(tracks_found);}
+        int FindAll(std::vector<DigiHit *> allHits);
+        TrackList GetResults() { return std::move(tracks_found); }
 
         // Remove used hits in hits list and seed list
         int RemoveUsed();

@@ -67,8 +67,8 @@ int main(int argc, const char *argv[])
     // Look at one track
     print("Run track/vertex reconstruction on one event.");
     std::vector<Tracker::DigiHit *> hits = genHitsTracks(N_TRACKS_PER_EVENT);
-    auto track_finder = Tracker::TrackFinder(hits, false);
-    track_finder.FindAll();
+    auto track_finder = Tracker::TrackFinder(false);
+    track_finder.FindAll(hits);
     auto summary = track_finder.Summary();
     print(summary);
 
@@ -104,8 +104,8 @@ int main(int argc, const char *argv[])
     for (auto i = 0; i < N; i++)
     {
         hits = genHitsTracks(N_TRACKS_PER_EVENT);
-        auto track_finder_temp = Tracker::TrackFinder(hits, false);
-        track_finder_temp.FindAll();
+        auto track_finder_temp = Tracker::TrackFinder(false);
+        track_finder_temp.FindAll(hits);
 
         track_found = track_finder_temp.GetResults();
         tracks.clear();
@@ -167,10 +167,10 @@ int main(int argc, const char *argv[])
     {
         std::cout << "Event " << i << "\r";
 
-        auto vertex = vertex_fitter_kf->run_filter(tracklist_all[i]);
-        h7->Fill(vertex->params.segment(0, 3).norm());
-        h8->Fill(vertex->params(3));
-        h9->Fill(vertex->chi2);
+        auto _vertex = vertex_fitter_kf->run_filter(tracklist_all[i]);
+        h7->Fill(_vertex->params.segment(0, 3).norm());
+        h8->Fill(_vertex->params(3));
+        h9->Fill(_vertex->chi2);
     }
     std::cout << std::endl;
     stop = std::chrono::high_resolution_clock::now();

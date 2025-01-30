@@ -189,7 +189,6 @@ public:
         hit->index = 9999999;
         hits.push_back(hit);
 
-
         track_id = -1;
         pdg_id = -1;
         detector_id = -1;
@@ -667,7 +666,7 @@ int main(int argc, const char *argv[])
     // Open the input/output file
     std::filesystem::path input_filename = args["filename"].as<std::string>();
     std::filesystem::path output_filename = input_filename;
-    output_filename.replace_extension("digi.root");
+    output_filename.replace_filename(output_filename.stem().string() + "_digi" + output_filename.extension().string());
     auto infile = new InputTreeHandeler(input_filename.string());
     auto outfile = new OutputTreeHandeler(output_filename.string());
 
@@ -701,7 +700,7 @@ int main(int argc, const char *argv[])
         config.bar_width_x = MuGeoBuilder::mu40dims::bar_lenx_real;
         config.bar_width_y = MuGeoBuilder::mu40dims::bar_leny_real;
         config.bar_width_z = MuGeoBuilder::mu40dims::bar_lenz;
-    }    
+    }
     // 2. Add info from config
     outfile->WriteConfig(config);
 
@@ -748,8 +747,6 @@ int main(int argc, const char *argv[])
         // Clear the digis
         for (auto digi : digis)
             delete digi;
-        
-
     }
 
     outfile->Write();

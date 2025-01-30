@@ -58,7 +58,7 @@ namespace iroot
             gStyle->SetPalette(colorIndices.size(), &colorIndices[0]);
         }
 
-        static void setStyle()
+        inline void setStyle()
         {
             gROOT->SetStyle("Modern");
             setTableauPalette();

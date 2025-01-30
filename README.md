@@ -110,3 +110,10 @@ Example: Generate 1 million events, save the ones that contains neutrons above 2
 
 
 # Standalone generator: PARMA
+
+
+# Credits
+
+## json config parser
+
+https://github.com/taocpp/config/tree/main

@@ -124,6 +124,10 @@ target_link_libraries(tracker_test3 mu_recon mu_sim ${CRY_LIBRARIES})
 add_executable(tracker_test4 ${PROJECT_SOURCE_DIR}/tracker/tests/test4_vertex_find.cc ${track_test_util})
 target_link_libraries(tracker_test4 mu_recon mu_sim ${CRY_LIBRARIES})
 
+## Tracker main
+add_executable(tracker tracker.cc)
+target_link_libraries(tracker PUBLIC  mu_recon mu_sim ${CRY_LIBRARIES})
+
 
 #----------------------------------------------------------------------------
 # Copy all scripts to the build directory, i.e. the directory in which we
@@ -148,5 +152,5 @@ target_link_libraries(tracker_test4 mu_recon mu_sim ${CRY_LIBRARIES})
 #----------------------------------------------------------------------------
 # Install the executable to 'bin' directory under CMAKE_INSTALL_PREFIX
 #
-install(TARGETS simulation DESTINATION bin)
+# install(TARGETS simulation DESTINATION bin)
 # install(TARGETS cry DESTINATION bin)

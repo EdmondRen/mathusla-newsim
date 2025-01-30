@@ -40,7 +40,9 @@ namespace Tracker
     class DigiHit
     {
     public:
-        DigiHit(double _x, double _y, double _z, double _t, double _ex, double _ey, double _ez, double _et, int _iv_index, int _layer, int _group) : iv_index(_iv_index), layer(_layer), group(_group)
+        DigiHit(double _x, double _y, double _z, double _t,
+                double _ex, double _ey, double _ez, double _et,
+                int _iv_index, int _layer, int _group, int _id) : iv_index(_iv_index), layer(_layer), group(_group), id(_id)
         {
             vec4 << _x, _y, _z, _t;
             vec4_err << _ex, _ey, _ez, _et;
@@ -225,6 +227,11 @@ namespace Tracker
         }
 
         std::vector<std::unique_ptr<DigiHit>> GetEntry(long long entry);
+
+        // Group hits by detector copy number
+        // detID has format AAABBBCCCDDDD, in which BBB is the detector copy number
+        std::unordered_map<int, std::vector<Tracker::DigiHit *>> ProcessHits(std::vector<std::unique_ptr<DigiHit>> hits);
+
         long long GetCurrentEntry() { return entry_current; }
         long long GetEntries() { return entries_total; }
         TTree *GetTreeData() { return TreeData; }
@@ -285,10 +292,11 @@ namespace Tracker
             outputFile->Close();
         }
 
-        int GetRecon(TrackList &tracks, VertexLilst &vertices);
-        int GetCopy(long long entry);
+        int ApplyRecon(TrackList &tracks, VertexLilst &vertices);
+        int ApplyCopy(long long entry);
         void Fill();
-        void Write() {outputTreeRaw->Write();}
+        void Write() { outputTreeRaw->Write(); }
+        void Close() { outputFile->Close(); }
     };
 
 } // namespace Tracker

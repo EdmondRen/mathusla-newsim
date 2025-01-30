@@ -8,8 +8,8 @@
 namespace Tracker
 {
 
-    TrackFinder::TrackFinder(std::vector<DigiHit *> allHits,
-                             bool debug, bool debug_kalman) : DEBUG(debug), DEBUG_KALMAN(debug_kalman), hits_all(allHits)
+    TrackFinder::TrackFinder(
+        bool debug, bool debug_kalman) : DEBUG(debug), DEBUG_KALMAN(debug_kalman)
     {
         this->hits_found_temp = std::vector<DigiHit *>();
         this->tracks_found = TrackList();
@@ -18,7 +18,7 @@ namespace Tracker
         config["track_cut_SeedRange"] = 1;                                // [ns] Proper time of the seed pair
         config["track_cut_HitProjectionSigma"] = 10;                      // Range to look for the next hit, in unit of sigmas
         config["track_cut_HitAddChi2First"] = 15;                         // Maximum chi2 for a hit to be added
-        config["track_cut_HitAddChi2Other"] = 9;                         // Maximum chi2 for a hit to be added
+        config["track_cut_HitAddChi2Other"] = 9;                          // Maximum chi2 for a hit to be added
         config["track_cut_HitDropChi2"] = 9;                              // Maximum chi2 for a hit to be kept during second rtrack_oun to -1 to turn off
         config["track_cut_TrackChi2Reduced"] = 3;                         // Cut on the chi2/ndof of the track
         config["track_cut_TrackChi2Prob"] = 0.95;                         // Cut on the  chi2 probability of the track
@@ -36,7 +36,7 @@ namespace Tracker
 
     void TrackFinder::MakeSeeds()
     {
-        for (size_t i = 0; i < hits_all.size()-1; i++)
+        for (size_t i = 0; i < hits_all.size() - 1; i++)
         {
             for (size_t j = i + 1; j < hits_all.size(); j++)
             {
@@ -151,8 +151,10 @@ namespace Tracker
         return hits_found_temp.size();
     }
 
-    int TrackFinder::FindAll()
+    int TrackFinder::FindAll(std::vector<DigiHit *> allHits)
     {
+        this->hits_all = allHits;
+
         // Sort hits into groups
         GroupHits();
         print_dbg(util::py::f("Event contains hits in {} groups", hits_grouped.size()));
@@ -212,7 +214,7 @@ namespace Tracker
 
                 // Round 2: Run filter again backwards
                 // Discard this track if the seed contributes too much to chi2
-                auto track_model = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, DEBUG_KALMAN); //DEBUG_KALMAN
+                auto track_model = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, DEBUG_KALMAN); // DEBUG_KALMAN
                 auto track_found = track_model.run_filter(hits_found_temp);
 
                 track_model.new_step(*seeds_unused.back()->hits.first);

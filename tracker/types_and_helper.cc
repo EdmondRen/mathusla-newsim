@@ -106,6 +106,8 @@ namespace Tracker
 
     std::pair<double, double> Track::get_same_time_dist_and_chi2(Vector4d point, double speed_constraint) const
     {
+        (void)speed_constraint;
+
         double dt = point(3) - this->t0;
         Vector3d pos_on_track = this->params_time.segment(0, 3) + this->params_time.segment(3, 3) * dt;
         Vector3d pos_residual = pos_on_track - point.segment(0, 3);
@@ -292,8 +294,10 @@ namespace Tracker
 
     std::vector<std::unique_ptr<DigiHit>> TreeReaderDigi::GetEntry(long long entry)
     {
+        std::vector<std::unique_ptr<DigiHit>> hits_tmp;
+
         TreeData->GetEntry(entry);
-        for (auto i = 0; i < Digi_x.size(); i++)
+        for (size_t i = 0; i < Digi_x.size(); i++)
         {
             int dir_x = (Digi_direction[i] / 100) % 10;
             int dir_y = (Digi_direction[i] / 10) % 10;
@@ -304,14 +308,38 @@ namespace Tracker
             unc[dir_z] = digi_unc[2];
 
             int hit_layer = (Digi_detectorID[i] / 100000) % 1000;
+            int hit_group = (Digi_detectorID[i] / 100000000) % 1000;
 
             auto hit = std::make_unique<Tracker::DigiHit>(Digi_x[i],
                                                           Digi_y[i],
                                                           Digi_z[i],
                                                           Digi_t[i],
                                                           unc[0], unc[1], unc[2], digi_unc[3],
-                                                          dir_z, i, hit_layer);
+                                                          dir_z,
+                                                          hit_layer,
+                                                          hit_group, i);
+
+            hits_tmp.push_back(std::move(hit));
         }
+        return hits_tmp;
+    }
+
+    std::unordered_map<int, std::vector<Tracker::DigiHit *>> ProcessHits(std::vector<std::unique_ptr<DigiHit>> hits_tmp)
+    {
+        std::unordered_map<int, std::vector<Tracker::DigiHit *>> hits_dict;
+        for (auto &hit : hits_tmp)
+        {
+            auto group = hit->group;
+            if (group == 0)
+                continue;
+
+            if (hits_dict.count(group) == 0)
+                hits_dict[group] = std::vector<Tracker::DigiHit *>();
+            else
+                hits_dict[group].push_back(hit.get());
+        }
+
+        return hits_dict;
     }
 
     // Class TreeWriterRecon------------------------------------------------------------------------------------------------
@@ -359,7 +387,7 @@ namespace Tracker
         outputTreeRaw->Branch("Vertex_trackInds", &Vertex_trackInds);
     }
 
-    int TreeWriterRecon::GetRecon(TrackList &tracks, VertexLilst &vertices)
+    int TreeWriterRecon::ApplyRecon(TrackList &tracks, VertexLilst &vertices)
     {
         for (auto &track : tracks)
         {

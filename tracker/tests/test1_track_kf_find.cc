@@ -38,8 +38,8 @@ int main(int argc, const char *argv[])
     // Look at one track
     // std::vector<Tracker::DigiHit *> hits = genHits(300, 300, 0, 0.3, 0.3);
     std::vector<Tracker::DigiHit *> hits = genHitsTracks(40);
-    auto track_finder = Tracker::TrackFinder(hits, false);
-    track_finder.FindAll();
+    auto track_finder = Tracker::TrackFinder(false);
+    track_finder.FindAll(hits);
     auto summary = track_finder.Summary();
     print(summary);
 
@@ -51,8 +51,8 @@ int main(int argc, const char *argv[])
     {
         // std::cout << "--------------------------- " << i << "------------------" << std::endl;
         hits = genHitsTracks(40);
-        auto track_finder = Tracker::TrackFinder(hits, false);
-        track_finder.FindAll();
+        auto track_finder = Tracker::TrackFinder(false);
+        track_finder.FindAll(hits);
     }
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);

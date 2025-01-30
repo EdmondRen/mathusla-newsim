@@ -68,8 +68,8 @@ int main(int argc, const char *argv[])
     // Look at one Event
     print("Run track/vertex reconstruction on one event.");
     std::vector<Tracker::DigiHit *> hits = genHitsTracks(N_TRACKS_PER_EVENT);
-    auto track_finder = Tracker::TrackFinder(hits, false);
-    track_finder.FindAll();
+    auto track_finder = Tracker::TrackFinder(false);
+    track_finder.FindAll(hits);
     auto summary = track_finder.Summary();
     print(summary);
 
@@ -82,8 +82,8 @@ int main(int argc, const char *argv[])
     }
 
     // Run vertex finder
-    auto vertex_finder = Tracker::VertexFinder(tracks, true);
-    vertex_finder.FindAll();
+    auto vertex_finder = Tracker::VertexFinder(true);
+    vertex_finder.FindAll(tracks);
     // Get results
     Tracker::VertexLilst vertex_found = vertex_finder.GetResults();
     std::vector<Tracker::Vertex *> vertices;
@@ -105,8 +105,8 @@ int main(int argc, const char *argv[])
     for (auto i = 0; i < N; i++)
     {
         hits = genHitsTracks(N_TRACKS_PER_EVENT);
-        auto track_finder_temp = Tracker::TrackFinder(hits, false);
-        track_finder_temp.FindAll();
+        auto track_finder_temp = Tracker::TrackFinder(false);
+        track_finder_temp.FindAll(hits);
 
         track_found = track_finder_temp.GetResults();
         tracks.clear();
@@ -127,8 +127,8 @@ int main(int argc, const char *argv[])
     {
         std::cout << "Event " << i << "\r";
 
-        vertex_finder = Tracker::VertexFinder(tracklist_all[i], false);
-        vertex_finder.FindAll();
+        vertex_finder = Tracker::VertexFinder(false);
+        vertex_finder.FindAll(tracklist_all[i]);
         vertex_found = vertex_finder.GetResults();
 
         h1->Fill(vertex_found.size());
