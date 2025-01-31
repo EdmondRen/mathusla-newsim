@@ -35,7 +35,7 @@ namespace MuGenerators
 
         // if (this->analysisReader->GetNtupleRow())
         this->InputTree->GetEntry(this->EVENTS_COUNTER);
-        if (EVENTS_COUNTER<EVENTS_TOTAL)
+        if (EVENTS_COUNTER < EVENTS_TOTAL)
         {
             // Generate all particles in this event
             for (u_int i = 0; i < (*data_x).size(); i++)
@@ -59,16 +59,18 @@ namespace MuGenerators
                 this->genParticles.push_back(newParticle);
             }
 
-            // Restore the random number generator status
-            //  * make a state vector for random engine. Need to cast from int to unsigned int
-            //  * RanecuEngine state has 4 values {pointer, theSeed, seed0, seed1}
-            //  Two steps: set the seed (to update the internal seed table), the set the state
-            seed_combined.push_back(0);
-            seed_combined.push_back(1);
-            seed_combined.push_back(data_seed_0_raw);
-            seed_combined.push_back(data_seed_1_raw);
-            CLHEP::HepRandom::getTheEngine()->getState(seed_combined);
-
+            if (SetSeed)
+            {
+                // Restore the random number generator status
+                //  * make a state vector for random engine. Need to cast from int to unsigned int
+                //  * RanecuEngine state has 4 values {pointer, theSeed, seed0, seed1}
+                //  Two steps: set the seed (to update the internal seed table), the set the state
+                seed_combined.push_back(0);
+                seed_combined.push_back(1);
+                seed_combined.push_back(data_seed_0_raw);
+                seed_combined.push_back(data_seed_1_raw);
+                CLHEP::HepRandom::getTheEngine()->getState(seed_combined);
+            }
         }
         else
         {
@@ -84,10 +86,9 @@ namespace MuGenerators
         return EVENTS_TOTAL;
     }
 
-
     void MuRecreate::SetNewValue(G4UIcommand *command,
                                  G4String value)
-    {   
+    {
         if (command == _ui_pathname)
         {
             this->root_filename = value;
@@ -121,8 +122,20 @@ namespace MuGenerators
 
             this->EVENTS_TOTAL = InputTree->GetEntries();
 
-            InputTree->SetBranchAddress("Seed_0", &data_seed_0_raw);
-            InputTree->SetBranchAddress("Seed_1", &data_seed_1_raw);
+            // Check if the Seed_0 branch exist:
+            auto seed_found = InputTree->GetListOfBranches()->FindObject("Seed_0");
+            if (seed_found == 0)
+            {
+                print("No seed info. Will create events without modifying random seeds");
+                SetSeed = false;
+            }
+            else
+            {
+                SetSeed = true;
+                InputTree->SetBranchAddress("Seed_0", &data_seed_0_raw);
+                InputTree->SetBranchAddress("Seed_1", &data_seed_1_raw);
+            }
+
             InputTree->SetBranchAddress("Gen_pdgID", &data_pdgid);
             InputTree->SetBranchAddress("Gen_x", &data_x);
             InputTree->SetBranchAddress("Gen_y", &data_y);

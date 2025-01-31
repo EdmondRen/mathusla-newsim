@@ -50,6 +50,7 @@ namespace MuGenerators
         // G4AnalysisReader* analysisReader; // Tom: have to switch to pure ROOT approach.
         TTree *InputTree;
         TFile *InputFile;
+        bool SetSeed;
 
         // Raw data holder
         int data_seed_init;
