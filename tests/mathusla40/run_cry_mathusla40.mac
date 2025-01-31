@@ -25,16 +25,16 @@
 ## Setup CRY generator
 /gen/select cry
 #/gen/cry/pathname ../macros/generators/cry_all.conf
-/gen/cry/pathname ../macros/generators/cry_proton.conf
-# /gen/cry/pathname ../macros/generators/cry_neutron.conf
+# /gen/cry/pathname ../macros/generators/cry_proton.conf
+/gen/cry/pathname ../macros/generators/cry_neutron.conf
 # Filter events that contains proton (2212) and is above 2.67 GeV
 # /gen/cry/particle_pdgid 2212
 /gen/cry/ekin_low 0 GeV
-/gen/cry/ekin_high 200 GeV
+# /gen/cry/ekin_high 200 GeV
 
 /gen/cry/shape 1
-/gen/cry/box 55 55 18 m
+/gen/cry/box 55. 50. 20. m
+/gen/cry/offset_x 2.5 m
 
-
-/run/beamOn 1000
+/run/beamOn 100000
 #/run/dumpCouples

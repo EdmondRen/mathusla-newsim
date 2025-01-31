@@ -2,10 +2,11 @@
 #include <cstdio>
 #include <iostream>
 
-#include "MuAnalysis.hh"
 #include "G4RunManager.hh"
+#include "G4SDManager.hh"
 
 #include "util.hh"
+#include "MuAnalysis.hh"
 #include "MuEventAction.hh"
 #include "MuPrimaryGeneratorAction.hh"
 #include "MuDetectorConstruction.hh"
@@ -57,7 +58,10 @@ namespace Analysis
     //  ---------------------------------------------------------------------------
     // Default detector class
     DefaultDetector::DefaultDetector() : G4VSensitiveDetector("mathusla")
-    {
+    {   
+
+        collectionName.insert("scintillator");
+
         // Setup the data container
         // clang-format off
         //  - Idealy we want a unique ID for each event, defined as (run_number*1e9 + event_number). This means each run can have at most 1e9 events.
@@ -112,12 +116,15 @@ namespace Analysis
         return fdata;
     }
 
-    void DefaultDetector::Initialize(G4HCofThisEvent *)
+    void DefaultDetector::Initialize(G4HCofThisEvent *hce)
     {
         // Define a hits collection name
-        G4String hcName = SensitiveDetectorName + "HitsCollection";
+        G4String hcName = collectionName[0];
         // Create a hits collection object
         fHitsCollection = new HitsCollection(SensitiveDetectorName, hcName);
+        // Associate it with the G4HCofThisEvent, so that it will be auto deleted after each event
+        int fHCID = G4SDManager::GetSDMpointer()->GetCollectionID(fHitsCollection); 
+        hce->AddHitsCollection(fHCID,fHitsCollection);
 
         // Get a pointer to runactions
         fMuRunAction = static_cast<const MuRunAction *>(G4RunManager::GetRunManager()->GetUserRunAction());

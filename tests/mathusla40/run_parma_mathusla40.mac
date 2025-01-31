@@ -15,7 +15,7 @@
 
 ## Initialize run
 /run/initialize
-/run/printProgress 100
+/run/printProgress 1000
 # /run/numberOfThreads 1
 
 
@@ -36,11 +36,13 @@
 /gen/parma/ekin_low 0 GeV
 /gen/parma/ekin_high 200 GeV
 /gen/parma/shape 1
-/gen/parma/box 50. 50. 20. m
+/gen/parma/box 55. 50. 20. m
+/gen/parma/offset 2.5 0. 20. m
+
 
 ## Update the PARMA generator settings
 /gen/parma/update
 
 
-/run/beamOn 100000
+/run/beamOn 1000000
 #/run/dumpCouples

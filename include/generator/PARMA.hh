@@ -39,6 +39,7 @@ namespace MuGenerators
     private:
 
         G4ParticleTable *fparticleTable;
+        G4ParticleGun *fparticleGun;
         
         PARMA::ParmaGen fPARMAgenerator;
         PARMA::ParmaParticle parma_generated;

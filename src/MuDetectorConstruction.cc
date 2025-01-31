@@ -107,13 +107,14 @@ G4VPhysicalVolume *MuDetectorConstruction::Construct()
 
 void MuDetectorConstruction::ConstructSDandField()
 {
-  // Assign a sensitive detector to the geometry
+  // Assign sensitive detector to sensitive part ofthe geometry
   if (_det_name_ == "uoft1" || _det_name_ == "mu40v0" )
   {
     auto sensitive_detector = new Analysis::DefaultDetector();
+    G4SDManager::GetSDMpointer()->AddNewDetector(sensitive_detector);
+
     _det_->ConstructSD(sensitive_detector);
     sensitiveDetectorData = sensitive_detector->GetDataDict();
-    G4SDManager::GetSDMpointer()->AddNewDetector(sensitive_detector);
   }
 }
 

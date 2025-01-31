@@ -42,7 +42,10 @@
 class MyEventInformation : public G4VUserEventInformation {
 public:
     // Constructor
-    explicit MyEventInformation(unsigned long seed_init, unsigned long seed_0, unsigned long seed_1);
+    explicit MyEventInformation();
+
+    // Setter 
+    void SetInfo(unsigned long seed_init, unsigned long seed_0, unsigned long seed_1);
 
     // Getter for the seed
     std::vector<unsigned long> GetInfo() const;
@@ -78,6 +81,7 @@ class MuEventAction : public G4UserEventAction
     
   private:
     int counter;
+    MyEventInformation *eventInfo;
 };
 
 // inline functions

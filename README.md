@@ -45,7 +45,7 @@ Options for simulation:
 
     Usage:
       ./simulation [OPTION...]
-    
+
       -h, --help           Print help
       -D, --debug          Enable debugging
       -m, --macro arg      Macro name, followed by possible parameters for 
@@ -90,11 +90,10 @@ Notes:
 
 ### 2.3. CRY cosmic generator (cry)
 
-### 2.4. FileReader generator (filereader)
-
 ### 2.5. Generator for recreating previous events (recreate)
 
-This generator is able to re-generate previous events, based on the saved random number generator status (two integers) and primary vertex information in the ROOT file.
+This generator is able to re-generate previous events, based on the saved random number generator status (two integers) and primary vertex information in the ROOT file. It can also be used to creat events by simply providing the {position, momentum, pdg_number} of each particle. 
+
 It takes in a list of event records. Each line contains a {filename, entry} pair, where filename is the ROOT file to take the information, and entry is the event entry in the ROOT file.
 
 

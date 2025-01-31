@@ -57,6 +57,8 @@ namespace MuGenerators
 
         // Create the table containing all particle names
         this->fparticleTable = G4ParticleTable::GetParticleTable();
+        G4int n_particle = 1;
+        this->fparticleGun = new G4ParticleGun(n_particle);
 
         // Make messenger commands
         _ui_pathname = CreateCommand<G4UIcmdWithAString>("pathname", "Set pathname of PARMA configuration file.");
@@ -154,7 +156,7 @@ namespace MuGenerators
         {
             G4double fParticlePosX = parma_generated.x * cm + fPARMA_additional_config["offset_x"];
             G4double fParticlePosY = parma_generated.y * cm + fPARMA_additional_config["offset_y"];
-            G4double fParticlePosZ = parma_generated.z * cm + fPARMA_additional_config["offset_z"];
+            G4double fParticlePosZ = parma_generated.z * m * 0. + fPARMA_additional_config["offset_z"];
             G4double fParticlePu = parma_generated.u;
             G4double fParticlePv = parma_generated.v;
             G4double fParticlePw = parma_generated.w;
@@ -194,7 +196,7 @@ namespace MuGenerators
         G4double fParticleMass = particleDefinition->GetPDGMass() * MeV;
         G4double fParticlePosX = parma_generated.x * cm + fPARMA_additional_config["offset_x"];
         G4double fParticlePosY = parma_generated.y * cm + fPARMA_additional_config["offset_y"];
-        G4double fParticlePosZ = parma_generated.z * cm + fPARMA_additional_config["offset_z"];
+        G4double fParticlePosZ = parma_generated.z * m * 0. + fPARMA_additional_config["offset_z"];
         G4double fParticleMomentumDirectionU = parma_generated.u;
         G4double fParticleMomentumDirectionV = parma_generated.v;
         G4double fParticleMomentumDirectionW = parma_generated.w;
@@ -220,6 +222,13 @@ namespace MuGenerators
         const auto vertex = new G4PrimaryVertex(newParticle.x, newParticle.y, newParticle.z, newParticle.t);
         vertex->SetPrimary(new G4PrimaryParticle(newParticle.pdgid, newParticle.px, newParticle.py, newParticle.pz));
         anEvent->AddPrimaryVertex(vertex);
+
+        // fparticleGun->SetParticleDefinition(particleDefinition);
+        // fparticleGun->SetParticleMomentumDirection(G4ThreeVector(fParticleMomentumDirectionU,fParticleMomentumDirectionV,fParticleMomentumDirectionW));
+        // fparticleGun->SetParticleEnergy(fParticleEkin);
+        // fparticleGun->SetParticlePosition(G4ThreeVector(fParticlePosX, fParticlePosY, fParticlePosZ));      
+        // fparticleGun->SetParticleTime(fParticleTime);
+        // fparticleGun->GeneratePrimaryVertex(anEvent);  
 
         // Save all generated particles of the current event
         genParticles.push_back(newParticle);

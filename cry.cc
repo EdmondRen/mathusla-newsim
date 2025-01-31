@@ -123,10 +123,12 @@ int main(int argc, const char *argv[])
     // else
     //   gen.genEvent(ev, ekin_cut);
 
-    if (!IsSingleSpecies)
-      gen.genEvent(ev);
-    else
-      gen.genEvent_single(ev);
+    // if (!IsSingleSpecies)
+    //   gen.genEvent(ev);
+    // else
+    //   gen.genEvent_single(ev);
+
+    gen.genEvent(ev);
 
     // If cut is enabled, check if the result contains the specified particle
     bool selected = false;

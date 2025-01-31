@@ -38,18 +38,24 @@
 #include "Randomize.hh"
 #include <iomanip>
 
-// # Project include 
+// # Project include
 #include "MuSteppingAction.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 // Event information class
 // Constructor
-MyEventInformation::MyEventInformation(unsigned long seed,
-                                       unsigned long seed0,
-                                       unsigned long seed1) : fSeed_init(seed),
-                                                              fSeed_0(seed0),
-                                                              fSeed_1(seed1) {}
+MyEventInformation::MyEventInformation() {}
+
+// Setter
+void MyEventInformation::SetInfo(unsigned long seed,
+                                 unsigned long seed0,
+                                 unsigned long seed1)
+{
+  fSeed_init = seed;
+  fSeed_0 = seed0;
+  fSeed_1 = seed1;
+}
 
 // Getter for the seed
 std::vector<unsigned long> MyEventInformation::GetInfo() const
@@ -97,13 +103,13 @@ void MuEventAction::BeginOfEventAction(const G4Event *event)
   std::vector<unsigned long> engienStatus = CLHEP::HepRandom::getTheEngine()->put();
   // util::py::print(" Begin of event seed RanecuEngine status [address, init_seed, seed[0], seed[1]]", engienStatus);
 
-  auto *eventInfo = new MyEventInformation(engienStatus[1], engienStatus[2], engienStatus[3]);
+  this->eventInfo = new MyEventInformation(); // This class object is auto-deleted by the GEANT4 kernel when the associated event object is deleted
+  eventInfo->SetInfo(engienStatus[1], engienStatus[2], engienStatus[3]);
   const_cast<G4Event *>(event)->SetUserInformation(eventInfo);
 
   // Clear the step data store
   auto userStepAction = dynamic_cast<const MuSteppingAction *>(G4RunManager::GetRunManager()->GetUserSteppingAction());
   userStepAction->fStepDataStore->clear();
-
 }
 
 void MuEventAction::EndOfEventAction(const G4Event *event)

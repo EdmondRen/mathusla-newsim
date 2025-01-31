@@ -114,8 +114,8 @@ namespace MuGenerators
     {
         this->samplingShape = static_cast<GEOTYPE>(static_cast<int>(fCRY_additional_setup["use_shape"]));
         if (samplingShape == box &&
-            (subboxLength < fCRY_additional_setup["box_lenx"] + fCRY_additional_setup["box_lenz"] ||
-             subboxLength < fCRY_additional_setup["box_leny"] + fCRY_additional_setup["box_lenz"]))
+            (subboxLength < fCRY_additional_setup["box_lenx"] ||
+             subboxLength < fCRY_additional_setup["box_leny"]))
         {
             print(subboxLength, fCRY_additional_setup["box_lenx"]);
             print("ERROR [Generator CRY]: subboxLength in the cry config file does not cover the box length");
