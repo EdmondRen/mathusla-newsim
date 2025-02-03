@@ -30,10 +30,9 @@ namespace Tracker
     {
         for (auto &pair : config)
         {
-            if (config_ext.count(pair.first)>0)
+            if (config_ext.count(pair.first) > 0)
                 config[pair.first] = config_ext[pair.first];
         }
-
     }
 
     void VertexFinder::Clear()
@@ -41,7 +40,7 @@ namespace Tracker
     }
 
     void VertexFinder::MakeSeeds()
-    {   
+    {
         this->seeds_unused.clear();
 
         for (size_t i = 0; i < tracks_all.size() - 1; i++)
@@ -163,6 +162,66 @@ namespace Tracker
         return tracks_found_temp.size();
     }
 
+    int VertexFinder::FindOnceLS(VertexSeed *seed)
+    {
+        print_dbg(util::py::f("\nUsing Seed [{},{}]", seed->tracks.first->id, seed->tracks.second->id));
+
+        tracks_found_temp.clear();
+
+        // Initialize the finder with seeds
+        tracks_found_temp.push_back(seed->tracks.first);
+        tracks_found_temp.push_back(seed->tracks.second);
+
+        auto vertex_fitter = Kalman::LSVertex4DFitter(2);
+        auto vertex_found = vertex_fitter.run_fit(tracks_found_temp);
+
+        // Try all tracks that are recorded in the seed
+        for (int i = seed->track_distance_list.size() - 1; i >= 0; i--)
+        {
+            auto track_pair_dist = seed->track_distance_list[i];
+            auto track_id = track_pair_dist.first;
+            auto track_dist = track_pair_dist.second;
+
+            if (track_dist > config["vertex_cut_TrackAddDist"] * 2 ||
+                tracks_unused.count(track_id) == 0)
+            {
+                if (tracks_unused.count(track_id) != 0)
+                {
+                    print_dbg(util::py::f("  Track {} is ignored due to large distance of {} [mm]", track_id, track_dist));
+                }
+
+                // Delete it from the seed and skip this round of loop
+                if (i != 0)
+                {
+                    seed->track_distance_list.erase(seed->track_distance_list.begin() + i);
+                    continue;
+                }
+                else
+                    break;
+            }
+
+            auto &track = tracks_unused[track_id];
+
+
+            tracks_found_temp.push_back(tracks_unused[track_id]);
+            auto vertex_temp = vertex_fitter.run_fit(tracks_found_temp);
+            float track_chi2 = vertex_temp->chi2;
+
+            if (track_chi2 < config["vertex_cut_TrackAddChi2"])
+            {
+                print_dbg(util::py::f("  Track {} is added with chi2 {:.3f}.", track_id, track_chi2));
+                vertex_found = vertex_temp;
+            }
+            else
+            {
+                tracks_found_temp.pop_back(); // remove from list
+                print_dbg(util::py::f("  Track {} is rejected with chi2 {:.3f}.", track_id, track_chi2));
+            }
+        }
+
+        return tracks_found_temp.size();
+    }
+
     int VertexFinder::FindAll(std::vector<Track *> allTracks)
     {
         this->tracks_all = allTracks;
@@ -176,14 +235,13 @@ namespace Tracker
         // Seeding
         MakeSeeds();
 
-
         // Loop though required number of hits
         this->tracks_found_temp.clear();
         int ntracks_min = config["vertex_cut_VertexNHitsMin"];
         while (this->seeds_unused.size() > 0)
         {
             // Round 1: find hits based on seed
-            int ntracks_found = FindOnce(seeds_unused.back());
+            int ntracks_found = FindOnceLS(seeds_unused.back());
 
             // Cut on number of tracks
             if (ntracks_found < ntracks_min)
@@ -205,7 +263,7 @@ namespace Tracker
             // Discard this track if the seed contributes too much to chi2
 
             // Round 3: Run fit again using least square minimizer
-            auto vertex_fitter = Kalman::LSVertex4DFitter(1);
+            auto vertex_fitter = Kalman::LSVertex4DFitter(2);
             auto vertex_found = vertex_fitter.run_fit(tracks_found_temp);
             print_dbg("Vertex LS Fit result (x,y,z,t):", vertex_found->params.transpose());
 
@@ -296,11 +354,10 @@ namespace Tracker
             summary += util::py::f("   vertex: with {} hits\n", vertex->track_ids.size());
         }
 
-
         info_nvertices = vertices_found.size();
         info_ntracks = 0;
         for (auto &vertex : vertices_found)
-            info_ntracks += vertex->track_ids.size();        
+            info_ntracks += vertex->track_ids.size();
 
         return summary;
     }

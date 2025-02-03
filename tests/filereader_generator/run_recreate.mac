@@ -30,7 +30,7 @@
 ## Setup recreate generator
 /gen/select recreate
 
-/run/beamOn 100
+/run/beamOn 1
 
 
 ## !! NO NEED TO CALL  run beamOn !!

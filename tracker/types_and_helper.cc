@@ -31,7 +31,7 @@ namespace Tracker
             }
 
             // Setting Jacobian
-            this->t0_err = std::pow(cov_time(2, 2), 0.5);
+            this->t0_err = std::pow(cov(2, 2), 0.5);
             for (int j = 0; j < 3; ++j)
             {
                 if (j == iv_index)
@@ -104,31 +104,61 @@ namespace Tracker
         return dist_point;
     }
 
-    std::pair<double, double> Track::get_same_time_dist_and_chi2(Vector4d point, double speed_constraint) const
+    std::pair<Vector4d, MatrixXd> Track::get_same_time_pos_and_cov(Vector4d point, double speed_constraint) const
     {
         (void)speed_constraint;
 
         double dt = point(3) - this->t0;
         Vector3d pos_on_track = this->params_time.segment(0, 3) + this->params_time.segment(3, 3) * dt;
-        Vector3d pos_residual = pos_on_track - point.segment(0, 3);
+        Vector4d pos_full = Helper::insertVector(pos_on_track, 3, point(3));
         MatrixXd cov_residual = this->cov_time.topLeftCorner(3, 3) +
                                 this->cov_time.topRightCorner(3, 3) * dt +
                                 this->cov_time.bottomLeftCorner(3, 3) * dt +
                                 this->cov_time.bottomRightCorner(3, 3) * dt * dt;
 
-        // cov_residual.diagonal() += (this->params_time.segment(3, 3).array() * this->params_time.segment(3, 3).array()).matrix() * this->t0_err * this->t0_err;
-        double chi2_point = pos_residual.transpose() * cov_residual.inverse() * pos_residual;
-        double dist_point = pos_residual.norm();
+        return std::make_pair(pos_full, cov_residual);
+    }
+
+    std::pair<double, double> Track::get_same_time_dist_and_chi2(Vector4d point, double speed_constraint) const
+    {
+        (void)speed_constraint;
+
+        auto point_and_cov = get_same_time_pos_and_cov(point, speed_constraint);
+        Vector3d residual = point_and_cov.first.segment(0,3) - point.segment(0, 3);
+        double dist_point = residual.norm();
+        double chi2_point = residual.transpose() * point_and_cov.second.inverse() * residual;
+
+
+        // std::cout << "cov residual \n " <<  point_and_cov.second << std::endl;
+        // std::cout << "dist, chi2 " << dist_point <<" , "<<chi2_point << std::endl;
 
         return std::make_pair(dist_point, chi2_point);
     }
 
-    std::pair<double, double> Track::get_cpa_dist_and_chi2(Vector4d point, double speed_constraint) const
+    std::pair<Vector4d, MatrixXd> Track::get_same_invar_pos_and_cov(Vector4d point, double speed_constraint) const
     {
-        auto point_and_cov = get_cpa_pos_and_cov(point, speed_constraint);
-        Vector4d residual4d = point_and_cov.first - point;
-        double dist_point = residual4d.segment(0, 3).norm();
-        double chi2_point = residual4d.transpose() * point_and_cov.second.inverse() * residual4d;
+        (void)speed_constraint;
+
+        double dt = point(this->iv_index) - this->iv_value;
+        Vector3d pos_on_track = this->params.segment(0, 3) + this->params.segment(3, 3) * dt;
+        Vector4d pos_full = Helper::insertVector(pos_on_track, this->iv_index, point(this->iv_index));
+        MatrixXd cov_residual = this->cov.topLeftCorner(3, 3) +
+                                this->cov.topRightCorner(3, 3) * dt +
+                                this->cov.bottomLeftCorner(3, 3) * dt +
+                                this->cov.bottomRightCorner(3, 3) * dt * dt;
+
+        return std::make_pair(pos_full, cov_residual);
+    }
+
+    std::pair<double, double> Track::get_same_invar_dist_and_chi2(Vector4d point, double speed_constraint) const
+    {
+        (void)speed_constraint;
+
+        auto point_and_cov = get_same_invar_pos_and_cov(point, speed_constraint);
+        Vector4d residual4 = point_and_cov.first - point;
+        auto residual = Helper::removeElement(residual4, this->iv_index);
+        double dist_point = residual.norm();
+        double chi2_point = residual.transpose() * point_and_cov.second.inverse() * residual;
 
         return std::make_pair(dist_point, chi2_point);
     }
@@ -156,7 +186,21 @@ namespace Tracker
                     J_v0 * cov_full.bottomLeftCorner(4, 4) * J_r0.transpose() +
                     J_v0 * cov_full.bottomRightCorner(4, 4) * J_v0.transpose();
 
+
         return std::make_pair(closest_point, cov_point);
+    }
+
+    std::pair<double, double> Track::get_cpa_dist_and_chi2(Vector4d point, double speed_constraint) const
+    {
+        auto point_and_cov = get_cpa_pos_and_cov(point, speed_constraint);
+        Vector4d residual4d = point_and_cov.first - point;
+        double dist_point = residual4d.segment(0, 3).norm();
+        double chi2_point = residual4d.transpose() * point_and_cov.second.inverse() * residual4d;
+        
+        // std::cout << "cov residual \n " << point_and_cov.second << std::endl;
+        // std::cout << "dist, chi2: " << dist_point <<" , "<<chi2_point << std::endl;
+
+        return std::make_pair(dist_point, chi2_point);
     }
 
     // -------------------------------------------------------------------------------------------

@@ -154,13 +154,13 @@ namespace Kalman
             // float c = 299.7; // speed of light [mm/ns]
 
             // Use LS fit to get the chi2 and covariance matrix of this pair
-            auto vertex_fitter = Kalman::LSVertex4DFitter();
+            auto vertex_fitter = Kalman::LSVertex4DFitter(2);
             std::vector<Tracker::Track *> tracks_fit = {tracks.first, tracks.second};
 
             // Reuse the calculated best guess to initialize the fitter
             std::vector<double> vertex_guess_vec(4);
             std::copy(vertex_guess.data(), vertex_guess.data() + vertex_guess.size(), vertex_guess_vec.begin());
-            vertex_fitter.fit(tracks_fit, vertex_guess_vec, 0.1, 1000);
+            vertex_fitter.fit(tracks_fit, vertex_guess_vec, 0.1, 300);
 
             // Get vertex
             this->vertex_fit = vertex_fitter.params;

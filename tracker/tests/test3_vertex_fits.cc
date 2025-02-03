@@ -10,6 +10,9 @@
 
 #include "libs/cxxopts.hpp"
 #include "test_util.hh"
+#include "util_globals.hh"
+
+std::string util::globals::PROJECT_SOURCE_DIR = "";
 
 
 void setTableauPalette()
@@ -102,7 +105,7 @@ int main(int argc, const char *argv[])
     std::vector<std::vector<Tracker::Track *>> tracklist_all;
     for (auto i = 0; i < N; i++)
     {
-        hits = genHitsTracks(N_TRACKS_PER_EVENT);
+        hits = genHitsTracks(N_TRACKS_PER_EVENT, {1000,1000,-8000, 0});
         auto track_finder_temp = Tracker::TrackFinder(false);
         track_finder_temp.FindAll(hits);
 

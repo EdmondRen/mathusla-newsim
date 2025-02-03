@@ -3,11 +3,12 @@
 
 TRandom3 rng;
 
+
 std::vector<Tracker::DigiHit *> genHits(double x0_span, double y0_span, double z0, double Ax_span, double Ay_span, double v, int n_layers, const std::vector<double> &vertex_pos)
 {   
     auto layer_ids = Eigen::VectorXd::LinSpaced(n_layers, 0, n_layers - 1);
     auto layer_gap = 800.;                                // 80 cm
-    auto layer_zs = (layer_ids * layer_gap).array() + z0 + vertex_pos[2]; // verticle_coordinates
+    auto layer_zs = (layer_ids * layer_gap).array() + z0 ; // verticle_coordinates
 
     float det_width = 35;
     float det_height = 10;
@@ -30,7 +31,7 @@ std::vector<Tracker::DigiHit *> genHits(double x0_span, double y0_span, double z
     std::vector<Tracker::DigiHit *> hits;
     for (int i = 0; i < n_layers; i++)
     {
-        auto dz = layer_zs[i];
+        auto dz = layer_zs[i] - vertex_pos[2];
         double hit_truth[6] = {x0 + Ax * dz, y0 + Ay * dz, t0 + At * dz, Ax, Ay, At};
         Tracker::DigiHit *hit;
         if (i % 2 == 0)
@@ -47,7 +48,7 @@ std::vector<Tracker::DigiHit *> genHits(double x0_span, double y0_span, double z
                                        hit_truth[2] + rng.Gaus(0, unc_time),
                                        unc_longi, unc_trans, unc_verti, unc_time,
                                        independent_var_ind, i, 0, i);
-        hit->id = i;
+        // hit->id = i;
         hits.push_back(hit);
     }
     return hits;

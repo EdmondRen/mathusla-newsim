@@ -33,6 +33,7 @@ namespace Tracker
         // -2: track rejected by chi2 cut
         // -3: track rejected by speed cut
         int FindOnce(VertexSeed *seed);
+        int FindOnceLS(VertexSeed *seed);
 
         // Find all vertices
         // Return number of vertices found
