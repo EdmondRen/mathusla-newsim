@@ -17,11 +17,11 @@ namespace Tracker
         config["vertex_cut_SeedDist"] = 3000;                              // [mm] Maxmum distance between two tracks
         config["vertex_cut_SeedChi2"] = 50;                                // maximum chi2 of the seed
         config["vertex_cut_TrackAddDist"] = 3000;                          //  Distance cut to add a track
-        config["vertex_cut_TrackAddChi2"] = 9;                             // chi2 cut to add a track
-        config["vertex_cut_TrackDropChi2"] = 3;                            // chi2 cut to drop a track
+        config["vertex_cut_TrackAddChi2"] = 15;                             // chi2 cut to add a track
+        config["vertex_cut_TrackDropChi2"] = 7;                            // chi2 cut to drop a track
         config["vertex_cut_VertexChi2Reduced"] = 5;                        // Vertex chi2-square cut
         config["vertex_cut_VertexNHitsMin"] = 2;                           // Vertex minimum number of tracks
-        config["vertex_fit_MultipleScattering"] = 0;                       // Account for multiple scattering in fit. 0: OFF
+        config["vertex_fit_MultipleScattering"] = 1;                       // Account for multiple scattering in fit. 0: OFF
         config["vertex_multiple_scattering_p"] = 500;                      // Particle momentum asumed for multiple scattering
         config["vertex_multiple_scattering_length"] = 0.06823501107481977; // Material thickness in the unit of scattering length. Calculated for 1 cm plastic scintillator and 0.6 mm aluminum.
     }
@@ -172,8 +172,9 @@ namespace Tracker
         tracks_found_temp.push_back(seed->tracks.first);
         tracks_found_temp.push_back(seed->tracks.second);
 
-        auto vertex_fitter = Kalman::LSVertex4DFitter(2);
+        auto vertex_fitter = Kalman::LSVertex4DFitter(3, config["vertex_fit_MultipleScattering"]>0);
         auto vertex_found = vertex_fitter.run_fit(tracks_found_temp);
+        float chi2_prev = vertex_found->chi2;
 
         // Try all tracks that are recorded in the seed
         for (int i = seed->track_distance_list.size() - 1; i >= 0; i--)
@@ -205,17 +206,18 @@ namespace Tracker
 
             tracks_found_temp.push_back(tracks_unused[track_id]);
             auto vertex_temp = vertex_fitter.run_fit(tracks_found_temp);
-            float track_chi2 = vertex_temp->chi2;
+            float track_chi2 = vertex_temp->chi2 - chi2_prev;
 
             if (track_chi2 < config["vertex_cut_TrackAddChi2"])
             {
                 print_dbg(util::py::f("  Track {} is added with chi2 {:.3f}.", track_id, track_chi2));
                 vertex_found = vertex_temp;
+                chi2_prev = vertex_temp->chi2;
             }
             else
             {
                 tracks_found_temp.pop_back(); // remove from list
-                print_dbg(util::py::f("  Track {} is rejected with chi2 {:.3f}.", track_id, track_chi2));
+                print_dbg(util::py::f("  Track {} with distance of {} is rejected with chi2 {:.3f}.", track_id, track_dist, track_chi2));
             }
         }
 
@@ -263,7 +265,7 @@ namespace Tracker
             // Discard this track if the seed contributes too much to chi2
 
             // Round 3: Run fit again using least square minimizer
-            auto vertex_fitter = Kalman::LSVertex4DFitter(2);
+            auto vertex_fitter = Kalman::LSVertex4DFitter(3, config["vertex_fit_MultipleScattering"]>0);
             auto vertex_found = vertex_fitter.run_fit(tracks_found_temp);
             print_dbg("Vertex LS Fit result (x,y,z,t):", vertex_found->params.transpose());
 

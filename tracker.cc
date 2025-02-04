@@ -157,6 +157,7 @@ int main(int argc, const char *argv[])
         output_writer->ApplyCopy(i); // Copy digi & raw data
         output_writer->Fill();
     }
+    stop_i = std::chrono::high_resolution_clock::now();
 
     // Write some metadata to the output file
 

@@ -25,7 +25,7 @@ namespace Tracker
         config["track_cut_TrackNHitsMin"] = 4;                            // Cut on minimum number of hits
         config["track_cut_TrackSpeedLow"] = 25;                           // Cut on track speed [cm/ns]
         config["track_cut_TrackSpeedHigh"] = 35;                          // Cut on track speed [cm/ns]
-        config["track_fit_MultipleScattering"] = 0;                       // Account for multiple scattering in fit. 0: OFF
+        config["track_fit_MultipleScattering"] = 1;                       // Account for multiple scattering in fit. 0: OFF
         config["track_multiple_scattering_p"] = 500;                      // Particle momentum asumed for multiple scattering
         config["track_multiple_scattering_length"] = 0.06823501107481977; // Material thickness in the unit of scattering length. Calculated for 1 cm plastic scintillator and 0.6 mm aluminum.
     }

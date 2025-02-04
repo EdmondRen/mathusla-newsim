@@ -104,7 +104,7 @@ namespace Tracker
         return dist_point;
     }
 
-    std::pair<Vector4d, MatrixXd> Track::get_same_time_pos_and_cov(Vector4d point, double speed_constraint) const
+    std::pair<Vector4d, MatrixXd> Track::get_same_time_pos_and_cov(Vector4d point, double speed_constraint, bool multiple_scattering) const
     {
         (void)speed_constraint;
 
@@ -119,7 +119,7 @@ namespace Tracker
         return std::make_pair(pos_full, cov_residual);
     }
 
-    std::pair<double, double> Track::get_same_time_dist_and_chi2(Vector4d point, double speed_constraint) const
+    std::pair<double, double> Track::get_same_time_dist_and_chi2(Vector4d point, double speed_constraint, bool multiple_scattering) const
     {
         (void)speed_constraint;
 
@@ -135,35 +135,47 @@ namespace Tracker
         return std::make_pair(dist_point, chi2_point);
     }
 
-    std::pair<Vector4d, MatrixXd> Track::get_same_invar_pos_and_cov(Vector4d point, double speed_constraint) const
+    std::pair<Vector4d, MatrixXd> Track::get_same_invar_pos_and_cov(Vector4d point, double speed_constraint, bool multiple_scattering) const
     {
         (void)speed_constraint;
 
         double dt = point(this->iv_index) - this->iv_value;
         Vector3d pos_on_track = this->params.segment(0, 3) + this->params.segment(3, 3) * dt;
         Vector4d pos_full = Helper::insertVector(pos_on_track, this->iv_index, point(this->iv_index));
+        
         MatrixXd cov_residual = this->cov.topLeftCorner(3, 3) +
                                 this->cov.topRightCorner(3, 3) * dt +
                                 this->cov.bottomLeftCorner(3, 3) * dt +
                                 this->cov.bottomRightCorner(3, 3) * dt * dt;
+        if (multiple_scattering)
+        {
+            cov_residual += this->Q_block * dt * dt * 4;
+            std::cout<<"multiple scattering enablesd" <<std::endl;
+        std::cout << "cov  \n " <<  cov_residual << std::endl;
+        // std::cout << "dist, chi2 " << dist_point <<" , "<<chi2_point << std::endl;
+        }
 
         return std::make_pair(pos_full, cov_residual);
     }
 
-    std::pair<double, double> Track::get_same_invar_dist_and_chi2(Vector4d point, double speed_constraint) const
+    std::pair<double, double> Track::get_same_invar_dist_and_chi2(Vector4d point, double speed_constraint, bool multiple_scattering) const
     {
         (void)speed_constraint;
 
-        auto point_and_cov = get_same_invar_pos_and_cov(point, speed_constraint);
+        auto point_and_cov = get_same_invar_pos_and_cov(point, speed_constraint, multiple_scattering);
         Vector4d residual4 = point_and_cov.first - point;
         auto residual = Helper::removeElement(residual4, this->iv_index);
         double dist_point = residual.norm();
         double chi2_point = residual.transpose() * point_and_cov.second.inverse() * residual;
 
+        // std::cout << "cov \n " <<  point_and_cov.second << std::endl;
+        // std::cout << "residual  " <<  residual.transpose() << std::endl;
+        // std::cout << "dist, chi2 " << dist_point <<" , "<<chi2_point << std::endl;        
+
         return std::make_pair(dist_point, chi2_point);
     }
 
-    std::pair<Vector4d, MatrixXd> Track::get_cpa_pos_and_cov(Vector4d point, double speed_constraint) const
+    std::pair<Vector4d, MatrixXd> Track::get_cpa_pos_and_cov(Vector4d point, double speed_constraint, bool multiple_scattering) const
     {
         (void)speed_constraint;
         Vector4d r0 = this->params_full.segment(0, 4);
@@ -190,7 +202,7 @@ namespace Tracker
         return std::make_pair(closest_point, cov_point);
     }
 
-    std::pair<double, double> Track::get_cpa_dist_and_chi2(Vector4d point, double speed_constraint) const
+    std::pair<double, double> Track::get_cpa_dist_and_chi2(Vector4d point, double speed_constraint, bool multiple_scattering) const
     {
         auto point_and_cov = get_cpa_pos_and_cov(point, speed_constraint);
         Vector4d residual4d = point_and_cov.first - point;
@@ -334,7 +346,7 @@ namespace Tracker
         TreeMetadata->SetBranchAddress("Uncertainty_y", &Uncertainty_y);
         TreeMetadata->SetBranchAddress("Uncertainty_z", &Uncertainty_z);
         TreeMetadata->GetEntry(0);
-        digi_unc << Uncertainty_x, Uncertainty_t, Uncertainty_z, Uncertainty_t;
+        digi_unc << Uncertainty_x, Uncertainty_y, Uncertainty_z, Uncertainty_t;
     }
 
     std::vector<std::unique_ptr<DigiHit>> TreeReaderDigi::GetEntry(long long entry)

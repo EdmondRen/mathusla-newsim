@@ -20,7 +20,8 @@ namespace Kalman
                                                Hi(Nmeas, Nstat),
                                                Fi(Nstat, Nstat),
                                                Qi(Nstat, Nstat),
-                                               track(nullptr)
+                                               track(nullptr),
+                                               Q_block(3, 3)
 
     {
         Vi.setZero();
@@ -33,6 +34,8 @@ namespace Kalman
         {
             Fi.insert(i, i) = 1; // Set at (i, i)
         }
+
+        Q_block.setZero();
     }
 
     int KalmanTrack4D::init_state(const Tracker::DigiHit &hit1, const Tracker::DigiHit &hit2, bool use_first)
@@ -169,7 +172,7 @@ namespace Kalman
         }
 
         // Insert the independent variable back to the parameter list and covariance matrix
-        // After the insertion, there will always be 8 parameters in sequence: {x0, y0, z0, t0, Ax, Ay, Az, At}
+        // After the insertion, there will always be 8 parameters in sequence: {x0, y0, z0, t0, Ax, Ay, Ay, At}
         auto indep_variable_idx = hits.back()->iv_index;
         auto params_full = Tracker::Helper::insertVector(kf.GetState(), indep_variable_idx, hits.back()->get_step());
         params_full = Tracker::Helper::insertVector(params_full, indep_variable_idx + 4, 1);
@@ -189,6 +192,10 @@ namespace Kalman
         track->params_full = params_full;
         track->cov_full = cov_full;
 
+        // Multiple scattering matrix block
+        this->update_Q(1);
+        track->Q_block = this->Q_block;
+
         if (DEBUG)
         {
             std::cout << "Tracker: -> track finished, independent variable added to the parameter list." << std::endl;
@@ -203,11 +210,39 @@ namespace Kalman
         return std::move(track);
     }
 
-    int KalmanTrack4D::update_Q(float step, float multiple_scattering_p, float multiple_scattering_length)
+    int KalmanTrack4D::update_Q(float step, float multiple_scattering_p, float multiple_scattering_length, float velocity)
     {
-        (void)step;
-        (void)multiple_scattering_p;
-        (void)multiple_scattering_length;
+        auto Ax = this->kf.GetState()(3);
+        auto Ay = this->kf.GetState()(4);
+        auto At = this->kf.GetState()(5);
+        auto Ax2 = std::pow(Ax, 2);
+        auto Ay2 = std::pow(Ay, 2);
+        auto At2 = std::pow(At, 2);
+        double dz2 = std::pow(step, 2);
+        double P4P5 = (1 + Ax2 + Ay2);
+        double sin_theta = std::pow(P4P5, -1 / 2);
+
+        // Q_block << (1 + Ax2) * P4P5, Ax * Ay * P4P5, Ax * At / sin_theta,
+        //     Ax * Ay * P4P5, (1 + Ay2) * P4P5, Ay * At / sin_theta,
+        //     Ax * At / sin_theta, Ay * At / sin_theta, (P4P5 - 1) * At2;
+
+        Q_block << (1 + Ax2) * P4P5, Ax * Ay * P4P5, Ax * P4P5 / velocity,
+            Ax * Ay * P4P5, (1 + Ay2) * P4P5, Ay * P4P5 / velocity,
+            Ax * P4P5 / velocity, Ay * P4P5 / velocity, (P4P5 - 1) * P4P5 / (velocity*velocity);        
+
+        auto sigma_ms2 = scattering_angle(multiple_scattering_length/sin_theta,multiple_scattering_p);
+        sigma_ms2 = sigma_ms2*sigma_ms2;
+        Q_block = Q_block*sigma_ms2;
+
+        Qi.topLeftCorner(3,3) = Q_block * dz2;
+        Qi.topRightCorner(3,3) = Q_block * step;
+        Qi.bottomLeftCorner(3,3) = Q_block * step;
+        Qi.bottomRightCorner(3,3) = Q_block;
+
+        // std::cout<< "Qiblock:\n" << Q_block<< std::endl;
+        // std::cout << "dz: " << step  << std::endl;
+        // exit(0);
+
         return 0;
     }
 
@@ -215,6 +250,7 @@ namespace Kalman
     // LSVertex4DFitter
 
     std::vector<Tracker::Track *> LSVertex4DFitter::tracks = {};
+    bool LSVertex4DFitter::MULTI_SCATTER_EN = false;
 
     void LSVertex4DFitter::cost_cpa(int &npar, double *gin, double &f, double *par, int iflag)
     {
@@ -227,7 +263,7 @@ namespace Kalman
 
         for (auto track : LSVertex4DFitter::tracks)
         {
-            auto dist_and_chi2 = track->get_cpa_dist_and_chi2(vertex);
+            auto dist_and_chi2 = track->get_cpa_dist_and_chi2(vertex, -1);
             chi2_total += dist_and_chi2.second;
         }
 
@@ -246,6 +282,24 @@ namespace Kalman
         for (auto track : LSVertex4DFitter::tracks)
         {
             auto dist_and_chi2 = track->get_same_time_dist_and_chi2(vertex);
+            chi2_total += dist_and_chi2.second;
+        }
+
+        f = chi2_total; // There is no return value. Return is passed by argument "f"
+    }
+
+    void LSVertex4DFitter::cost_same_invar(int &npar, double *gin, double &f, double *par, int iflag)
+    {
+        (void)npar;
+        (void)gin;
+        (void)iflag;
+
+        double chi2_total = 0;
+        Vector4d vertex(par[0], par[1], par[2], par[3]); // Fetch the parameters {x,y,z,t}
+
+        for (auto track : LSVertex4DFitter::tracks)
+        {
+            auto dist_and_chi2 = track->get_same_invar_dist_and_chi2(vertex);
             chi2_total += dist_and_chi2.second;
         }
 

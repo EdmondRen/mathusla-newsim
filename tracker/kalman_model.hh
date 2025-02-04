@@ -38,12 +38,18 @@ namespace Kalman
         int add_measurement(const Tracker::DigiHit &hit);
 
         // Update process noise (multiple scattering)
-        int update_Q(float step, float multiple_scattering_p = 500, float multiple_scattering_length = 0.06823501107481977);
+        int update_Q(float step, float multiple_scattering_p = 500, float multiple_scattering_length = 0.06823501107481977, float velocity=299.97);
 
         // Run filter forward
         std::unique_ptr<Tracker::Track> run_filter(const std::vector<Tracker::DigiHit *> &hits);
 
         double step_current, step_next, step_size;
+
+        double scattering_angle(double l_rad_relative, double momentum_MeV)
+        {
+            auto sigma_ms = 13.6 * std::pow(l_rad_relative, 0.5) * (1 + 0.038 * std::log(l_rad_relative)) / momentum_MeV;
+            return sigma_ms;
+        }        
 
     protected:
         // Filter instance
@@ -65,6 +71,8 @@ namespace Kalman
 
         // Final output: a track object that holds all the information
         std::unique_ptr<Tracker::Track> track; // state, 1x6 col vector
+
+        MatrixXd Q_block;
     };
 
     class LSVertex4DFitter
@@ -73,19 +81,23 @@ namespace Kalman
         // chi2_def: which chi2 definition to use
         //  1: closest point of approach (CPA)
         //  2: same time
-        LSVertex4DFitter(int chi2_def = 1) : minimizer(npar), cov(4, 4), parameters(npar), parameter_errors(npar)
+        LSVertex4DFitter(int chi2_def = 1, bool _multiple_scattering = false) : minimizer(npar), cov(4, 4), parameters(npar), parameter_errors(npar)
         {
             // Set the function to minimize
             if (chi2_def == 1)
                 minimizer.SetFCN(cost_cpa);
             else if (chi2_def == 2)
                 minimizer.SetFCN(cost_same_time);
+            else if (chi2_def == 3)
+                minimizer.SetFCN(cost_same_invar);                
             else
                 minimizer.SetFCN(cost_same_time);
 
             // Suppress the minimizer output
             int QUIET_MODE = -1;
             minimizer.SetPrintLevel(QUIET_MODE);
+
+            MULTI_SCATTER_EN = _multiple_scattering;
         }
         static const int npar = 4;
         TMinuit minimizer;
@@ -96,8 +108,8 @@ namespace Kalman
         // - *par: list of parameters
         // It has to be a static member
         static void cost_cpa(int &npar, double *gin, double &f, double *par, int iflag);
-
         static void cost_same_time(int &npar, double *gin, double &f, double *par, int iflag);
+        static void cost_same_invar(int &npar, double *gin, double &f, double *par, int iflag);
 
         // Run fit (minimize chi2)
         bool fit(std::vector<Tracker::Track *> tracks,
@@ -129,10 +141,14 @@ namespace Kalman
         // All tracks to be used. Declared static to be accessible to static cost funtion.
         static std::vector<Tracker::Track *> tracks;
 
+        // Flag to set multiple scattering
+        static bool MULTI_SCATTER_EN;
+
     protected:
         std::vector<double> parameters;
         std::vector<double> parameter_errors;
         double cov_matrix[npar][npar];
+
     };
 
     class VertexSeed
