@@ -1,6 +1,7 @@
 import copy
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from . import util
 
@@ -41,6 +42,7 @@ class Digi:
             self.hit_inds = data["Digi_hitInds_unpacked"][i]
             self.direction = data["Digi_direction"][i]
             self.type = data["Digi_type"][i]
+            self.track_id = data["Digi_trackID"][i]
             
 
             try:
@@ -84,10 +86,49 @@ class Track:
             self.params = np.delete(self.params_full, [self.iv_index, self.iv_index+4])
             self.nhits = len(self.hit_ids)
 
+    def set_digis(self, digis_all):
+        ## Find the truth location
+        digi = digis_all[self.hit_ids[-1]]
+        digi_loc = digi.xyzt_truth
+        digi_p = digi.momentum
+        digi_v = digi.velocity
+        kx, ky = digi_p[0]/digi_p[2], digi_p[1]/digi_p[2]
+        kz = 1-np.sqrt(kx**2+ky**2)
+        self.params_truth = np.concatenate((np.delete(digi_loc, self.iv_index), [kx,ky, 1/digi_v[2]]))
+
+        ## Find the truth index and pdg 
+        digi_trackid = []        
+        digi_pdg = []
+        for i in self.hit_ids:
+            digi_trackid.append(digis_all[i].track_id)
+            digi_pdg.append(digis_all[i].pdg)
+
+        tid,tid_ind,tid_counts = np.unique(digi_trackid, return_counts=True, return_index=True)
+        itrack = np.argmax(tid_counts)
+
+        self.track_purity = tid_counts[itrack]/self.nhits
+        self.track_id = tid[itrack]
+        self.track_pdg = digi_pdg[tid_ind[itrack]]
+
 
 class Vertex:
-    def __init__():
-        pass
+    def __init__(self, data=None, i=0):
+        if data is not None:
+            self.params = np.array([data["Vertex_x0"][i], data["Vertex_y0"][i], data["Vertex_z0"][i], data["Vertex_t0"][i]])
+            self.cov = np.array(data["Vertex_cov_unpacked"][i])
+            self.chi2 = data["Vertex_chi2"][i]
+            self.track_ids =  data["Vertex_trackInds_unpacked"][i]
+            self.ntracks = len(self.track_ids)
+
+    def set_tracks(self, tracks_all):
+        tracks_purity = []
+        for i in self.track_ids:
+            t = tracks_all[i]
+            tracks_purity.append(t.track_purity)
+
+        self.vertex_purity = np.mean(tracks_purity)
+
+            
 
 
 class Event:
@@ -108,8 +149,13 @@ class Event:
 
         # Get recon tracks
         self.tracks = [Track(data_parsed, i) for i in range(len(data_parsed["Track_x0"]))]
+        for t in self.tracks:
+            t.set_digis(self.digis)
 
         # Get recon vertices
+        self.vertices = [Vertex(data_parsed, i) for i in range(len(data_parsed["Vertex_x0"]))]
+        for t in self.vertices:
+            t.set_tracks(self.tracks)
     
     def truetracks_plot(self, ind_h, ind_v):
         for t in self.truetracks:

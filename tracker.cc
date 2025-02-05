@@ -39,6 +39,7 @@ int main(int argc, const char *argv[])
         ("p,print_progress", "Print progress every `p` events", cxxopts::value<int>()->default_value("100"))
         ("d,debug_track", "Enable debugging information for track reconstruction", cxxopts::value<bool>()->default_value("false"))
         ("D,debug_vertex", "Enable debugging information for vertex reconstruction", cxxopts::value<bool>()->default_value("false"))
+        ("I,event_index", "The index of events to run the tracker, separated by comma. If only two numbers are provide, will treat it as a range.", cxxopts::value<std::vector<int>>()->default_value("-1"))
         ("filename", "Digi file to perform reconstruction", cxxopts::value<std::string>());
     options.parse_positional({"filename"});
     options.positional_help("digit_filename"); // Add positional help description
@@ -58,8 +59,6 @@ int main(int argc, const char *argv[])
     print("      - Authors: ");
     print(" ");
     print("**************************************************************");
-
-
 
     // Input and output file
     int save_option = args["save_option"].as<int>();        // 0: all, 1: track:, 2: vertex
@@ -100,8 +99,22 @@ int main(int argc, const char *argv[])
     } info;
     info.total_events += input_reader->GetEntries();
 
-    // Loop all events
-    for (int i = 0; i < input_reader->GetEntries(); i++)
+    // Loop selected events
+    std::vector<int> inds_to_run;
+    auto event_inds = args["event_index"].as<std::vector<int>>();
+    if (event_inds.size() == 1)
+    {
+        int nmax = event_inds[0];
+        if (nmax == -1)
+            nmax = input_reader->GetEntries();
+        for (int i = 0; i < nmax; i++)
+            event_inds.push_back(i);
+    }
+    else
+        inds_to_run = event_inds;
+
+    // for (int i = 0; i < input_reader->GetEntries(); i++)
+    for (auto i: inds_to_run)
     {
         if ((i + 1) % args["print_progress"].as<int>() == 0)
         {

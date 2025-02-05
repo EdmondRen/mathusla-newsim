@@ -150,8 +150,8 @@ namespace Tracker
         if (multiple_scattering)
         {
             cov_residual += this->Q_block * dt * dt * 4;
-            std::cout<<"multiple scattering enablesd" <<std::endl;
-        std::cout << "cov  \n " <<  cov_residual << std::endl;
+        //     std::cout<<"multiple scattering enablesd" <<std::endl;
+        // std::cout << "cov  \n " <<  cov_residual << std::endl;
         // std::cout << "dist, chi2 " << dist_point <<" , "<<chi2_point << std::endl;
         }
 
