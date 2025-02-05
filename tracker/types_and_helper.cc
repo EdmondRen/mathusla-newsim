@@ -155,6 +155,12 @@ namespace Tracker
         // std::cout << "dist, chi2 " << dist_point <<" , "<<chi2_point << std::endl;
         }
 
+        if (this->hit_ids.size()==4)
+        {
+            // cov_residual *=6;
+            // std::cout<<"!!!!!!!!!!!!"<<std::endl;
+        }
+
         return std::make_pair(pos_full, cov_residual);
     }
 

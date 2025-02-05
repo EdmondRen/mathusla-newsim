@@ -317,9 +317,9 @@ namespace Tracker
             outputTree->Write();
             outputTreeMetadata->Write();
             if (EN_COPY_DIGI)
-                digiTreeMetadata->Write();
+                digiTreeMetadata->CloneTree()->Write();
             if (EN_COPY_RAW)
-                simTreeMetadata->Write();
+                simTreeMetadata->CloneTree()->Write();
         }
         void Close() { outputFile->Close(); }
 

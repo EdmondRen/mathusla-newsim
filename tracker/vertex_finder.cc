@@ -80,6 +80,10 @@ namespace Tracker
                           [](std::pair<int, double> &a, std::pair<int, double> &b)
                           { return a.second > b.second; });
             }
+            
+
+            // Score: defined as ntracks
+            seed->score = seed->ntracks_found;
         }
 
         // Sort seeds by score from small to large. Larger score is better

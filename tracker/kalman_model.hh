@@ -24,10 +24,13 @@ namespace Kalman
                       bool debug = false);
 
         // Initialize
-        int init_state(const Tracker::DigiHit &hit1, const Tracker::DigiHit &hit2, bool use_first = true);
+        int init_state(const Tracker::DigiHit &hit1, const Tracker::DigiHit &hit2, bool use_first = true, bool init_smooth = false);
 
         // make a new step. This will only update the related matrix without further calucalation.
         int new_step(const Tracker::DigiHit &hit);
+
+        int new_filter_step(const Tracker::DigiHit &hit);
+
 
         // Try a measurement
         // If the hit passed the range and chi2 cut, return the chi2 value
@@ -38,10 +41,13 @@ namespace Kalman
         int add_measurement(const Tracker::DigiHit &hit);
 
         // Update process noise (multiple scattering)
-        int update_Q(float step, float multiple_scattering_p = 500, float multiple_scattering_length = 0.06823501107481977, float velocity=299.97);
+        int update_Q(float step, float multiple_scattering_p = 500, float multiple_scattering_length = 0.06823501107481977, float velocity = 299.97);
 
         // Run filter forward
         std::unique_ptr<Tracker::Track> run_filter(const std::vector<Tracker::DigiHit *> &hits);
+
+        // Run filter forward and backward, with optional dropping
+        std::unique_ptr<Tracker::Track> run_filter_smooth(const std::vector<Tracker::DigiHit *> &hits, double chi2_drop = -1);
 
         double step_current, step_next, step_size;
 
@@ -49,11 +55,12 @@ namespace Kalman
         {
             auto sigma_ms = 13.6 * std::pow(l_rad_relative, 0.5) * (1 + 0.038 * std::log(l_rad_relative)) / momentum_MeV;
             return sigma_ms;
-        }        
+        }
 
     protected:
         // Filter instance
         KF_Forward kf;
+        KF_FULL kf_full;
         bool DEBUG;
 
         // Parameters
@@ -89,7 +96,7 @@ namespace Kalman
             else if (chi2_def == 2)
                 minimizer.SetFCN(cost_same_time);
             else if (chi2_def == 3)
-                minimizer.SetFCN(cost_same_invar);                
+                minimizer.SetFCN(cost_same_invar);
             else
                 minimizer.SetFCN(cost_same_time);
 
@@ -148,7 +155,6 @@ namespace Kalman
         std::vector<double> parameters;
         std::vector<double> parameter_errors;
         double cov_matrix[npar][npar];
-
     };
 
     class VertexSeed
@@ -170,7 +176,7 @@ namespace Kalman
             // float c = 299.7; // speed of light [mm/ns]
 
             // Use LS fit to get the chi2 and covariance matrix of this pair
-            auto vertex_fitter = Kalman::LSVertex4DFitter(2);
+            auto vertex_fitter = Kalman::LSVertex4DFitter(3);
             std::vector<Tracker::Track *> tracks_fit = {tracks.first, tracks.second};
 
             // Reuse the calculated best guess to initialize the fitter

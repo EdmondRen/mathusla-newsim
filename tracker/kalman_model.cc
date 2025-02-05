@@ -11,6 +11,7 @@ namespace Kalman
                                  int ndimMeasure,
                                  int ndimStates,
                                  bool debug) : kf(KF_Forward(ndimMeasure - 1, ndimStates)),
+                                               kf_full(KF_FULL(ndimMeasure - 1, ndimStates)),
                                                DEBUG(debug), enMultipleScattering(multiple_scattering),
                                                Nmeas(ndimMeasure - 1),
                                                Nstat(ndimStates),
@@ -38,19 +39,26 @@ namespace Kalman
         Q_block.setZero();
     }
 
-    int KalmanTrack4D::init_state(const Tracker::DigiHit &hit1, const Tracker::DigiHit &hit2, bool use_first)
+    int KalmanTrack4D::init_state(const Tracker::DigiHit &hit1, const Tracker::DigiHit &hit2, bool use_first, bool init_smooth)
     {
         Vector3d r1 = hit1.get_vec3();
         Vector3d r2 = hit2.get_vec3();
         Vector3d dr = r2.array() - r1.array();
         float dt = hit2.get_step() - hit1.get_step();
         Vector3d v = dr / dt;
+        VectorXd mi;
 
         // Initial State Vector
         if (use_first)
+        {
             this->xf0 << r1(0), r1(1), r1(2), v(0), v(1), v(2);
+            mi = r1;
+        }
         else
+        {
             this->xf0 << r2(0), r2(1), r2(2), v(0), v(1), v(2);
+            mi = r2;
+        }
 
         // Initial Covariance
         MatrixXdSp J(6, 8); // Jacobian matrix. Initialized to 0 by default
@@ -93,6 +101,20 @@ namespace Kalman
 
         // Initialize the kalman filter instance
         kf.SetInitialState(xf0, Cf0);
+
+        // Initialie kalman smooth instance
+        if (init_smooth)
+        {
+            MatrixXd V0 = MatrixXd(3, 3);
+            V0.setZero();
+            if (use_first)
+                V0.diagonal() = hit1.get_err3();
+            else
+                V0.diagonal() = hit1.get_err3();
+            V0.diagonal() = V0.diagonal().array().square();
+            MatrixXd H0 = this->Hi;
+            kf_full.SetInitialState(mi, V0, xf0, Cf0, H0);
+        }
 
         if (DEBUG)
             std::cout << "Tracker: ->Kalman filter initialized with\n    ->state vector:\n"
@@ -159,6 +181,28 @@ namespace Kalman
             std::cout << "         -> chi2 contribution: " << kf.GetChi2Step() << std::endl;
         }
         return 0;
+    }
+
+    int KalmanTrack4D::new_filter_step(const Tracker::DigiHit &hit)
+    {
+        this->step_size = hit.get_step() - this->step_current;
+        // measurement uncertainty
+        this->Vi.diagonal() = hit.get_err3().array().square();
+        // dynamics
+        this->Fi.coeffRef(0, 3) = this->Fi.coeffRef(1, 4) = this->Fi.coeffRef(2, 5) = this->step_size;
+
+        // multiple scattering
+        if (this->enMultipleScattering)
+            update_Q(this->step_size);
+
+        // Update kalman filter matrices
+        VectorXd mi = hit.get_vec3();
+        MatrixXd Hidense = this->Hi;
+        MatrixXd Fidense = this->Fi;
+        kf_full.FilterStep(mi, this->Vi, Hidense, Fidense, this->Qi);
+
+        // Update the current step
+        this->step_current = hit.get_step();
     }
 
     std::unique_ptr<Tracker::Track> KalmanTrack4D::run_filter(const std::vector<Tracker::DigiHit *> &hits)
@@ -228,22 +272,94 @@ namespace Kalman
 
         Q_block << (1 + Ax2) * P4P5, Ax * Ay * P4P5, Ax * P4P5 / velocity,
             Ax * Ay * P4P5, (1 + Ay2) * P4P5, Ay * P4P5 / velocity,
-            Ax * P4P5 / velocity, Ay * P4P5 / velocity, (P4P5 - 1) * P4P5 / (velocity*velocity);        
+            Ax * P4P5 / velocity, Ay * P4P5 / velocity, (P4P5 - 1) * P4P5 / (velocity * velocity);
 
-        auto sigma_ms2 = scattering_angle(multiple_scattering_length/sin_theta,multiple_scattering_p);
-        sigma_ms2 = sigma_ms2*sigma_ms2;
-        Q_block = Q_block*sigma_ms2;
+        auto sigma_ms2 = scattering_angle(multiple_scattering_length / sin_theta, multiple_scattering_p);
+        sigma_ms2 = sigma_ms2 * sigma_ms2;
+        Q_block = Q_block * sigma_ms2;
 
-        Qi.topLeftCorner(3,3) = Q_block * dz2;
-        Qi.topRightCorner(3,3) = Q_block * step;
-        Qi.bottomLeftCorner(3,3) = Q_block * step;
-        Qi.bottomRightCorner(3,3) = Q_block;
+        Qi.topLeftCorner(3, 3) = Q_block * dz2;
+        Qi.topRightCorner(3, 3) = Q_block * step;
+        Qi.bottomLeftCorner(3, 3) = Q_block * step;
+        Qi.bottomRightCorner(3, 3) = Q_block;
 
         // std::cout<< "Qiblock:\n" << Q_block<< std::endl;
         // std::cout << "dz: " << step  << std::endl;
         // exit(0);
 
         return 0;
+    }
+
+    std::unique_ptr<Tracker::Track> KalmanTrack4D::run_filter_smooth(const std::vector<Tracker::DigiHit *> &hits, double chi2_drop)
+    {
+        // Filter forward
+        bool use_first_hit = false;
+        init_state(*hits[0], *hits[1], use_first_hit, true);
+        for (size_t i = 2; i < hits.size(); i++)
+        {
+            new_filter_step(*hits[i]);
+        }
+
+        // Filter backward
+        std::vector<int> dropped_inds;
+        if (chi2_drop < 0)
+            kf_full.backward_smooth();
+        else
+        {
+            // Manually go through all steps to check if it exceed drop_chi2
+            kf_full.init_smooth();
+            while (kf_full.CURRENT_STEP >= 0)
+            {
+                double chi2_temp = kf_full.smooth_step_try();
+
+                bool dropped = chi2_temp > chi2_drop;
+                if (dropped)
+                {
+                    dropped_inds.push_back(kf_full.CURRENT_STEP);
+                    print(util::py::f("   hit {} dropped with chi2 {}.", kf_full.CURRENT_STEP, chi2_temp));
+                }
+                //  Finishing the current step
+                kf_full.smooth_step(dropped);
+            }
+        }
+
+        // Insert the independent variable back to the parameter list and covariance matrix
+        // After the insertion, there will always be 8 parameters in sequence: {x0, y0, z0, t0, Ax, Ay, Ay, At}
+        auto indep_variable_idx = hits.back()->iv_index;
+        auto params_full = Tracker::Helper::insertVector(kf.GetState(), indep_variable_idx, hits.back()->get_step());
+        params_full = Tracker::Helper::insertVector(params_full, indep_variable_idx + 4, 1);
+        auto cov_full = Tracker::Helper::insertRowAndColumnOfZeros(kf.GetCov(), indep_variable_idx);
+        cov_full = Tracker::Helper::insertRowAndColumnOfZeros(cov_full, indep_variable_idx + 4);
+        cov_full(indep_variable_idx, indep_variable_idx) = std::pow(hits.back()->get_steperr(), 2);
+        cov_full(indep_variable_idx + 4, indep_variable_idx + 4) = 0.0001;
+
+        // Make the track
+        track = std::make_unique<Tracker::Track>();
+        track->params = kf.GetState();
+        track->cov = kf.GetCov();
+        track->chi2 = kf.GetChi2();
+        track->iv_index = indep_variable_idx;
+        track->iv_value = hits.back()->get_step();
+        track->iv_error = hits.back()->get_steperr();
+        track->params_full = params_full;
+        track->cov_full = cov_full;
+
+        // Multiple scattering matrix block
+        this->update_Q(1);
+        track->Q_block = this->Q_block;
+
+        if (DEBUG)
+        {
+            std::cout << "Tracker: -> track finished, independent variable added to the parameter list." << std::endl;
+            std::cout << "Final filtered state vec:\n"
+                      << track->params << std::endl;
+            std::cout << "Final filtered state cov:\n"
+                      << track->cov << std::endl;
+            std::cout << "Final filtered chi2:\n"
+                      << track->chi2 << std::endl;
+        }
+
+        return std::move(track);
     }
 
     // ------------------------------------------------------------------------------------------------------
@@ -263,7 +379,7 @@ namespace Kalman
 
         for (auto track : LSVertex4DFitter::tracks)
         {
-            auto dist_and_chi2 = track->get_cpa_dist_and_chi2(vertex, -1);
+            auto dist_and_chi2 = track->get_cpa_dist_and_chi2(vertex, -1, MULTI_SCATTER_EN);
             chi2_total += dist_and_chi2.second;
         }
 
@@ -281,7 +397,7 @@ namespace Kalman
 
         for (auto track : LSVertex4DFitter::tracks)
         {
-            auto dist_and_chi2 = track->get_same_time_dist_and_chi2(vertex);
+            auto dist_and_chi2 = track->get_same_time_dist_and_chi2(vertex, -1, MULTI_SCATTER_EN);
             chi2_total += dist_and_chi2.second;
         }
 
@@ -299,7 +415,7 @@ namespace Kalman
 
         for (auto track : LSVertex4DFitter::tracks)
         {
-            auto dist_and_chi2 = track->get_same_invar_dist_and_chi2(vertex);
+            auto dist_and_chi2 = track->get_same_invar_dist_and_chi2(vertex, -1, MULTI_SCATTER_EN);
             chi2_total += dist_and_chi2.second;
         }
 

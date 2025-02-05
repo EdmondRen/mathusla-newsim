@@ -39,7 +39,7 @@ int main(int argc, const char *argv[])
         ("p,print_progress", "Print progress every `p` events", cxxopts::value<int>()->default_value("100"))
         ("d,debug_track", "Enable debugging information for track reconstruction", cxxopts::value<bool>()->default_value("false"))
         ("D,debug_vertex", "Enable debugging information for vertex reconstruction", cxxopts::value<bool>()->default_value("false"))
-        ("I,event_index", "The index of events to run the tracker, separated by comma. If only two numbers are provide, will treat it as a range.", cxxopts::value<std::vector<int>>()->default_value("-1"))
+        ("I,event_index", "The index of events to run the tracker, separated by comma. If only two numbers are provide, will treat it as a range.", cxxopts::value<std::vector<int>>()->default_value("0,-1"))
         ("filename", "Digi file to perform reconstruction", cxxopts::value<std::string>());
     options.parse_positional({"filename"});
     options.positional_help("digit_filename"); // Add positional help description
@@ -102,13 +102,14 @@ int main(int argc, const char *argv[])
     // Loop selected events
     std::vector<int> inds_to_run;
     auto event_inds = args["event_index"].as<std::vector<int>>();
-    if (event_inds.size() == 1)
+    if (event_inds.size() == 2)
     {
-        int nmax = event_inds[0];
+        int nmin = event_inds[0];
+        int nmax = event_inds[1];
         if (nmax == -1)
             nmax = input_reader->GetEntries();
-        for (int i = 0; i < nmax; i++)
-            event_inds.push_back(i);
+        for (int i = nmin; i < nmax; i++)
+            inds_to_run.push_back(i);
     }
     else
         inds_to_run = event_inds;
@@ -120,7 +121,7 @@ int main(int argc, const char *argv[])
         {
             stop_i = std::chrono::high_resolution_clock::now();
             float duration = std::chrono::duration<float>(stop_i - start_i).count();
-            print(util::py::f("  Processing {} / {}, {:.2f} sec.", i, input_reader->GetEntries(), duration));
+            print(util::py::f("  Processing {} / {}, {:.2f} sec.", i, inds_to_run.size(), duration));
             start_i = stop_i;
         }
 
@@ -139,7 +140,8 @@ int main(int argc, const char *argv[])
             auto summary = track_finder.Summary();
             track_found_tmp = track_finder.GetResults();
             for (auto &track : track_found_tmp)
-            {
+            {   
+                track->id = tracks_found.size();
                 tracks_found.push_back(std::move(track));
                 tracks.push_back(tracks_found.back().get());
             }

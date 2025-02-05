@@ -34,10 +34,9 @@ namespace Tracker
     {
         for (auto &pair : config)
         {
-            if (config_ext.count(pair.first)>0)
+            if (config_ext.count(pair.first) > 0)
                 config[pair.first] = config_ext[pair.first];
         }
-
     }
 
     void TrackFinder::Clear()
@@ -224,7 +223,7 @@ namespace Tracker
                 {
                     print_dbg(util::py::f("-x Track rejected, only {} hits. Keep the seed for next iteration.", nhits_found));
                     seeds_unused.back()->nhits_found = nhits_found;
-                    seeds_unused_next.push_back(seeds_unused.back());
+                    seeds_unused_next.insert(seeds_unused_next.begin(), seeds_unused.back());
                     seeds_unused.pop_back();
                     continue;
                 }
@@ -240,9 +239,37 @@ namespace Tracker
                 }
                 print_dbg(util::py::f("-> Found track with {} hits:", nhits_found), hits_found_ids);
 
-                // Round 2: Run filter again backwards
-                // Discard this track if the seed contributes too much to chi2
+                // Round 2: drop hits with excessive chi2
+
+                print("---------------------");
                 auto track_model = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, DEBUG_KALMAN); // DEBUG_KALMAN
+                auto track_temp = track_model.run_filter(hits_found_temp);   
+
+                auto track_model2 = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, DEBUG_KALMAN); // DEBUG_KALMAN
+                auto track_temp2 = track_model2.run_filter_smooth(hits_found_temp, 4);   
+                print("chi2a, chi2b", track_temp->chi2, track_temp2->chi2);
+
+                std::vector<double>  hits_chi2;
+                for (auto hit : hits_found_temp)
+                {
+                    auto pos_and_cov = track_temp->get_same_invar_pos_and_cov(hit->vec4, -1, config["track_fit_MultipleScattering"]>0);
+                    // Residual
+                    Vector4d residual4 = pos_and_cov.first - hit->vec4;
+                    auto residual = Helper::removeElement(residual4, track_temp->iv_index);
+                    // Cov
+                    auto cov_mod = pos_and_cov.second;
+                    cov_mod.diagonal() += hit->vec3_err.array().square().matrix();
+                    // chi2
+                    double chi2_temp = residual.transpose() * cov_mod.inverse() * residual;
+                    hits_chi2.push_back(chi2_temp);
+                    print("hit dist",residual.norm());
+
+                }
+                print("hits chi2:",hits_chi2);
+
+                // Round 3: Run filter again backwards
+                // Discard this track if the seed contributes too much to chi2
+                // auto track_model = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, DEBUG_KALMAN); // DEBUG_KALMAN
                 auto track_found = track_model.run_filter(hits_found_temp);
 
                 track_model.new_step(*seeds_unused.back()->hits.first);
@@ -262,7 +289,9 @@ namespace Tracker
                 int ndof = hits_found_temp.size() * 3 - 6;
                 float chi2 = track_found->chi2;
                 float chi2_prob = ROOT::Math::chisquared_cdf(chi2, ndof);
-                bool passed = (ndof == 6 && (chi2 / ndof) < config["track_cut_TrackChi2Reduced"]) || (ndof > 6 && chi2_prob < config["track_cut_TrackChi2Prob"]);
+                // bool passed = (ndof == 6 && (chi2 / ndof) < config["track_cut_TrackChi2Reduced"]) ||
+                //               (ndof > 6 && chi2_prob < config["track_cut_TrackChi2Prob"]);
+                bool passed = chi2_prob < config["track_cut_TrackChi2Prob"];
                 if (!passed)
                 {
                     print_dbg(util::py::f("-x Track rejected, chi2/ndof ({}/{}) exceeds limit, prob = {}", chi2, ndof, 1 - chi2_prob));

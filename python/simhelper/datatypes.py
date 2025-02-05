@@ -132,7 +132,7 @@ class Vertex:
 
 
 class Event:
-    def __init__(self, data_parsed):
+    def __init__(self, data_parsed, metadata_digi):
         # Get generator particles
         self.genparticles = np.array([GenParticle(data_parsed, i) for i in range(len(data_parsed["Gen_x"]))])
         self.genvertices = GenVertices(self.genparticles)
@@ -146,6 +146,7 @@ class Event:
         
         # Get Digits
         self.digis = np.array([Digi(data_parsed,i) for i in range(len(data_parsed["Digi_x"]))])
+        self.get_reconstructable()
 
         # Get recon tracks
         self.tracks = [Track(data_parsed, i) for i in range(len(data_parsed["Track_x0"]))]
@@ -156,6 +157,19 @@ class Event:
         self.vertices = [Vertex(data_parsed, i) for i in range(len(data_parsed["Vertex_x0"]))]
         for t in self.vertices:
             t.set_tracks(self.tracks)
+
+    def get_reconstructable(self):
+        ## Find the truth index and pdg 
+        digi_trackid = []        
+        digi_pdg = []
+        for i in range(len(self.digis)):
+            digi_trackid.append(self.digis [i].track_id)
+            digi_pdg.append(self.digis [i].pdg)
+
+        tid,tid_ind,tid_counts = np.unique(digi_trackid, return_counts=True, return_index=True)
+
+        self.digi_truth_track_ids = tid
+        self.digi_truth_track_nhits = tid_counts
     
     def truetracks_plot(self, ind_h, ind_v):
         for t in self.truetracks:
