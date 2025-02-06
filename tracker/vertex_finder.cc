@@ -17,10 +17,10 @@ namespace Tracker
         config["vertex_cut_SeedDist"] = 3000;                              // [mm] Maxmum distance between two tracks
         config["vertex_cut_SeedChi2"] = 50;                                // maximum chi2 of the seed
         config["vertex_cut_TrackAddDist"] = 3000;                          //  Distance cut to add a track
-        config["vertex_cut_TrackAddChi2"] = 15;                             // chi2 cut to add a track
+        config["vertex_cut_TrackAddChi2"] = 15;                            // chi2 cut to add a track
         config["vertex_cut_TrackDropChi2"] = 7;                            // chi2 cut to drop a track
         config["vertex_cut_VertexChi2Reduced"] = 5;                        // Vertex chi2-square cut
-        config["vertex_cut_VertexNHitsMin"] = 2;                           // Vertex minimum number of tracks
+        config["vertex_cut_VertexNTracksMin"] = 2;                           // Vertex minimum number of tracks
         config["vertex_fit_MultipleScattering"] = 1;                       // Account for multiple scattering in fit. 0: OFF
         config["vertex_multiple_scattering_p"] = 500;                      // Particle momentum asumed for multiple scattering
         config["vertex_multiple_scattering_length"] = 0.06823501107481977; // Material thickness in the unit of scattering length. Calculated for 1 cm plastic scintillator and 0.6 mm aluminum.
@@ -80,7 +80,6 @@ namespace Tracker
                           [](std::pair<int, double> &a, std::pair<int, double> &b)
                           { return a.second > b.second; });
             }
-            
 
             // Score: defined as ntracks
             seed->score = seed->ntracks_found;
@@ -90,7 +89,20 @@ namespace Tracker
         // Put beter ones at the end
         std::sort(seeds_unused.begin(), seeds_unused.end(),
                   [](Kalman::VertexSeed *a, Kalman::VertexSeed *b) -> bool
-                  { return a->score < b->score; });
+                  {
+                      if (a->nhits != b->nhits)
+                      {
+                          return a->nhits < b->nhits;
+                      }
+                      else if (a->ntracks_found != b->ntracks_found)
+                      {
+                          return a->ntracks_found < b->ntracks_found;
+                      }
+                      else 
+                      {
+                          return a->chi2 > b->chi2;
+                      }
+                  });
 
         int iprint = 0;
         print_dbg(util::py::f("Making seeds, total {} seeds. Printing best 30. Smaller score is better.", seeds_unused.size()));
@@ -100,8 +112,8 @@ namespace Tracker
             {
                 iprint += 1;
                 auto seed = seeds_unused[i];
-                print_dbg(util::py::f("  Seed [{:03d}, {:03d}]: score {:.4f}, ntracks_found: {:.0f}, distance {:.3f}, chi2 {:.3f}",
-                                      seed->tracks.first->id, seed->tracks.second->id, seed->score, seed->ntracks_found, seed->distance, seed->chi2));
+                print_dbg(util::py::f("  Seed [{:03d}, {:03d}]: nhits {:.4f}, ntracks_found: {:.0f}, distance {:.3f}, chi2 {:.3f}",
+                                      seed->tracks.first->id, seed->tracks.second->id, seed->nhits, seed->ntracks_found, seed->distance, seed->chi2));
                 if (iprint > 30)
                     break;
             }
@@ -176,7 +188,7 @@ namespace Tracker
         tracks_found_temp.push_back(seed->tracks.first);
         tracks_found_temp.push_back(seed->tracks.second);
 
-        auto vertex_fitter = Kalman::LSVertex4DFitter(3, config["vertex_fit_MultipleScattering"]>0);
+        auto vertex_fitter = Kalman::LSVertex4DFitter(3, config["vertex_fit_MultipleScattering"] > 0);
         auto vertex_found = vertex_fitter.run_fit(tracks_found_temp);
         float chi2_prev = vertex_found->chi2;
 
@@ -205,8 +217,7 @@ namespace Tracker
                     break;
             }
 
-            auto &track = tracks_unused[track_id];
-
+            // auto &track = tracks_unused[track_id];
 
             tracks_found_temp.push_back(tracks_unused[track_id]);
             auto vertex_temp = vertex_fitter.run_fit(tracks_found_temp);
@@ -232,7 +243,7 @@ namespace Tracker
     {
         this->tracks_all = allTracks;
 
-        if (tracks_all.size() < config["vertex_cut_VertexNHitsMin"])
+        if (tracks_all.size() < config["vertex_cut_VertexNTracksMin"])
             return 0;
 
         // Sort hits into groups
@@ -243,7 +254,7 @@ namespace Tracker
 
         // Loop though required number of hits
         this->tracks_found_temp.clear();
-        int ntracks_min = config["vertex_cut_VertexNHitsMin"];
+        int ntracks_min = config["vertex_cut_VertexNTracksMin"];
         while (this->seeds_unused.size() > 0)
         {
             // Round 1: find hits based on seed
@@ -269,7 +280,7 @@ namespace Tracker
             // Discard this track if the seed contributes too much to chi2
 
             // Round 3: Run fit again using least square minimizer
-            auto vertex_fitter = Kalman::LSVertex4DFitter(3, config["vertex_fit_MultipleScattering"]>0);
+            auto vertex_fitter = Kalman::LSVertex4DFitter(3, config["vertex_fit_MultipleScattering"] > 0);
             auto vertex_found = vertex_fitter.run_fit(tracks_found_temp);
             print_dbg("Vertex LS Fit result (x,y,z,t):", vertex_found->params.transpose());
 

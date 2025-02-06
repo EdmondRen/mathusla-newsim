@@ -21,12 +21,13 @@ namespace Tracker
                 if (j == iv_index)
                 {
                     params_time(j) = iv_value;
-                    params_time(j + 3) = 1 / params(iv_index + 3);
+                    params_time(j + 3) = 1 / params(2 + 3);
                 }
                 else
                 {
-                    params_time(j) = params(k++);
-                    params_time(j + 3) = params(j + 3) / params(iv_index + 3);
+                    params_time(j) = params(k);
+                    params_time(j + 3) = params(k + 3) / params(2 + 3);
+                    k++;
                 }
             }
 
@@ -107,6 +108,7 @@ namespace Tracker
     std::pair<Vector4d, MatrixXd> Track::get_same_time_pos_and_cov(Vector4d point, double speed_constraint, bool multiple_scattering) const
     {
         (void)speed_constraint;
+        (void)multiple_scattering;
 
         double dt = point(3) - this->t0;
         Vector3d pos_on_track = this->params_time.segment(0, 3) + this->params_time.segment(3, 3) * dt;
@@ -123,7 +125,7 @@ namespace Tracker
     {
         (void)speed_constraint;
 
-        auto point_and_cov = get_same_time_pos_and_cov(point, speed_constraint);
+        auto point_and_cov = get_same_time_pos_and_cov(point, speed_constraint, multiple_scattering);
         Vector3d residual = point_and_cov.first.segment(0,3) - point.segment(0, 3);
         double dist_point = residual.norm();
         double chi2_point = residual.transpose() * point_and_cov.second.inverse() * residual;
@@ -157,8 +159,7 @@ namespace Tracker
 
         if (this->hit_ids.size()==4)
         {
-            // cov_residual *=6;
-            // std::cout<<"!!!!!!!!!!!!"<<std::endl;
+            cov_residual *=4;
         }
 
         return std::make_pair(pos_full, cov_residual);
@@ -184,6 +185,8 @@ namespace Tracker
     std::pair<Vector4d, MatrixXd> Track::get_cpa_pos_and_cov(Vector4d point, double speed_constraint, bool multiple_scattering) const
     {
         (void)speed_constraint;
+        (void)multiple_scattering;
+
         Vector4d r0 = this->params_full.segment(0, 4);
         Vector4d v0 = this->params_full.segment(4, 4);
         double v0_2 = std::pow(v0.norm(), 2);
@@ -210,7 +213,7 @@ namespace Tracker
 
     std::pair<double, double> Track::get_cpa_dist_and_chi2(Vector4d point, double speed_constraint, bool multiple_scattering) const
     {
-        auto point_and_cov = get_cpa_pos_and_cov(point, speed_constraint);
+        auto point_and_cov = get_cpa_pos_and_cov(point, speed_constraint, multiple_scattering);
         Vector4d residual4d = point_and_cov.first - point;
         double dist_point = residual4d.segment(0, 3).norm();
         double chi2_point = residual4d.transpose() * point_and_cov.second.inverse() * residual4d;

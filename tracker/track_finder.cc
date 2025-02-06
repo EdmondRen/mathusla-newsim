@@ -18,8 +18,8 @@ namespace Tracker
         config["track_cut_SeedRange"] = 1;                                // [ns] Proper time of the seed pair
         config["track_cut_HitProjectionSigma"] = 10;                      // Range to look for the next hit, in unit of sigmas
         config["track_cut_HitAddChi2First"] = 15;                         // Maximum chi2 for a hit to be added
-        config["track_cut_HitAddChi2Other"] = 9;                          // Maximum chi2 for a hit to be added
-        config["track_cut_HitDropChi2"] = 9;                              // Maximum chi2 for a hit to be kept during second rtrack_oun to -1 to turn off
+        config["track_cut_HitAddChi2Other"] = 7;                          // Maximum chi2 for a hit to be added
+        config["track_cut_HitDropChi2Prob"] = 0.9;                        // chi2 prob to drop a hit during smoothing
         config["track_cut_TrackChi2Reduced"] = 3;                         // Cut on the chi2/ndof of the track
         config["track_cut_TrackChi2Prob"] = 0.95;                         // Cut on the  chi2 probability of the track
         config["track_cut_TrackNHitsMin"] = 4;                            // Cut on minimum number of hits
@@ -52,7 +52,8 @@ namespace Tracker
             for (size_t j = i + 1; j < hits_all.size(); j++)
             {
                 // Skip hits in the same or adjacent layer
-                if (std::abs(hits_all[i]->layer - hits_all[j]->layer) <= 1)
+                int dlayer = std::abs(hits_all[i]->layer - hits_all[j]->layer);
+                if (dlayer == 0 || dlayer == 2)
                     continue;
 
                 auto new_seed = new TrackSeed(hits_all[i], hits_all[j]);
@@ -66,7 +67,14 @@ namespace Tracker
         // Larger ones are at the end because pop_back is easier for vector
         std::sort(seeds_unused.begin(), seeds_unused.end(),
                   [](TrackSeed *a, TrackSeed *b) -> bool
-                  { return a->dstep < b->dstep; });
+                  {
+                      if (a->dstep != b->dstep)
+                      {
+                          return a->dstep < b->dstep;
+                      }
+                      else
+                          return a->dr < b->dr;
+                  });
 
         int iprint = 0;
         print_dbg(util::py::f("Making seeds, total {} seeds. Printing best 30. Smaller score is better.", seeds_unused.size()));
@@ -162,6 +170,8 @@ namespace Tracker
             }
         }
 
+        hits_found_temp_chi2 = finder.get_current_chi2();
+
         return hits_found_temp.size();
     }
 
@@ -184,14 +194,14 @@ namespace Tracker
         int nhits_min = config["track_cut_TrackNHitsMin"];
         for (int nhits_curr = hits_groups.size(); nhits_curr >= nhits_min; nhits_curr--)
         {
-            print_dbg(util::py::f("-> Searching for tracks with at least {} hits", nhits_curr));
+            print_dbg(util::py::f("\n***Searching for tracks with at least {} hits***", nhits_curr));
 
             while (this->seeds_unused.size() > 0)
             {
                 // Skip the seed that have been used and known to have fewer hits than required
                 if (seeds_unused.back()->nhits_found > 0 && seeds_unused.back()->nhits_found < nhits_curr)
                 {
-                    seeds_unused_next.push_back(seeds_unused.back());
+                    seeds_unused_next.insert(seeds_unused_next.begin(), seeds_unused.back());
                     seeds_unused.pop_back();
                     continue;
                 }
@@ -219,16 +229,8 @@ namespace Tracker
 
                     continue;
                 }
-                else if (nhits_found < nhits_curr)
-                {
-                    print_dbg(util::py::f("-x Track rejected, only {} hits. Keep the seed for next iteration.", nhits_found));
-                    seeds_unused.back()->nhits_found = nhits_found;
-                    seeds_unused_next.insert(seeds_unused_next.begin(), seeds_unused.back());
-                    seeds_unused.pop_back();
-                    continue;
-                }
 
-                // Sort his by descending time.
+                // Sort hits by descending time.
                 std::sort(hits_found_temp.begin(), hits_found_temp.end(),
                           [](DigiHit *a, DigiHit *b) -> bool
                           { return a->t() > b->t(); });
@@ -237,53 +239,78 @@ namespace Tracker
                 {
                     hits_found_ids += std::to_string(hit->id) + " ";
                 }
+
+                // Skip to next round if nhits is fewer than asked
+                if (nhits_found < nhits_curr)
+                {
+                    print_dbg(util::py::f("-x Track rejected, only {} hits. Keep the seed for next iteration. hit inds:", nhits_found), hits_found_ids);
+                    seeds_unused.back()->nhits_found = nhits_found;
+                    seeds_unused.back()->chi2prob_found = ROOT::Math::chisquared_cdf(hits_found_temp_chi2, 3 * nhits_found - 6);
+                    ;
+                    seeds_unused_next.insert(seeds_unused_next.begin(), seeds_unused.back());
+                    seeds_unused.pop_back();
+                    continue;
+                }
+
                 print_dbg(util::py::f("-> Found track with {} hits:", nhits_found), hits_found_ids);
 
                 // Round 2: drop hits with excessive chi2
 
-                print("---------------------");
                 auto track_model = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, DEBUG_KALMAN); // DEBUG_KALMAN
-                auto track_temp = track_model.run_filter(hits_found_temp);   
 
-                auto track_model2 = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, DEBUG_KALMAN); // DEBUG_KALMAN
-                auto track_temp2 = track_model2.run_filter_smooth(hits_found_temp, 4);   
-                print("chi2a, chi2b", track_temp->chi2, track_temp2->chi2);
-
-                std::vector<double>  hits_chi2;
-                for (auto hit : hits_found_temp)
+                if (config["track_cut_HitDropChi2Prob"] > 0)
                 {
-                    auto pos_and_cov = track_temp->get_same_invar_pos_and_cov(hit->vec4, -1, config["track_fit_MultipleScattering"]>0);
-                    // Residual
-                    Vector4d residual4 = pos_and_cov.first - hit->vec4;
-                    auto residual = Helper::removeElement(residual4, track_temp->iv_index);
-                    // Cov
-                    auto cov_mod = pos_and_cov.second;
-                    cov_mod.diagonal() += hit->vec3_err.array().square().matrix();
-                    // chi2
-                    double chi2_temp = residual.transpose() * cov_mod.inverse() * residual;
-                    hits_chi2.push_back(chi2_temp);
-                    print("hit dist",residual.norm());
-
+                    auto track_model_drop = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, DEBUG_KALMAN); // DEBUG_KALMAN
+                    track_model_drop.run_filter_smooth(hits_found_temp, config["track_cut_HitDropChi2Prob"]);
+                    auto dropped_inds = track_model_drop.get_dropped_inds();
+                    if (dropped_inds.size() > 0)
+                    {
+                        for (auto ind : dropped_inds)
+                        {
+                            print_dbg(util::py::f("-x Hit {} dropped during smoothing due to large chi2", hits_found_temp[ind]->id));
+                            hits_found_temp.erase(hits_found_temp.begin() + ind);
+                        }
+                    }
+                    if (static_cast<int>(hits_found_temp.size()) < nhits_min)
+                    {
+                        print_dbg(util::py::f("-x Track rejected, only {} hits after dropping", hits_found_temp.size()));
+                        seeds_unused.pop_back();
+                        continue;
+                    }
                 }
-                print("hits chi2:",hits_chi2);
+
+                // std::vector<double> hits_chi2;
+                // for (auto hit : hits_found_temp)
+                // {
+                //     auto pos_and_cov = track_temp->get_same_invar_pos_and_cov(hit->vec4, -1, config["track_fit_MultipleScattering"] > 0);
+                //     // Residual
+                //     Vector4d residual4 = pos_and_cov.first - hit->vec4;
+                //     auto residual = Helper::removeElement(residual4, track_temp->iv_index);
+                //     // Cov
+                //     auto cov_mod = pos_and_cov.second;
+                //     cov_mod.diagonal() += hit->vec3_err.array().square().matrix();
+                //     // chi2
+                //     double chi2_temp = residual.transpose() * cov_mod.inverse() * residual;
+                //     hits_chi2.push_back(chi2_temp);
+                // }
+
+                // track_model.new_step(*seeds_unused.back()->hits.first);
+                // auto chi2_seed1 = track_model.try_measurement(*seeds_unused.back()->hits.first, 5, 1000);
+
+                // track_model.new_step(*seeds_unused.back()->hits.second);
+                // auto chi2_seed2 = track_model.try_measurement(*seeds_unused.back()->hits.second, 5, 1000);
+                // print_dbg("  chi2 of seed hits:", chi2_seed1, chi2_seed2);
+                // if (chi2_seed1 > config["track_cut_HitDropChi2"] || chi2_seed2 > config["track_cut_HitDropChi2"])
+                // {
+                //     print_dbg("-x hit from seed have large chi2. Probablity wrong combination. Track rejected.");
+                //     seeds_unused.pop_back();
+                //     continue;
+                // }
 
                 // Round 3: Run filter again backwards
                 // Discard this track if the seed contributes too much to chi2
                 // auto track_model = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, DEBUG_KALMAN); // DEBUG_KALMAN
                 auto track_found = track_model.run_filter(hits_found_temp);
-
-                track_model.new_step(*seeds_unused.back()->hits.first);
-                auto chi2_seed1 = track_model.try_measurement(*seeds_unused.back()->hits.first, 5, 1000);
-
-                track_model.new_step(*seeds_unused.back()->hits.second);
-                auto chi2_seed2 = track_model.try_measurement(*seeds_unused.back()->hits.second, 5, 1000);
-                print_dbg("  chi2 of seed hits:", chi2_seed1, chi2_seed2);
-                if (chi2_seed1 > config["track_cut_HitDropChi2"] || chi2_seed2 > config["track_cut_HitDropChi2"])
-                {
-                    print_dbg("-x hit from seed have large chi2. Probablity wrong combination. Track rejected.");
-                    seeds_unused.pop_back();
-                    continue;
-                }
 
                 // Cut on chi2
                 int ndof = hits_found_temp.size() * 3 - 6;
@@ -320,10 +347,68 @@ namespace Tracker
                 RemoveUsed();
                 print_dbg("  Remaining seeds:", seeds_unused.size());
             }
+
+            // Sort the remaining seed, and reset the unused seed pointer
+            std::sort(this->seeds_unused_next.begin(), this->seeds_unused_next.end(),
+                      [](auto *a, auto *b)
+                      {
+                          if (a->nhits_found != b->nhits_found)
+                          {
+                              return a->nhits_found < b->nhits_found;
+                          }
+                          else
+                              return a->chi2prob_found > b->chi2prob_found;
+                      });
+
             this->seeds_unused = std::move(this->seeds_unused_next);
+
+            // // Let's have a look at the situation of 4 hits
+            // if (nhits_curr == 5)
+            // {
+            //     print("Remaining seeds");
+            //     int iprint = 0;
+            //     for (int i = seeds_unused.size() - 1; i >= 0; --i)
+            //     {
+            //         iprint += 1;
+            //         auto seed = seeds_unused[i];
+            //         print_dbg(util::py::f("  Seed [{:03d}, {:03d}]: chi2 {:.4f}, d_step: {:.0f}, dr {:.3f}, dt {:.3f}",
+            //                               seed->hits.first->id, seed->hits.second->id, seed->chi2prob_found, seed->dstep, seed->dr, seed->dt));
+            //         // if (iprint > 30)
+            //         //     break;
+            //     }
+
+            //     // Loop all layers except the one with the first hit
+            //     for (const auto &pair : hits_grouped)
+            //     {
+            //         // pair: {layer, hits}
+
+            //         auto hits_thisgroup = pair.second;
+            //             print("Remaing hits in layer", pair.first);
+
+            //         for (const auto &hit_and_id : hits_thisgroup)
+            //         {
+            //             auto hit_id = hit_and_id.first;
+            //             auto hit = hit_and_id.second;
+            //             print("Hit ", hit_id);
+            //         }
+            //     }
+            // }
         }
 
-        return -1;
+        if (DEBUG)
+        {
+            print("\n\n------------------------------------------------");
+            auto info = this->Summary();
+            print(info);
+
+            for (const auto &track : tracks_found)
+            {
+                print(util::py::f(" * Track #{}, nhits {}, chi2 {}, params = ", track->id, track->hit_ids.size(), track->chi2), track->params.transpose());
+            }
+            print("------------------------------------------------\n\n");
+        }
+
+        return 0;
     }
 
     int TrackFinder::RemoveUsed()

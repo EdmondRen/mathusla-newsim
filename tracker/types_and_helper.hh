@@ -160,6 +160,8 @@ namespace Tracker
 
             // Make a pair and put the earlier one in front
             this->hits = hit1->t() < hit2->t() ? std::make_pair(hit1, hit2) : std::make_pair(hit2, hit1);
+
+            this->chi2prob_found = 1; // Default value of chi2 prob if not specified.
         }
 
         // Required data
@@ -167,6 +169,7 @@ namespace Tracker
         float score;
         float dr, dt, dstep;
         int nhits_found; // Number of hits found using this seed. Save time when reusing this seed.
+        double chi2prob_found; //
 
         // float GetScore() { return score; }
     };

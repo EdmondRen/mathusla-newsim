@@ -103,7 +103,7 @@ int main(int argc, const char *argv[])
   // Make a generator
   CRYGenerator gen(setup);
 
-  bool IsSingleSpecies = gen.prepare_single();
+  // bool IsSingleSpecies = gen.prepare_single();
 
   // Open output file to write shower particles
   std::ofstream out(args["output"].as<std::string>());

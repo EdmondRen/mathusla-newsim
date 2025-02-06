@@ -50,6 +50,8 @@ namespace Tracker
         // Configuration
         void Config(std::map<std::string, double> &config_ext);
 
+        double hits_found_temp_chi2;
+
     protected:
         // python-like print function, enable for debug mode only.
         template <typename... Args>

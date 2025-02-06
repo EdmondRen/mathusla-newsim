@@ -56,6 +56,9 @@ namespace Kalman
             auto sigma_ms = 13.6 * std::pow(l_rad_relative, 0.5) * (1 + 0.038 * std::log(l_rad_relative)) / momentum_MeV;
             return sigma_ms;
         }
+        
+        std::vector<int> get_dropped_inds(){return dropped_inds;}
+        double get_current_chi2(){return kf.GetChi2();}
 
     protected:
         // Filter instance
@@ -80,6 +83,8 @@ namespace Kalman
         std::unique_ptr<Tracker::Track> track; // state, 1x6 col vector
 
         MatrixXd Q_block;
+        
+        std::vector<int> dropped_inds;
     };
 
     class LSVertex4DFitter
@@ -169,6 +174,7 @@ namespace Kalman
             this->distance = guess.first;
             this->vertex_guess = guess.second;
             this->ntracks_found = 2;
+            this->nhits = track1->hit_ids.size() + track2->hit_ids.size();
         }
 
         float GetChi2()
@@ -206,6 +212,7 @@ namespace Kalman
         float score;
         float distance, chi2; // Distance between the two tracks
         int ntracks_found;    // Number of track compatible with this seed
+        int nhits; // number of hits in the track pair.
 
         std::vector<std::pair<int, double>> track_distance_list;
     };

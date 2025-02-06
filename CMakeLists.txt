@@ -14,8 +14,8 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ## Build type: Debug or Release
 
-# set (CMAKE_BUILD_TYPE Release)
-set (CMAKE_BUILD_TYPE Debug)
+set (CMAKE_BUILD_TYPE Release)
+# set (CMAKE_BUILD_TYPE Debug)
 option(PROFILE_WITH_GPROF "Enable profiling with gprof" OFF)
 
     

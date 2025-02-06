@@ -1,3 +1,6 @@
+// ROOT libs
+#include <TMath.h>
+#include <Math/ProbFunc.h>
 
 #include "kalman_model.hh"
 #include "util.hh"
@@ -110,7 +113,7 @@ namespace Kalman
             if (use_first)
                 V0.diagonal() = hit1.get_err3();
             else
-                V0.diagonal() = hit1.get_err3();
+                V0.diagonal() = hit2.get_err3();
             V0.diagonal() = V0.diagonal().array().square();
             MatrixXd H0 = this->Hi;
             kf_full.SetInitialState(mi, V0, xf0, Cf0, H0);
@@ -203,6 +206,8 @@ namespace Kalman
 
         // Update the current step
         this->step_current = hit.get_step();
+
+        return 0;
     }
 
     std::unique_ptr<Tracker::Track> KalmanTrack4D::run_filter(const std::vector<Tracker::DigiHit *> &hits)
@@ -258,10 +263,9 @@ namespace Kalman
     {
         auto Ax = this->kf.GetState()(3);
         auto Ay = this->kf.GetState()(4);
-        auto At = this->kf.GetState()(5);
+        // auto At = this->kf.GetState()(5);
         auto Ax2 = std::pow(Ax, 2);
         auto Ay2 = std::pow(Ay, 2);
-        auto At2 = std::pow(At, 2);
         double dz2 = std::pow(step, 2);
         double P4P5 = (1 + Ax2 + Ay2);
         double sin_theta = std::pow(P4P5, -1 / 2);
@@ -290,7 +294,7 @@ namespace Kalman
         return 0;
     }
 
-    std::unique_ptr<Tracker::Track> KalmanTrack4D::run_filter_smooth(const std::vector<Tracker::DigiHit *> &hits, double chi2_drop)
+    std::unique_ptr<Tracker::Track> KalmanTrack4D::run_filter_smooth(const std::vector<Tracker::DigiHit *> &hits, double chi2_drop_prob)
     {
         // Filter forward
         bool use_first_hit = false;
@@ -301,8 +305,8 @@ namespace Kalman
         }
 
         // Filter backward
-        std::vector<int> dropped_inds;
-        if (chi2_drop < 0)
+        this->dropped_inds.clear();
+        if (chi2_drop_prob < 0)
             kf_full.backward_smooth();
         else
         {
@@ -312,7 +316,8 @@ namespace Kalman
             {
                 double chi2_temp = kf_full.smooth_step_try();
 
-                bool dropped = chi2_temp > chi2_drop;
+                float chi2_prob = ROOT::Math::chisquared_cdf(chi2_temp, 3);
+                bool dropped = chi2_prob > chi2_drop_prob;
                 if (dropped)
                 {
                     dropped_inds.push_back(kf_full.CURRENT_STEP);
@@ -322,31 +327,15 @@ namespace Kalman
                 kf_full.smooth_step(dropped);
             }
         }
-
-        // Insert the independent variable back to the parameter list and covariance matrix
-        // After the insertion, there will always be 8 parameters in sequence: {x0, y0, z0, t0, Ax, Ay, Ay, At}
-        auto indep_variable_idx = hits.back()->iv_index;
-        auto params_full = Tracker::Helper::insertVector(kf.GetState(), indep_variable_idx, hits.back()->get_step());
-        params_full = Tracker::Helper::insertVector(params_full, indep_variable_idx + 4, 1);
-        auto cov_full = Tracker::Helper::insertRowAndColumnOfZeros(kf.GetCov(), indep_variable_idx);
-        cov_full = Tracker::Helper::insertRowAndColumnOfZeros(cov_full, indep_variable_idx + 4);
-        cov_full(indep_variable_idx, indep_variable_idx) = std::pow(hits.back()->get_steperr(), 2);
-        cov_full(indep_variable_idx + 4, indep_variable_idx + 4) = 0.0001;
+        if (dropped_inds.size() > 0)
+            std::sort(dropped_inds.begin(), dropped_inds.end(),
+                      [](int &a, int &b) -> bool
+                      {
+                          return a > b;
+                      });
 
         // Make the track
         track = std::make_unique<Tracker::Track>();
-        track->params = kf.GetState();
-        track->cov = kf.GetCov();
-        track->chi2 = kf.GetChi2();
-        track->iv_index = indep_variable_idx;
-        track->iv_value = hits.back()->get_step();
-        track->iv_error = hits.back()->get_steperr();
-        track->params_full = params_full;
-        track->cov_full = cov_full;
-
-        // Multiple scattering matrix block
-        this->update_Q(1);
-        track->Q_block = this->Q_block;
 
         if (DEBUG)
         {
@@ -439,10 +428,10 @@ namespace Kalman
         int ierflg = 0; // output error flag
         double first_step_size_x = 1;
         double first_step_size_t = 0.01;
-        minimizer.mnparm(0, "x", guess[0], first_step_size_x, 0, 0, ierflg);
-        minimizer.mnparm(1, "y", guess[1], first_step_size_x, 0, 0, ierflg);
-        minimizer.mnparm(2, "z", guess[2], first_step_size_x, 0, 0, ierflg);
-        minimizer.mnparm(3, "t", guess[3], first_step_size_t, 0, 0, ierflg);
+        minimizer.mnparm(0, "x", guess[0], first_step_size_x, -1e5, 1e5, ierflg);
+        minimizer.mnparm(1, "y", guess[1], first_step_size_x, -1e5, 1e5, ierflg);
+        minimizer.mnparm(2, "z", guess[2], first_step_size_x, -1e4, 5e4, ierflg);
+        minimizer.mnparm(3, "t", guess[3], first_step_size_t, -1e5, 1e5, ierflg);
 
         // Run the minimizer
         double arglist[2] = {maxcalls, tolerance};

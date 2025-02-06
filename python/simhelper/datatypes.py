@@ -3,7 +3,7 @@ import copy
 import numpy as np
 import matplotlib.pyplot as plt
 
-from . import util
+from . import util,parser
 
 class GenParticle:
     def __init__(self, data=None, i=0):
@@ -18,9 +18,9 @@ class GenVertices:
         self.vertices = [genparticles[i].xyzt for i in unique_indices]
 
     def plot(self, ind_h, ind_v):
-        colors=["cyan", "yellow", "green", "red"]
+        colors=["cyan"]#, "yellow", "green", "red"]
         for i,vertex in enumerate(self.vertices):
-            plt.plot(vertex[ind_h], vertex[ind_v], marker="D", color=colors[i%len(colors)])
+            plt.plot(vertex[ind_h], vertex[ind_v], marker="*", color=colors[i%len(colors)])
 
 class Hit:
     def __init__(self, data=None, i=0):
@@ -33,7 +33,7 @@ class Hit:
             self.is_primary = False #data["Hit_isprimary"][i]
 
 class Digi:
-    def __init__(self, data=None, i=0):
+    def __init__(self, data=None, i=0, metadata_digi=None):
         if data is not None:
             self.xyzt = np.array([data["Digi_x"][i], data["Digi_y"][i], data["Digi_z"][i], data["Digi_t"][i]])
             self.id = i
@@ -54,8 +54,16 @@ class Digi:
             self.xyzt_truth = np.array([data["Hit_x"][ihit], data["Hit_y"][ihit], data["Hit_z"][ihit], data["Hit_t"][ihit]])
             self.velocity =(np.array([data["Hit_x"][ihit], data["Hit_y"][ihit], data["Hit_z"][ihit]]) -\
                             np.array([data["Hit_x"][jhit], data["Hit_y"][jhit], data["Hit_z"][jhit]])) / (data["Hit_t"][ihit] - data["Hit_t"][jhit])
-            
-            # self.err = np.array([data["Hit_x"][i], data["Hit_y"][i], data["Hit_z"][i], data["Hit_t"][i]])
+
+            direction_x = round(self.direction//100 % 10)
+            direction_y = round(self.direction//10 % 10)
+            direction_z = 3-direction_x-direction_y
+            # unc_xyzt = [metadata_digi["Uncertainty_x"], metadata_digi["Uncertainty_y"], metadata_digi["Uncertainty_z"], metadata_digi["Uncertainty_t"]]
+            self.err4 = np.zeros(4)
+            self.err4[direction_x] = metadata_digi["Uncertainty_x"]
+            self.err4[direction_y] = metadata_digi["Uncertainty_y"]
+            self.err4[direction_z] = metadata_digi["Uncertainty_z"]
+            self.err4[3] = metadata_digi["Uncertainty_t"]
 
 class TrueTrack:
     def __init__(self, hits, track_id=0, cut_timerange=0.1, cut_nhits = 3, cut_momentum = 10):
@@ -86,6 +94,22 @@ class Track:
             self.params = np.delete(self.params_full, [self.iv_index, self.iv_index+4])
             self.nhits = len(self.hit_ids)
 
+            self.convert_to_time()
+            self.t0=data["Track_t0"][i]
+
+    def convert_to_time(self):
+        self.params_time = np.zeros(6);
+        k=0
+        for j in range(3):
+            if (j == self.iv_index):
+                self.params_time[j] = self.iv_value;
+                self.params_time[j + 3] = 1 / self.params[-1];
+            else:
+                self.params_time[j] = self.params[k];
+                self.params_time[j + 3] = self.params[k + 3] / self.params[-1];
+                k+=1
+    
+
     def set_digis(self, digis_all):
         ## Find the truth location
         digi = digis_all[self.hit_ids[-1]]
@@ -99,16 +123,29 @@ class Track:
         ## Find the truth index and pdg 
         digi_trackid = []        
         digi_pdg = []
+        digi_times = []
         for i in self.hit_ids:
             digi_trackid.append(digis_all[i].track_id)
             digi_pdg.append(digis_all[i].pdg)
+            digi_times.append(digis_all[i].xyzt[-1])
 
         tid,tid_ind,tid_counts = np.unique(digi_trackid, return_counts=True, return_index=True)
         itrack = np.argmax(tid_counts)
 
+        ## Calculate track purity etc.
         self.track_purity = tid_counts[itrack]/self.nhits
         self.track_id = tid[itrack]
         self.track_pdg = digi_pdg[tid_ind[itrack]]
+        self.tmin = min(digi_times)
+        self.tmax = max(digi_times)
+
+    def plot(self, ind_h, ind_v, from_time = None, color="k"):
+        tmin = self.tmin if from_time is None else from_time
+        xs = [self.params_time[ind_h] + self.params_time[ind_h+3]*(tmin-self.t0),
+              self.params_time[ind_h] + self.params_time[ind_h+3]*(self.tmax-self.t0)]
+        ys = [self.params_time[ind_v] + self.params_time[ind_v+3]*(tmin-self.t0),
+              self.params_time[ind_v] + self.params_time[ind_v+3]*(self.tmax-self.t0)] 
+        plt.plot(xs,ys, linestyle=":", color=color)
 
 
 class Vertex:
@@ -133,6 +170,9 @@ class Vertex:
 
 class Event:
     def __init__(self, data_parsed, metadata_digi):
+        ## Add some RRQ
+        self.process_recon(data_parsed)
+        
         # Get generator particles
         self.genparticles = np.array([GenParticle(data_parsed, i) for i in range(len(data_parsed["Gen_x"]))])
         self.genvertices = GenVertices(self.genparticles)
@@ -145,18 +185,29 @@ class Event:
         self.truetracks = [TrueTrack(self.hits[hit_ids],track_id) for track_id, hit_ids in zip(track_ids, hits_inds_grouped)]
         
         # Get Digits
-        self.digis = np.array([Digi(data_parsed,i) for i in range(len(data_parsed["Digi_x"]))])
+        self.digis = np.array([Digi(data_parsed,i, metadata_digi) for i in range(len(data_parsed["Digi_x"]))])
         self.get_reconstructable()
 
         # Get recon tracks
         self.tracks = [Track(data_parsed, i) for i in range(len(data_parsed["Track_x0"]))]
+        self.digis_used_inds = []
         for t in self.tracks:
             t.set_digis(self.digis)
+            self.digis_used_inds.extend(list(t.hit_ids))
 
         # Get recon vertices
         self.vertices = [Vertex(data_parsed, i) for i in range(len(data_parsed["Vertex_x0"]))]
+        self.tracks_used_inds = []
         for t in self.vertices:
             t.set_tracks(self.tracks)
+            self.tracks_used_inds.extend(list(t.track_ids))
+
+    def process_recon(self, data):
+        data["Digi_hitInds_unpacked"] = parser.unpack_at(data["Digi_hitInds"], divider=-1)
+        data["Track_cov_unpacked"] = parser.unpack_cov(data["Track_cov"], dim=6)
+        data["Track_digiInds_unpacked"] = parser.unpack_at(data["Track_digiInds"], divider=-1)
+        data["Vertex_cov_unpacked"] = parser.unpack_cov(data["Vertex_cov"], dim=4)
+        data["Vertex_trackInds_unpacked"] = parser.unpack_at(data["Vertex_trackInds"], divider=-1)
 
     def get_reconstructable(self):
         ## Find the truth index and pdg 
@@ -171,7 +222,68 @@ class Event:
         self.digi_truth_track_ids = tid
         self.digi_truth_track_nhits = tid_counts
     
-    def truetracks_plot(self, ind_h, ind_v):
+    def plot_truetracks(self, ind_h, ind_v):
         for t in self.truetracks:
             if t.plot_en:
-                plt.plot(t.xyzts[ind_h], t.xyzts[ind_v], linewidth=1)  
+                plt.plot(t.xyzts[ind_h], t.xyzts[ind_v], linewidth=0.5, alpha=0.8)  
+
+    def plot_digis(self, ind_h, ind_v):
+        # Plot used hits
+        plot_xs = []
+        plot_ys = []
+        plot_xerrs = []
+        plot_yerrs = []
+        for d in self.digis:
+            if d.type==0 and d.id in self.digis_used_inds:
+                plot_xs.append(d.xyzt[ind_h])
+                plot_ys.append(d.xyzt[ind_v])
+                plot_xerrs.append(d.err4[ind_h])
+                plot_yerrs.append(d.err4[ind_v])   
+        plt.errorbar(plot_xs, plot_ys, xerr=plot_xerrs, yerr=plot_yerrs, fmt="o", color="C0", markersize=3, alpha=0.3, capsize=2)
+
+        # Plot unused hits
+        plot_xs = []
+        plot_ys = []
+        plot_xerrs = []
+        plot_yerrs = []
+        for d in self.digis:
+            if d.type==0 and d.id not in self.digis_used_inds:
+                plot_xs.append(d.xyzt[ind_h])
+                plot_ys.append(d.xyzt[ind_v])
+                plot_xerrs.append(d.err4[ind_h])
+                plot_yerrs.append(d.err4[ind_v])   
+        plt.errorbar(plot_xs, plot_ys, xerr=plot_xerrs, yerr=plot_yerrs, fmt="o", color="salmon", markersize=3, alpha=0.3, capsize=2)
+
+        # Plot noise hits and other hit types
+        plot_xs = []
+        plot_ys = []
+        plot_xerrs = []
+        plot_yerrs = []
+        for d in self.digis:
+            if d.type!=0:
+                plot_xs.append(d.xyzt[ind_h])
+                plot_ys.append(d.xyzt[ind_v])
+                plot_xerrs.append(d.err4[ind_h])
+                plot_yerrs.append(d.err4[ind_v])   
+        plt.errorbar(plot_xs, plot_ys, xerr=plot_xerrs, yerr=plot_yerrs, fmt="o", color="grey", markersize=3, alpha=0.3, capsize=2)
+
+    def plot_vertex(self, ind_h, ind_v, plot_tracks=True, lim_x = 100e3, lim_y = 100e3):
+        icolor=0
+        for v in self.vertices:
+            x,y = v.params[ind_h], v.params[ind_v]
+            if abs(x)>lim_x:
+                continue
+            if abs(y)>lim_y:
+                continue                
+                
+            plt.scatter(x,y, marker="^", color=f"C{icolor}")
+            for track_id in v.track_ids:
+                self.tracks[track_id].plot(ind_h,ind_v, from_time = v.params[3], color=f"C{icolor}")
+            icolor +=1;
+
+        for t in self.tracks:
+            if t.id not in self.tracks_used_inds:
+                t.plot(ind_h,ind_v)  
+
+
+                

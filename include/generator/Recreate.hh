@@ -68,6 +68,7 @@ namespace MuGenerators
 
         // Messenger commands
         G4UIcmdWithAString *_ui_pathname;
+        G4UIcmdWithAnInteger *_ui_setentry;
     };
 }
 

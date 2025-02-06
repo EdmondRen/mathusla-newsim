@@ -21,9 +21,13 @@ namespace MuGenerators
         this->EVENTS_COUNTER = 0;
 
         // Make messenger commands
-        this->_ui_pathname = CreateCommand<G4UIcmdWithAString>("pathname", "Set pathname of PARMA configuration file.");
+        this->_ui_pathname = CreateCommand<G4UIcmdWithAString>("pathname", "Set pathname of the ROOT file containing seed and particle information.");
         this->_ui_pathname->SetParameterName("pathname", false, false);
         this->_ui_pathname->AvailableForStates(G4State_PreInit, G4State_Idle);
+        // Make messenger commands
+        this->_ui_setentry = CreateCommand<G4UIcmdWithAnInteger>("entry", "Set the current entry.");
+        this->_ui_setentry->SetParameterName("entry", false, false);
+        this->_ui_setentry->AvailableForStates(G4State_PreInit, G4State_Idle);        
     }
 
     void MuRecreate::GeneratePrimaryVertex(G4Event *event)
@@ -144,6 +148,11 @@ namespace MuGenerators
             InputTree->SetBranchAddress("Gen_px", &data_px);
             InputTree->SetBranchAddress("Gen_py", &data_py);
             InputTree->SetBranchAddress("Gen_pz", &data_pz);
+        }
+        else if (command ==_ui_setentry)
+        {
+            int entry = _ui_setentry->GetNewIntValue(value);
+            this->EVENTS_COUNTER = entry;
         }
     }
 
