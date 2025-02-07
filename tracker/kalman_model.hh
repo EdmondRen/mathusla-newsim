@@ -23,8 +23,11 @@ namespace Kalman
                       int ndimStates = 6,
                       bool debug = false);
 
-        // Initialize
+        // Initialize with two hits
         int init_state(const Tracker::DigiHit &hit1, const Tracker::DigiHit &hit2, bool use_first = true, bool init_smooth = false);
+
+        // Initialize with a given point and a hit
+        int init_state(Vector4d point, const Tracker::DigiHit &hit2, MatrixXd point_cov);
 
         // make a new step. This will only update the related matrix without further calucalation.
         int new_step(const Tracker::DigiHit &hit);
@@ -59,10 +62,11 @@ namespace Kalman
         std::vector<int> get_dropped_inds() { return dropped_inds; }
         double get_current_chi2() { return kf.GetChi2(); }
 
-    protected:
         // Filter instance
         KF_Forward kf;
-        KF_FULL kf_full;
+        KF_FULL kf_full;        
+
+    protected:
         bool DEBUG;
 
         // Parameters

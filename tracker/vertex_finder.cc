@@ -310,12 +310,15 @@ namespace Tracker
             // Setting the metadata of this vertex
             vertex_found->id = this->vertices_found.size();
             vertex_found->track_ids = std::vector<int>();
+            // vertex_found->hit_ids = std::vector<int>();
 
             tracks_found_ids = "";
-            for (auto hit : tracks_found_temp)
+            for (auto track : tracks_found_temp)
             {
-                tracks_found_ids += std::to_string(hit->id) + " ";
-                vertex_found->track_ids.push_back(hit->id);
+                tracks_found_ids += std::to_string(track->id) + " ";
+                vertex_found->track_ids.push_back(track->id);
+                for (auto &hitid : track->hit_ids)
+                    vertex_found->hit_ids.push_back(hitid);
             }
             print_dbg(util::py::f("-> Found vertex with {} tracks:", tracks_found_temp.size()), tracks_found_ids);
 

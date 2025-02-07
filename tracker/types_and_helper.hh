@@ -189,6 +189,7 @@ namespace Tracker
         // Optional
         int id;
         std::vector<int> track_ids;
+        std::vector<int> hit_ids;
     };
     using VertexLilst = std::vector<std::unique_ptr<Vertex>>;
 

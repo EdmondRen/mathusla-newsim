@@ -4,6 +4,7 @@
 
 #include "kalman_model.hh"
 #include "util.hh"
+#include "types_and_helper.hh"
 
 namespace Kalman
 {
@@ -126,6 +127,61 @@ namespace Kalman
 
         return 0;
     }
+
+
+    int KalmanTrack4D::init_state(Vector4d point, const Tracker::DigiHit &hit2, MatrixXd point_cov)
+    {
+        Vector3d r1 = Tracker::Helper::removeElement(point, hit2.iv_index);
+        Vector3d r2 = hit2.get_vec3();
+        Vector3d dr = r2.array() - r1.array();
+        float dt = hit2.get_step() - point(hit2.iv_index);
+        Vector3d v = dr / dt;
+        VectorXd mi;
+
+        // Initial State Vector
+        this->xf0 << r2(0), r2(1), r2(2), v(0), v(1), v(2);
+        mi = r2;
+
+        // Initial Covariance
+        MatrixXdSp J(6, 8); // Jacobian matrix. Initialized to 0 by default
+        MatrixXd err(8, 8);
+        for (int j = 0, k = 0; j < 4; ++j)
+        {
+            if (j != hit2.iv_index)
+            {
+                J.insert(k + 3, j) = -1 / dt;
+                J.insert(k + 3, j + 4) = -J.coeff(k + 3, j);
+                J.insert(k, j + 4) = 1;
+                k += 1;
+            }
+            else
+            {
+                J.insert(3, j) = v(0) / dt;
+                J.insert(4, j) = v(1) / dt;
+                J.insert(5, j) = v(2) / dt;
+                J.insert(3, j + 4) = -J.coeff(3, j);
+                J.insert(4, j + 4) = -J.coeff(4, j);
+                J.insert(5, j + 4) = -J.coeff(5, j);
+            }
+        }
+        err.diagonal() << 0,0,0,0,
+            hit2.ex() * hit2.ex(), hit2.ey() * hit2.ey(), hit2.ez() * hit2.ez(), hit2.et() * hit2.et();
+        err.topLeftCorner(4,4) = point_cov;
+        this->Cf0 = J * err * J.transpose();
+
+        // Record the position of current step
+        this->step_current = hit2.get_step();
+
+        // Initialize the kalman filter instance
+        kf.SetInitialState(xf0, Cf0);
+
+        if (DEBUG)
+            std::cout << "Tracker: ->Kalman filter initialized with\n    ->state vector:\n"
+                      << xf0.transpose() << "\n    ->covariance:\n"
+                      << Cf0 << std::endl;
+
+        return 0;
+    }    
 
     int KalmanTrack4D::new_step(const Tracker::DigiHit &hit)
     {
@@ -431,7 +487,7 @@ namespace Kalman
         double first_step_size_t = 0.01;
         minimizer.mnparm(0, "x", guess[0], first_step_size_x, -1e5, 1e5, ierflg);
         minimizer.mnparm(1, "y", guess[1], first_step_size_x, -1e5, 1e5, ierflg);
-        minimizer.mnparm(2, "z", guess[2], first_step_size_x, -1e4, 5e4, ierflg);
+        minimizer.mnparm(2, "z", guess[2], first_step_size_x, -1e4, 3e4, ierflg);
         minimizer.mnparm(3, "t", guess[3], first_step_size_t, -1e5, 1e5, ierflg);
 
         // Run the minimizer

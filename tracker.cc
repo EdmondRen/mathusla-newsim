@@ -78,6 +78,7 @@ int main(int argc, const char *argv[])
     // Track and vertex finder
     auto track_finder = Tracker::TrackFinder(args["debug_track"].as<bool>());
     auto vertex_finder = Tracker::VertexFinder(args["debug_vertex"].as<bool>());
+    auto vertex_track_finder = Tracker::VertexTrackFinder(args["debug_vertex"].as<bool>());
     // Configuration
     auto setup_filename = args["config"].as<std::string>();
     auto parcard = util::io::ParHandler(setup_filename);
@@ -115,13 +116,13 @@ int main(int argc, const char *argv[])
     info.total_events += inds_to_run.size();
 
     // for (int i = 0; i < input_reader->GetEntries(); i++)
-    for (auto i: inds_to_run)
+    for (auto i : inds_to_run)
     {
         if ((i + 1) % args["print_progress"].as<int>() == 0)
         {
             stop_i = std::chrono::high_resolution_clock::now();
             float duration = std::chrono::duration<float>(stop_i - start_i).count();
-            print(util::py::f("  Processing {} / {}, {:.2f} sec.", i, inds_to_run.size(), duration));
+            print(util::py::f("  Processing {} / {}, {:.2f} sec.", i+1, inds_to_run.size(), duration));
             start_i = stop_i;
         }
 
@@ -140,7 +141,7 @@ int main(int argc, const char *argv[])
             auto summary = track_finder.Summary();
             track_found_tmp = track_finder.GetResults();
             for (auto &track : track_found_tmp)
-            {   
+            {
                 track->id = tracks_found.size();
                 tracks_found.push_back(std::move(track));
                 tracks.push_back(tracks_found.back().get());
@@ -163,7 +164,31 @@ int main(int argc, const char *argv[])
         if (vertices_found.size() > 0)
             info.nevt_with_vertex += 1;
 
-        // 3. Append to the output file
+        // 3. find number of tracklets associated with each vertex
+        if (vertices_found.size() > 0)
+        {
+            // Use the vertex with most tracks
+            int ind_maxtrack = -1;
+            int maxtrack = -1;
+            for (auto j = 0; j < static_cast<int>(vertices_found.size()); j++)
+            {
+                if (static_cast<int>(vertices_found[j]->track_ids.size()) > maxtrack)
+                {
+                    maxtrack = vertices_found[j]->track_ids.size();
+                    ind_maxtrack = j;
+                }
+            }
+
+            for (auto &hits_group : hits_groupped)
+            {
+                std::vector<Tracker::DigiHit *> hits = hits_group.second;
+                vertex_track_finder.FindAll(hits, vertices_found[ind_maxtrack].get());
+                Tracker::TrackList tracklets_found = vertex_track_finder.GetResults();
+                print("Tracklets found!", tracklets_found.size());
+            }
+        }
+
+        // 4. Append to the output file
         // Disable saving if there is no tracks/vertices
         if ((save_option == 1 && tracks_found.size() == 0) ||
             (save_option == 2 && vertices_found.size() == 0))
