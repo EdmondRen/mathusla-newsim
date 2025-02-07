@@ -97,7 +97,6 @@ int main(int argc, const char *argv[])
         int nevt_with_track = 0;
         int nevt_with_vertex = 0;
     } info;
-    info.total_events += input_reader->GetEntries();
 
     // Loop selected events
     std::vector<int> inds_to_run;
@@ -113,6 +112,7 @@ int main(int argc, const char *argv[])
     }
     else
         inds_to_run = event_inds;
+    info.total_events += inds_to_run.size();
 
     // for (int i = 0; i < input_reader->GetEntries(); i++)
     for (auto i: inds_to_run)

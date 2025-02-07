@@ -126,10 +126,9 @@ namespace Tracker
         (void)speed_constraint;
 
         auto point_and_cov = get_same_time_pos_and_cov(point, speed_constraint, multiple_scattering);
-        Vector3d residual = point_and_cov.first.segment(0,3) - point.segment(0, 3);
+        Vector3d residual = point_and_cov.first.segment(0, 3) - point.segment(0, 3);
         double dist_point = residual.norm();
         double chi2_point = residual.transpose() * point_and_cov.second.inverse() * residual;
-
 
         // std::cout << "cov residual \n " <<  point_and_cov.second << std::endl;
         // std::cout << "dist, chi2 " << dist_point <<" , "<<chi2_point << std::endl;
@@ -144,7 +143,7 @@ namespace Tracker
         double dt = point(this->iv_index) - this->iv_value;
         Vector3d pos_on_track = this->params.segment(0, 3) + this->params.segment(3, 3) * dt;
         Vector4d pos_full = Helper::insertVector(pos_on_track, this->iv_index, point(this->iv_index));
-        
+
         MatrixXd cov_residual = this->cov.topLeftCorner(3, 3) +
                                 this->cov.topRightCorner(3, 3) * dt +
                                 this->cov.bottomLeftCorner(3, 3) * dt +
@@ -152,13 +151,13 @@ namespace Tracker
 
         // Multiple scattering matrix. Optional.
         if (multiple_scattering)
-        {   
+        {
             cov_residual += this->Q_block * dt * dt * 4;
         }
 
-        if (this->hit_ids.size()==4)
+        if (this->hit_ids.size() == 4)
         {
-            cov_residual *=4;
+            cov_residual *= 4;
         }
 
         return std::make_pair(pos_full, cov_residual);
@@ -176,7 +175,7 @@ namespace Tracker
 
         // std::cout << "cov \n " <<  point_and_cov.second << std::endl;
         // std::cout << "residual  " <<  residual.transpose() << std::endl;
-        // std::cout << "dist, chi2 " << dist_point <<" , "<<chi2_point << std::endl;        
+        // std::cout << "dist, chi2 " << dist_point <<" , "<<chi2_point << std::endl;
 
         return std::make_pair(dist_point, chi2_point);
     }
@@ -206,7 +205,6 @@ namespace Tracker
                     J_v0 * cov_full.bottomLeftCorner(4, 4) * J_r0.transpose() +
                     J_v0 * cov_full.bottomRightCorner(4, 4) * J_v0.transpose();
 
-
         return std::make_pair(closest_point, cov_point);
     }
 
@@ -216,7 +214,7 @@ namespace Tracker
         Vector4d residual4d = point_and_cov.first - point;
         double dist_point = residual4d.segment(0, 3).norm();
         double chi2_point = residual4d.transpose() * point_and_cov.second.inverse() * residual4d;
-        
+
         // std::cout << "cov residual \n " << point_and_cov.second << std::endl;
         // std::cout << "dist, chi2: " << dist_point <<" , "<<chi2_point << std::endl;
 
@@ -382,7 +380,7 @@ namespace Tracker
                                                           dir_z,
                                                           hit_layer,
                                                           hit_detector_group, i);
-
+            hit->detector_id = (*Digi_detectorID)[i];
             hits_tmp.push_back(std::move(hit));
         }
         return hits_tmp;
@@ -391,16 +389,54 @@ namespace Tracker
     std::unordered_map<int, std::vector<DigiHit *>> TreeReaderDigi::ProcessHits(std::vector<std::unique_ptr<DigiHit>> &hits_tmp)
     {
         std::unordered_map<int, std::vector<DigiHit *>> hits_dict;
-        for (auto &hit : hits_tmp)
+        // for (auto &hit : hits_tmp)
+        // {
+        //     auto group = hit->group;
+        //     if (group == 0)
+        //         continue;
+        //     hits_dict[group].push_back(hit.get());
+        // }
+
+        std::unordered_map<int, int> hit_inds_to_skip;
+        for (int i = 0; i < hits_tmp.size(); i++)
         {
-            auto group = hit->group;
+            if (hit_inds_to_skip.count(i) > 0)
+            {
+                continue;
+            }
+
+            // Check if there is an adjacent hit
+            bool found_adjacent = false;
+            int k = -1;
+            for (int j = i + 1; j < hits_tmp.size(); j++)
+            {
+                if (std::abs(hits_tmp[i]->detector_id - hits_tmp[j]->detector_id) == 1 &&
+                    std::abs(hits_tmp[i]->t() - hits_tmp[j]->t()) < 5)
+                {
+                    found_adjacent = true;
+                    k = j;
+                    hit_inds_to_skip[k] = 1;
+                    break;
+                }
+            }
+
+            // Alter the position and time of the first hit in the pair
+            if (found_adjacent)
+            {
+                hits_tmp[i]->setx((hits_tmp[i]->x() + hits_tmp[k]->x()) * 0.5);
+                hits_tmp[i]->sety((hits_tmp[i]->y() + hits_tmp[k]->y()) * 0.5);
+                hits_tmp[i]->setz((hits_tmp[i]->z() + hits_tmp[k]->z()) * 0.5);
+                hits_tmp[i]->sett((hits_tmp[i]->t() + hits_tmp[k]->t()) * 0.5);
+                hits_tmp[i]->setex(hits_tmp[i]->ex() * 0.707);
+                hits_tmp[i]->setey(hits_tmp[i]->ey() * 0.707);
+                hits_tmp[i]->setez(hits_tmp[i]->ez() * 0.707);
+                hits_tmp[i]->setet(hits_tmp[i]->et() * 0.707);
+            }
+
+            auto group = hits_tmp[i]->group;
             if (group == 0)
                 continue;
-
-            // if (hits_dict.count(group) == 0)
-            //     hits_dict[group] = std::vector<DigiHit *>();
-            // else
-            hits_dict[group].push_back(hit.get());
+            hits_dict[group].push_back(hits_tmp[i].get());
         }
 
         return hits_dict;

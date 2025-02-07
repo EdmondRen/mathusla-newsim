@@ -67,7 +67,7 @@ namespace Tracker
         // Optional
         int id;
         int type;
-        u_int64_t detector_id;
+        int64_t detector_id;
 
         // Set and Get methods
         inline double x() const { return vec4(0); }
