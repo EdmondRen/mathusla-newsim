@@ -108,6 +108,8 @@ class Track:
                 self.params_time[j] = self.params[k];
                 self.params_time[j + 3] = self.params[k + 3] / self.params[-1];
                 k+=1
+
+        self.vabs = np.linalg.norm(self.params_time[3:])
     
 
     def set_digis(self, digis_all):
@@ -225,7 +227,7 @@ class Event:
     def plot_truetracks(self, ind_h, ind_v):
         for t in self.truetracks:
             if t.plot_en:
-                plt.plot(t.xyzts[ind_h], t.xyzts[ind_v], linewidth=0.5, alpha=0.8)  
+                plt.plot(t.xyzts[ind_h], t.xyzts[ind_v], linewidth=1, alpha=0.9)  
 
     def plot_digis(self, ind_h, ind_v):
         # Plot used hits

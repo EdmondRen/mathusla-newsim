@@ -321,7 +321,8 @@ namespace Kalman
                 if (dropped)
                 {
                     dropped_inds.push_back(kf_full.CURRENT_STEP);
-                    print(util::py::f("   hit {} dropped with chi2 {}.", kf_full.CURRENT_STEP, chi2_temp));
+                    if (DEBUG)
+                        print(util::py::f("   hit {} dropped with chi2 {}.", kf_full.CURRENT_STEP, chi2_temp));
                 }
                 //  Finishing the current step
                 kf_full.smooth_step(dropped);

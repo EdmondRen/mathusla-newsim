@@ -21,6 +21,7 @@ namespace Tracker
 
         // Make track seeds
         void MakeSeeds();
+        void SortSeedsOccurance();
 
         // Group hits by layer
         void GroupHits();

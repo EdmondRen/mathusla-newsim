@@ -92,6 +92,49 @@ namespace Tracker
         }
     }
 
+    void TrackFinder::SortSeedsOccurance()
+    {
+        // std::unordered_map<int, int> hit_counts; // a map of {hit_id, hit_occurance}
+        // for (auto &seed : seeds_unused)
+        // {
+        //     hit_counts[seed->hits.first->id] += 1;
+        //     hit_counts[seed->hits.second->id] += 1;
+        // }
+
+        // for (auto &seed : seeds_unused)
+        // {
+        //     seed->nhit_occur += hit_counts[seed->hits.first->id];
+        //     seed->nhit_occur += hit_counts[seed->hits.second->id];
+        // }
+
+        // std::sort(seeds_unused.begin(), seeds_unused.end(),
+        //           [](TrackSeed *a, TrackSeed *b) -> bool
+        //           {
+        //               if (a->nhit_occur != b->nhit_occur)
+        //               {
+        //                   return a->nhit_occur > b->nhit_occur;
+        //               }
+        //               else if (a->dstep != b->dstep)
+        //               {
+        //                   return a->dstep < b->dstep;
+        //               }
+        //               else
+        //                   return a->dr < b->dr;
+        //           });
+
+        // Sort seeds based on a commom direction
+        // Vector3d direction = {0,0,0};
+        // int counter = 0;
+        // for (auto &seed : seeds_unused)
+        // {
+        //     direction += seed->dvec / seed->dr;
+        //     counter += 1;
+        // }     
+        // direction = direction/direction.norm();  
+        // print("Averaged direction", direction.transpose());
+    }
+
+
     void TrackFinder::GroupHits()
     {
         hits_grouped.clear();
@@ -196,6 +239,13 @@ namespace Tracker
         {
             print_dbg(util::py::f("\n***Searching for tracks with at least {} hits***", nhits_curr));
 
+            //////////////
+            if (nhits_curr == 4)
+            {
+                // SortSeedsOccurance();
+                // break;
+            }
+
             while (this->seeds_unused.size() > 0)
             {
                 // Skip the seed that have been used and known to have fewer hits than required
@@ -206,6 +256,7 @@ namespace Tracker
                     continue;
                 }
 
+                // **************************************************************************
                 // Round 1: find hits based on seed
                 int nhits_found = FindOnce(seeds_unused.back());
 
@@ -214,19 +265,6 @@ namespace Tracker
                 {
                     print_dbg(util::py::f("-x Track rejected, only {} hits", nhits_found));
                     seeds_unused.pop_back();
-
-                    // Loop all layers except the one with the first hit
-                    for (const auto &pair : hits_grouped)
-                    {
-                        auto hits_thisgroup = pair.second;
-                        // for (const auto &hit_and_id : hits_thisgroup)
-                        // {
-                        //     auto hit_id = hit_and_id.first;
-                        //     auto hit = hit_and_id.second;
-                        //     // print("------- hit ", hit_id, hit->group);
-                        // }
-                    }
-
                     continue;
                 }
 
@@ -243,19 +281,26 @@ namespace Tracker
                 // Skip to next round if nhits is fewer than asked
                 if (nhits_found < nhits_curr)
                 {
-                    print_dbg(util::py::f("-x Track rejected, only {} hits. Keep the seed for next iteration. hit inds:", nhits_found), hits_found_ids);
                     seeds_unused.back()->nhits_found = nhits_found;
                     seeds_unused.back()->chi2prob_found = ROOT::Math::chisquared_cdf(hits_found_temp_chi2, 3 * nhits_found - 6);
-                    ;
-                    seeds_unused_next.insert(seeds_unused_next.begin(), seeds_unused.back());
+                    if (seeds_unused.back()->chi2prob_found > config["track_cut_TrackChi2Prob"])
+                    {
+                        print_dbg("-x Track rejected, only {} hits and chi2 is larger than specified");
+                    }
+                    else
+                    {
+                        seeds_unused_next.insert(seeds_unused_next.begin(), seeds_unused.back());
+                        print_dbg(util::py::f("-x Track rejected, only {} hits. Keep the seed for next iteration. hit inds:", nhits_found), hits_found_ids);
+                    }
+
                     seeds_unused.pop_back();
                     continue;
                 }
 
                 print_dbg(util::py::f("-> Found track with {} hits:", nhits_found), hits_found_ids);
 
+                // **************************************************************************
                 // Round 2: drop hits with excessive chi2
-
                 auto track_model = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, DEBUG_KALMAN); // DEBUG_KALMAN
 
                 if (config["track_cut_HitDropChi2Prob"] > 0)
@@ -307,6 +352,7 @@ namespace Tracker
                 //     continue;
                 // }
 
+                // **************************************************************************
                 // Round 3: Run filter again backwards
                 // Discard this track if the seed contributes too much to chi2
                 // auto track_model = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, DEBUG_KALMAN); // DEBUG_KALMAN
@@ -394,6 +440,64 @@ namespace Tracker
             //     }
             // }
         }
+
+        // for (auto &seed : seeds_unused)
+        // {
+
+        //     // Round 1: find hits based on seed
+        //     int nhits_found = FindOnce(seed);
+
+        //     // Cut on number of hits
+        //     if (nhits_found < nhits_min)
+        //     {
+        //         print_dbg(util::py::f("-x Track rejected, only {} hits", nhits_found));
+        //         seeds_unused.pop_back();
+
+        //         continue;
+        //     }
+
+        //     // Sort hits by descending time.
+        //     std::sort(hits_found_temp.begin(), hits_found_temp.end(),
+        //               [](DigiHit *a, DigiHit *b) -> bool
+        //               { return a->t() > b->t(); });
+        //     std::string hits_found_ids = "";
+        //     for (auto hit : hits_found_temp)
+        //     {
+        //         hits_found_ids += std::to_string(hit->id) + " ";
+        //     }
+
+        //     // Skip to next round if nhits is fewer than asked
+        //     if (nhits_found < 4)
+        //     {
+        //         print_dbg(util::py::f("-x Track rejected, only {} hits. Keep the seed for next iteration. hit inds:", nhits_found), hits_found_ids);
+        //         continue;
+        //     }
+        //     print_dbg(util::py::f("-> Found track with {} hits:", nhits_found), hits_found_ids,"chi2:", this->hits_found_temp_chi2);
+        // }
+        // if (seeds_unused.size() > 2)
+        // {
+        //     for (int i = 0; i < seeds_unused.size() - 1; i++)
+        //     {
+        //         for (int j = i + 1; j < seeds_unused.size(); j++)
+        //         {
+        //             auto seed1 = seeds_unused[i];
+        //             auto seed2 = seeds_unused[j];
+        //             if (seed1->hits.first->layer == seed2->hits.first->layer ||
+        //                 seed1->hits.first->layer == seed2->hits.second->layer ||
+        //                 seed1->hits.second->layer == seed2->hits.first->layer ||
+        //                 seed1->hits.second->layer == seed2->hits.second->layer)
+        //                 continue;
+        //             std::vector<DigiHit *> hits_try = {seed1->hits.first, seed1->hits.second, seed2->hits.first, seed2->hits.second};
+        //             std::sort(hits_try.begin(), hits_try.end(),
+        //                       [](DigiHit *a, DigiHit *b) -> bool
+        //                       { return a->t() > b->t(); });
+        //             auto track_model = Kalman::KalmanTrack4D(config["track_fit_MultipleScattering"], 4, 6, DEBUG_KALMAN); // DEBUG_KALMAN
+        //             auto track = track_model.run_filter(hits_try);
+        //             if (track->chi2 < 18)
+        //                 print_dbg(util::py::f("-> Found track with chi2 {} : hits:", track->chi2), seed1->hits.first->id, seed1->hits.second->id, seed2->hits.first->id, seed2->hits.second->id);
+        //         }
+        //     }
+        // }
 
         if (DEBUG)
         {

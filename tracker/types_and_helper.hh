@@ -152,7 +152,7 @@ namespace Tracker
         TrackSeed(DigiHit *hit1, DigiHit *hit2) : nhits_found(-1)
         {
             float c = 299.7; // speed of light [mm/ns]
-            VectorXd dvec = hit2->vec4.array() - hit1->vec4.array();
+            this->dvec = hit2->vec4.array() - hit1->vec4.array();
             this->dstep = std::abs(hit2->get_step() - hit1->get_step());
             this->dr = dvec.segment(0, 3).norm();
             this->dt = std::abs(dvec(3));
@@ -167,9 +167,11 @@ namespace Tracker
         // Required data
         std::pair<DigiHit *, DigiHit *> hits;
         float score;
+        VectorXd dvec;
         float dr, dt, dstep;
         int nhits_found; // Number of hits found using this seed. Save time when reusing this seed.
         double chi2prob_found; //
+        int nhit_occur;
 
         // float GetScore() { return score; }
     };

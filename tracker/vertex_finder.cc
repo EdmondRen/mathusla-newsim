@@ -20,7 +20,7 @@ namespace Tracker
         config["vertex_cut_TrackAddChi2"] = 15;                            // chi2 cut to add a track
         config["vertex_cut_TrackDropChi2"] = 7;                            // chi2 cut to drop a track
         config["vertex_cut_VertexChi2Reduced"] = 5;                        // Vertex chi2-square cut
-        config["vertex_cut_VertexNTracksMin"] = 2;                           // Vertex minimum number of tracks
+        config["vertex_cut_VertexNTracksMin"] = 2;                         // Vertex minimum number of tracks
         config["vertex_fit_MultipleScattering"] = 1;                       // Account for multiple scattering in fit. 0: OFF
         config["vertex_multiple_scattering_p"] = 500;                      // Particle momentum asumed for multiple scattering
         config["vertex_multiple_scattering_length"] = 0.06823501107481977; // Material thickness in the unit of scattering length. Calculated for 1 cm plastic scintillator and 0.6 mm aluminum.
@@ -49,10 +49,15 @@ namespace Tracker
             {
 
                 auto new_seed = new Kalman::VertexSeed(tracks_all[i], tracks_all[j]);
+                // print(i,j);
+                // print(tracks_all[i]->params_time.transpose());
+                // print(tracks_all[j]->params_time.transpose());
                 if (new_seed->distance < config["vertex_cut_SeedDist"])
                 {
-                    if (new_seed->GetChi2() < config["vertex_cut_SeedChi2"])
+                    if (new_seed->GetChi2(config["vertex_fit_MultipleScattering"] > 0) < config["vertex_cut_SeedChi2"])
                         this->seeds_unused.push_back(new_seed);
+                    else
+                        print_dbg("  seed rejected: distance, chi2:", new_seed->distance, ",", new_seed->chi2);
                 }
                 else
                     delete new_seed;
@@ -70,15 +75,18 @@ namespace Tracker
                     track->id == seed->tracks.second->id)
                     continue;
 
-                double track_to_seed_dist = track->get_same_time_dist(seed->vertex_fit);
-                seed->track_distance_list.push_back(std::make_pair(track->id, track_to_seed_dist));
-                if (track_to_seed_dist < config["vertex_cut_TrackAddDist"])
+                // double track_to_seed_dist = track->get_same_time_dist(seed->vertex_fit);
+                auto pair = track->get_same_invar_dist_and_chi2(seed->vertex_fit, -1, config["vertex_fit_MultipleScattering"] > 0);
+                double track_to_seed_dist = pair.first;
+                double track_to_seed_chi2 = pair.second;
+                seed->track_distance_chi2_list.push_back(std::make_tuple(track->id, track_to_seed_dist, track_to_seed_chi2));
+                if (track_to_seed_dist < config["vertex_cut_TrackAddDist"] && track_to_seed_chi2 < config["vertex_cut_TrackAddChi2"])
                     seed->ntracks_found += 1;
 
                 // Sort distance descending. Minimum distance at the end. Use backwards.
-                std::sort(seed->track_distance_list.begin(), seed->track_distance_list.end(),
-                          [](std::pair<int, double> &a, std::pair<int, double> &b)
-                          { return a.second > b.second; });
+                std::sort(seed->track_distance_chi2_list.begin(), seed->track_distance_chi2_list.end(),
+                          [](auto &a, auto &b)
+                          { return std::get<2>(a) > std::get<2>(b); });
             }
 
             // Score: defined as ntracks
@@ -98,9 +106,11 @@ namespace Tracker
                       {
                           return a->ntracks_found < b->ntracks_found;
                       }
-                      else 
+                      else
                       {
-                          return a->chi2 > b->chi2;
+                          return a->distance_r0 < b->distance_r0;
+                          //   return a->distance_r0 - a->chi2 * 100 < b->distance_r0 - b->chi2 * 100;
+                          //   return a->chi2 < b->chi2;
                       }
                   });
 
@@ -137,11 +147,12 @@ namespace Tracker
         finder.init_state(*seed);
 
         // Try all tracks that are recorded in the seed
-        for (int i = seed->track_distance_list.size() - 1; i >= 0; i--)
+        for (int i = seed->track_distance_chi2_list.size() - 1; i >= 0; i--)
         {
-            auto track_pair_dist = seed->track_distance_list[i];
-            auto track_id = track_pair_dist.first;
-            auto track_dist = track_pair_dist.second;
+            auto track_pair_dist_chi2 = seed->track_distance_chi2_list[i];
+            auto track_id = std::get<0>(track_pair_dist_chi2);
+            auto track_dist = std::get<1>(track_pair_dist_chi2);
+            auto track_chi2 = std::get<2>(track_pair_dist_chi2);
 
             if (track_dist > config["vertex_cut_TrackAddDist"] * 2 ||
                 tracks_unused.count(track_id) == 0)
@@ -154,7 +165,7 @@ namespace Tracker
                 // Delete it from the seed and skip this round of loop
                 if (i != 0)
                 {
-                    seed->track_distance_list.erase(seed->track_distance_list.begin() + i);
+                    seed->track_distance_chi2_list.erase(seed->track_distance_chi2_list.begin() + i);
                     continue;
                 }
                 else
@@ -163,7 +174,6 @@ namespace Tracker
 
             auto &track = tracks_unused[track_id];
 
-            float track_chi2;
             track_chi2 = finder.try_measurement(*track,
                                                 config["vertex_cut_TrackAddDist"],
                                                 config["vertex_cut_TrackAddChi2"]);
@@ -193,11 +203,12 @@ namespace Tracker
         float chi2_prev = vertex_found->chi2;
 
         // Try all tracks that are recorded in the seed
-        for (int i = seed->track_distance_list.size() - 1; i >= 0; i--)
+        for (int i = seed->track_distance_chi2_list.size() - 1; i >= 0; i--)
         {
-            auto track_pair_dist = seed->track_distance_list[i];
-            auto track_id = track_pair_dist.first;
-            auto track_dist = track_pair_dist.second;
+            auto track_pair_dist_chi2 = seed->track_distance_chi2_list[i];
+            auto track_id = std::get<0>(track_pair_dist_chi2);
+            auto track_dist = std::get<1>(track_pair_dist_chi2);
+            auto track_chi2 = std::get<2>(track_pair_dist_chi2);
 
             if (track_dist > config["vertex_cut_TrackAddDist"] * 2 ||
                 tracks_unused.count(track_id) == 0)
@@ -210,7 +221,7 @@ namespace Tracker
                 // Delete it from the seed and skip this round of loop
                 if (i != 0)
                 {
-                    seed->track_distance_list.erase(seed->track_distance_list.begin() + i);
+                    seed->track_distance_chi2_list.erase(seed->track_distance_chi2_list.begin() + i);
                     continue;
                 }
                 else
@@ -221,7 +232,7 @@ namespace Tracker
 
             tracks_found_temp.push_back(tracks_unused[track_id]);
             auto vertex_temp = vertex_fitter.run_fit(tracks_found_temp);
-            float track_chi2 = vertex_temp->chi2 - chi2_prev;
+            track_chi2 = vertex_temp->chi2 - chi2_prev;
 
             if (track_chi2 < config["vertex_cut_TrackAddChi2"])
             {

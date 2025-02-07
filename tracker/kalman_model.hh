@@ -31,7 +31,6 @@ namespace Kalman
 
         int new_filter_step(const Tracker::DigiHit &hit);
 
-
         // Try a measurement
         // If the hit passed the range and chi2 cut, return the chi2 value
         // Else, return -1
@@ -56,9 +55,9 @@ namespace Kalman
             auto sigma_ms = 13.6 * std::pow(l_rad_relative, 0.5) * (1 + 0.038 * std::log(l_rad_relative)) / momentum_MeV;
             return sigma_ms;
         }
-        
-        std::vector<int> get_dropped_inds(){return dropped_inds;}
-        double get_current_chi2(){return kf.GetChi2();}
+
+        std::vector<int> get_dropped_inds() { return dropped_inds; }
+        double get_current_chi2() { return kf.GetChi2(); }
 
     protected:
         // Filter instance
@@ -83,7 +82,7 @@ namespace Kalman
         std::unique_ptr<Tracker::Track> track; // state, 1x6 col vector
 
         MatrixXd Q_block;
-        
+
         std::vector<int> dropped_inds;
     };
 
@@ -175,14 +174,15 @@ namespace Kalman
             this->vertex_guess = guess.second;
             this->ntracks_found = 2;
             this->nhits = track1->hit_ids.size() + track2->hit_ids.size();
+            this->distance_r0 = (track1->params_full.segment(0, 3) - track2->params_full.segment(0, 3)).norm();
         }
 
-        float GetChi2()
+        float GetChi2(bool multiple_scattering_en = true)
         {
             // float c = 299.7; // speed of light [mm/ns]
 
             // Use LS fit to get the chi2 and covariance matrix of this pair
-            auto vertex_fitter = Kalman::LSVertex4DFitter(3);
+            auto vertex_fitter = Kalman::LSVertex4DFitter(3, multiple_scattering_en);
             std::vector<Tracker::Track *> tracks_fit = {tracks.first, tracks.second};
 
             // Reuse the calculated best guess to initialize the fitter
@@ -210,11 +210,12 @@ namespace Kalman
         MatrixXd cov;
         Eigen::Vector4d vertex_guess, vertex_fit;
         float score;
-        float distance, chi2; // Distance between the two tracks
+        float distance, chi2; // Minimum Distance and chi2 between the two tracks
         int ntracks_found;    // Number of track compatible with this seed
-        int nhits; // number of hits in the track pair.
+        int nhits;            // number of hits in the track pair.
+        double distance_r0;   // Distance at the starting point of the track
 
-        std::vector<std::pair<int, double>> track_distance_list;
+        std::vector<std::tuple<int, double, double>> track_distance_chi2_list; // {id, distance, chi2}
     };
 
     class KalmanVertex4D
