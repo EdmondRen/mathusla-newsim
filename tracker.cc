@@ -64,9 +64,11 @@ int main(int argc, const char *argv[])
     int save_option = args["save_option"].as<int>();        // 0: all, 1: track:, 2: vertex
     bool save_raw_reduced = args["raw_reduced"].as<bool>(); // save just the seed from simulation file
 
-    std::filesystem::path input_filename = args["filename"].as<std::string>();
+    std::filesystem::path input_filename = std::filesystem::canonical(args["filename"].as<std::string>());
     std::filesystem::path output_filename = input_filename;
     output_filename.replace_filename(output_filename.stem().string() + "_recon" + output_filename.extension().string());
+    print("Processing input file", input_filename.string().length());
+    print("Output will be saved as", output_filename.string());
     auto input_reader = std::make_unique<Tracker::TreeReaderDigi>(input_filename.string());
     auto output_writer = std::make_unique<Tracker::TreeWriterRecon>(output_filename.string(), input_filename.string(), args["rawfile"].as<std::string>(), save_raw_reduced);
     auto start = std::chrono::high_resolution_clock::now();
@@ -166,7 +168,9 @@ int main(int argc, const char *argv[])
 
         // 3. find number of tracklets associated with each vertex
         if (vertices_found.size() > 0)
-        {
+        {   
+            if (args["debug_vertex"].as<bool>())
+                print("==================Finding tracklets that are consistent with each vertex===================");
             // Use the vertex with most tracks
             int ind_maxtrack = -1;
             int maxtrack = -1;

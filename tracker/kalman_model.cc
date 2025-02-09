@@ -145,6 +145,7 @@ namespace Kalman
         // Initial Covariance
         MatrixXdSp J(6, 8); // Jacobian matrix. Initialized to 0 by default
         MatrixXd err(8, 8);
+        err.setZero();
         for (int j = 0, k = 0; j < 4; ++j)
         {
             if (j != hit2.iv_index)
@@ -168,6 +169,7 @@ namespace Kalman
             hit2.ex() * hit2.ex(), hit2.ey() * hit2.ey(), hit2.ez() * hit2.ez(), hit2.et() * hit2.et();
         err.topLeftCorner(4,4) = point_cov;
         this->Cf0 = J * err * J.transpose();
+        // std::cout << "Error matrix full \n" << err <<std::endl;
 
         // Record the position of current step
         this->step_current = hit2.get_step();

@@ -332,6 +332,21 @@ namespace Tracker
             print_dbg("  Remaining seeds:", seeds_unused.size());
         }
 
+        if (DEBUG)
+        {
+            print("\n\n------------------------------------------------");
+            auto info = this->Summary();
+            print(info);
+
+            for (const auto &vertex : this->vertices_found)
+            {
+                print(util::py::f(" * Vertex #{}, ntracks {}, chi2 {}, params = ", vertex->id, vertex->track_ids.size(), vertex->chi2), 
+                vertex->params.transpose(), 
+                ", err=", vertex->cov.diagonal().array().sqrt().transpose());
+            }
+            print("------------------------------------------------\n\n");
+        }        
+
         return vertices_found.size();
     }
 

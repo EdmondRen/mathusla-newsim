@@ -343,7 +343,7 @@ namespace Tracker
         TreeData->SetBranchAddress("Digi_hitInds", &Digi_hitInds);
         TreeData->SetBranchAddress("Digi_direction", &Digi_direction);
 
-        // Write metadata
+        // Read metadata
         TreeMetadata->SetBranchAddress("SimulationName", &SimulationName);
         TreeMetadata->SetBranchAddress("Geometry", &Geometry);
         TreeMetadata->SetBranchAddress("Generator", &Generator);

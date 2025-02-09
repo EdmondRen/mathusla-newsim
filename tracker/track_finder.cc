@@ -912,7 +912,9 @@ namespace Tracker
 
             for (const auto &track : tracks_found)
             {
-                print(util::py::f(" * Track #{}, nhits {}, chi2 {}, params = ", track->id, track->hit_ids.size(), track->chi2), track->params.transpose());
+                print(util::py::f(" * Track #{}, nhits {}, chi2 {}, params = ", track->id, track->hit_ids.size(), track->chi2),
+                      track->params.transpose(),
+                      ", err=", track->cov.diagonal().array().sqrt().transpose());
             }
             print("------------------------------------------------\n\n");
         }
