@@ -324,11 +324,27 @@ namespace Tracker
     TreeReaderDigi::TreeReaderDigi(std::string filename)
     {
         auto tree_name = "data";
+        std::cout << filename << std::endl;
         File = TFile::Open(filename.c_str());
+        File->ls();
         TreeData = (TTree *)File->Get(tree_name);
         TreeMetadata = (TTree *)File->Get("metadata");
 
         entries_total = TreeData->GetEntries();
+        Digi_x = nullptr;
+        Digi_y = nullptr;
+        Digi_z = nullptr;
+        Digi_t = nullptr;
+        Digi_edep = nullptr;
+        Digi_trackID = nullptr;
+        Digi_pdgID = nullptr;
+        Digi_detectorID = nullptr;
+        Digi_type = nullptr;
+        Digi_hitInds = nullptr;
+        Digi_direction = nullptr;
+        SimulationName = nullptr;
+        Geometry = nullptr;
+        Generator = nullptr;
 
         // Setup tree pointer to data buffer
         TreeData->SetBranchAddress("Digi_x", &Digi_x);
@@ -351,6 +367,7 @@ namespace Tracker
         TreeMetadata->SetBranchAddress("Uncertainty_x", &Uncertainty_x);
         TreeMetadata->SetBranchAddress("Uncertainty_y", &Uncertainty_y);
         TreeMetadata->SetBranchAddress("Uncertainty_z", &Uncertainty_z);
+
         TreeMetadata->GetEntry(0);
         digi_unc << Uncertainty_x, Uncertainty_y, Uncertainty_z, Uncertainty_t;
     }

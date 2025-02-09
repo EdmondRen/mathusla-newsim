@@ -1,6 +1,7 @@
 #ifndef tracker_types_HH
 #define tracker_types_HH
 
+#include <cstdio>
 #include <iostream>
 #include <memory>
 

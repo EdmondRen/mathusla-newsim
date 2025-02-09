@@ -67,7 +67,7 @@ int main(int argc, const char *argv[])
     std::filesystem::path input_filename = std::filesystem::canonical(args["filename"].as<std::string>());
     std::filesystem::path output_filename = input_filename;
     output_filename.replace_filename(output_filename.stem().string() + "_recon" + output_filename.extension().string());
-    print("Processing input file", input_filename.string().length());
+    print("Processing input file", input_filename.string());
     print("Output will be saved as", output_filename.string());
     auto input_reader = std::make_unique<Tracker::TreeReaderDigi>(input_filename.string());
     auto output_writer = std::make_unique<Tracker::TreeWriterRecon>(output_filename.string(), input_filename.string(), args["rawfile"].as<std::string>(), save_raw_reduced);
