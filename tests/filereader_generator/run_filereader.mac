@@ -26,9 +26,11 @@
 /control/execute ../macros/init_limit.mac
 
 ## Specify the ROOT file to recreate
-/gen/recreate/pathname /home/tomren/geant_projects/musim_test/recon_llp/run_0_digi_recon.root
+/gen/recreate/pathname /home/tomren/geant_projects/temp/LLP_bb_25_ctau_1000.root
 ## Setup recreate generator
 /gen/select recreate
+
+/run/beamOn 100
 
 
 ## !! NO NEED TO CALL  run beamOn !!

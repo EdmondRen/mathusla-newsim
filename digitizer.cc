@@ -590,6 +590,9 @@ public:
 
         // Average total number of noise events in all bars
         this->noise_counts_mean = noise_rate * noise_window * bar_index.size() * 2;
+        
+        print("Digitizer > Noise maker enabled! Noise rate per bar [Hz]:", noise_rate, ", noise widow +/- [ns]:", noise_window, bar_map.size());
+        print("Digitizer >    average noise counts per event: ", noise_counts_mean);
     }
 
     std::vector<DigitizerHit *> run()
@@ -630,7 +633,7 @@ int main(int argc, const char *argv[])
         ("T,time_limit", "Time limit [ns]", cxxopts::value<float>()->default_value("20"))
         ("E,energy_threshold", "Energy threshold for a digi [MeV]", cxxopts::value<float>()->default_value("0.65"))
         ("p,print_progress", "Print progress every `p` events", cxxopts::value<int>()->default_value("1"))
-        ("n,noise_rate", "Noise rate [avg number per file]. Set to -1 to disable (default).", cxxopts::value<float>()->default_value("-1"))
+        ("n,noise_rate", "Noise rate per bar [avg number]. Set to -1 to disable.", cxxopts::value<float>()->default_value("-1"))
         ("w,noise_window", "Noise window [s], noise will be sampled between [-noise_window, noise_window]", cxxopts::value<float>()->default_value("1000e-9"));
     options.parse_positional({"filename"});
     auto args = options.parse(argc, argv);
@@ -643,7 +646,7 @@ int main(int argc, const char *argv[])
         return 0; // Exit the program after showing help
     }
 
-    print("**************************************************************");
+    print("\n**************************************************************");
     print("   MATHUSLA SIM Digitizer, version ", util::VERSION);
     print("      - MATHUSLA Collaboration");
     print("**************************************************************");

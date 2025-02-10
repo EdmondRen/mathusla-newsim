@@ -120,14 +120,19 @@ set(track_test_util ${PROJECT_SOURCE_DIR}/tracker/tests/test_util.cc ${PROJECT_S
 # target_link_libraries(tracker_test1 mu_recon)
 # add_executable(tracker_test2 ${PROJECT_SOURCE_DIR}/tracker/tests/test1_track_kf_find.cc ${track_test_util})
 # target_link_libraries(tracker_test2 mu_recon)
-add_executable(tracker_test3 ${PROJECT_SOURCE_DIR}/tracker/tests/test3_vertex_fits.cc ${track_test_util})
-target_link_libraries(tracker_test3 mu_recon mu_sim ${CRY_LIBRARIES})
+# add_executable(tracker_test3 ${PROJECT_SOURCE_DIR}/tracker/tests/test3_vertex_fits.cc ${track_test_util})
+# target_link_libraries(tracker_test3 mu_recon mu_sim ${CRY_LIBRARIES})
 # add_executable(tracker_test4 ${PROJECT_SOURCE_DIR}/tracker/tests/test4_vertex_find.cc ${track_test_util})
 # target_link_libraries(tracker_test4 mu_recon mu_sim ${CRY_LIBRARIES})
 
 ## Tracker main
 add_executable(tracker tracker.cc)
 target_link_libraries(tracker PUBLIC  mu_recon mu_sim ${CRY_LIBRARIES})
+
+
+## ROOT tree combiner
+add_executable(merge merge.cc)
+target_link_libraries(merge PUBLIC  ${ROOT_LIBRARIES})
 
 
 #----------------------------------------------------------------------------

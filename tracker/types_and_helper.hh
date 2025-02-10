@@ -191,6 +191,7 @@ namespace Tracker
         int id;
         std::vector<int> track_ids;
         std::vector<int> hit_ids;
+        bool is_downward;
     };
     using VertexLilst = std::vector<std::unique_ptr<Vertex>>;
 

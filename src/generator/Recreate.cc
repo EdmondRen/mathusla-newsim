@@ -74,6 +74,12 @@ namespace MuGenerators
                 seed_combined.push_back(data_seed_0_raw);
                 seed_combined.push_back(data_seed_1_raw);
                 CLHEP::HepRandom::getTheEngine()->getState(seed_combined);
+                // G4cout << " setting seed to " << data_seed_0_raw <<", "<< data_seed_1_raw <<G4endl;
+            }
+            else
+            {
+                // G4cout << " setting seed to " << data_seed_0_raw <<", "<< data_seed_1_raw <<G4endl;
+
             }
         }
         else

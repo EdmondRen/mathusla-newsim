@@ -313,17 +313,25 @@ namespace Tracker
             // vertex_found->hit_ids = std::vector<int>();
 
             tracks_found_ids = "";
+            bool is_downward = true;
             for (auto track : tracks_found_temp)
             {
                 tracks_found_ids += std::to_string(track->id) + " ";
                 vertex_found->track_ids.push_back(track->id);
                 for (auto &hitid : track->hit_ids)
                     vertex_found->hit_ids.push_back(hitid);
+
+                // It takes only one upwad track to mark it as not downward vertex
+                if (track->params_time(5) > 0)
+                    is_downward = false;
             }
             print_dbg(util::py::f("-> Found vertex with {} tracks:", tracks_found_temp.size()), tracks_found_ids);
 
+            vertex_found->is_downward = is_downward;
+
             // Add vertex to the list
-            std::unique_ptr<Tracker::Vertex> vertex_uniqueptr(vertex_found);
+            std::unique_ptr<Tracker::Vertex>
+                vertex_uniqueptr(vertex_found);
             this->vertices_found.push_back(std::move(vertex_uniqueptr));
             print_dbg(util::py::f("-> Vertex #{} added: chi2 {:.3f}", this->vertices_found.size(), this->vertices_found.back()->chi2));
 
@@ -340,12 +348,12 @@ namespace Tracker
 
             for (const auto &vertex : this->vertices_found)
             {
-                print(util::py::f(" * Vertex #{}, ntracks {}, chi2 {}, params = ", vertex->id, vertex->track_ids.size(), vertex->chi2), 
-                vertex->params.transpose(), 
-                ", err=", vertex->cov.diagonal().array().sqrt().transpose());
+                print(util::py::f(" * Vertex #{}, ntracks {}, chi2 {}, params = ", vertex->id, vertex->track_ids.size(), vertex->chi2),
+                      vertex->params.transpose(),
+                      ", err=", vertex->cov.diagonal().array().sqrt().transpose());
             }
             print("------------------------------------------------\n\n");
-        }        
+        }
 
         return vertices_found.size();
     }

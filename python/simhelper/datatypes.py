@@ -17,10 +17,10 @@ class GenVertices:
         p_x_unique_inds, unique_indices  = np.unique(np.array([p.xyzt[0] for p in genparticles]), return_index=True)
         self.vertices = [genparticles[i].xyzt for i in unique_indices]
 
-    def plot(self, ind_h, ind_v):
+    def plot(self, ind_h, ind_v, scale = 0.001):
         colors=["cyan"]#, "yellow", "green", "red"]
         for i,vertex in enumerate(self.vertices):
-            plt.plot(vertex[ind_h], vertex[ind_v], marker="*", color=colors[i%len(colors)])
+            plt.plot(vertex[ind_h] * scale, vertex[ind_v] * scale, marker="*", color=colors[i%len(colors)])
 
 class Hit:
     def __init__(self, data=None, i=0):
@@ -44,16 +44,20 @@ class Digi:
             self.type = data["Digi_type"][i]
             self.track_id = data["Digi_trackID"][i]
             
-
-            try:
-                ihit,jhit = self.hit_inds[0],self.hit_inds[1]
-            except:
-                ihit = self.hit_inds[0]
-                jhit=ihit+1 if (ihit<len(data["Hit_y"])-2) else ihit-1
-            self.momentum = np.array([data["Hit_px"][ihit], data["Hit_py"][ihit], data["Hit_pz"][ihit]])
-            self.xyzt_truth = np.array([data["Hit_x"][ihit], data["Hit_y"][ihit], data["Hit_z"][ihit], data["Hit_t"][ihit]])
-            self.velocity =(np.array([data["Hit_x"][ihit], data["Hit_y"][ihit], data["Hit_z"][ihit]]) -\
-                            np.array([data["Hit_x"][jhit], data["Hit_y"][jhit], data["Hit_z"][jhit]])) / (data["Hit_t"][ihit] - data["Hit_t"][jhit])
+            if (self.type>0 and "Hit_x" in data):
+                try:
+                    ihit,jhit = self.hit_inds[0],self.hit_inds[1]
+                except:
+                    ihit = self.hit_inds[0]
+                    jhit=ihit+1 if (ihit<len(data["Hit_y"])-2) else ihit-1
+                self.momentum = np.array([data["Hit_px"][ihit], data["Hit_py"][ihit], data["Hit_pz"][ihit]])
+                self.xyzt_truth = np.array([data["Hit_x"][ihit], data["Hit_y"][ihit], data["Hit_z"][ihit], data["Hit_t"][ihit]])
+                self.velocity =(np.array([data["Hit_x"][ihit], data["Hit_y"][ihit], data["Hit_z"][ihit]]) -\
+                                np.array([data["Hit_x"][jhit], data["Hit_y"][jhit], data["Hit_z"][jhit]])) / (data["Hit_t"][ihit] - data["Hit_t"][jhit])
+            else:
+                self.momentum = np.array([0,0,1])
+                self.xyzt_truth = np.array([0,0,0,0])
+                self.velocity = np.array([0,0,0,0])
 
             direction_x = round(self.direction//100 % 10)
             direction_y = round(self.direction//10 % 10)
@@ -141,13 +145,13 @@ class Track:
         self.tmin = min(digi_times)
         self.tmax = max(digi_times)
 
-    def plot(self, ind_h, ind_v, from_time = None, color="k"):
+    def plot(self, ind_h, ind_v, from_time = None, color="k", scale=0.001):
         tmin = self.tmin if from_time is None else from_time
-        xs = [self.params_time[ind_h] + self.params_time[ind_h+3]*(tmin-self.t0),
-              self.params_time[ind_h] + self.params_time[ind_h+3]*(self.tmax-self.t0)]
-        ys = [self.params_time[ind_v] + self.params_time[ind_v+3]*(tmin-self.t0),
-              self.params_time[ind_v] + self.params_time[ind_v+3]*(self.tmax-self.t0)] 
-        plt.plot(xs,ys, linestyle=":", color=color)
+        xs = np.array([self.params_time[ind_h] + self.params_time[ind_h+3]*(tmin-self.t0),
+              self.params_time[ind_h] + self.params_time[ind_h+3]*(self.tmax-self.t0)])
+        ys = np.array([self.params_time[ind_v] + self.params_time[ind_v+3]*(tmin-self.t0),
+              self.params_time[ind_v] + self.params_time[ind_v+3]*(self.tmax-self.t0)] )
+        plt.plot(xs * scale,ys * scale, linestyle=":", color=color)
 
 
 class Vertex:
@@ -170,7 +174,28 @@ class Vertex:
 
         self.vertex_purity = np.mean(tracks_purity)
 
-            
+class PDG:    
+    name_map = {
+         11: ["e-",],
+         -11: ["e+",],
+         13: [r"mu-",],
+         -13: ["mu+",],
+         22: [r"gamma",],
+         211: ["pi+" ,],
+         -211: ["pi-",],
+         321: ["K+"  ,],
+         -321: ["K-",],
+         2112: ["n",],
+         -2112: [r"n bar",],
+         2212: ["p",],
+         -2212: ["p bar",],
+        }
+    
+    @staticmethod
+    def str(pdg):
+        if pdg in PDG.name_map:
+            return PDG.name_map[pdg][0]
+        return "pdg: " + str(pdg)          
 
 
 class Event:
@@ -182,12 +207,17 @@ class Event:
         self.genparticles = np.array([GenParticle(data_parsed, i) for i in range(len(data_parsed["Gen_x"]))])
         self.genvertices = GenVertices(self.genparticles)
         
-        # Get truth hits
-        self.hits = np.array([Hit(data_parsed,i) for i in range(len(data_parsed["Hit_x"]))])
-        
-        # Get truth track
-        track_ids, hits_inds_grouped = util.Utils.groupby(data_parsed["Hit_trackID"], np.arange(len(data_parsed["Hit_x"])))
-        self.truetracks = [TrueTrack(self.hits[hit_ids],track_id) for track_id, hit_ids in zip(track_ids, hits_inds_grouped)]
+        # Get truth 
+        if ("Hit_x" in data_parsed):
+            self.HAS_TRUTH = True
+
+            # Truth hits
+            self.hits = np.array([Hit(data_parsed,i) for i in range(len(data_parsed["Hit_x"]))])
+            # Truth track
+            track_ids, hits_inds_grouped = util.Utils.groupby(data_parsed["Hit_trackID"], np.arange(len(data_parsed["Hit_x"])))
+            self.truetracks = [TrueTrack(self.hits[hit_ids],track_id) for track_id, hit_ids in zip(track_ids, hits_inds_grouped)]
+        else:
+            self.HAS_TRUTH = False
         
         # Get Digits
         self.digis = np.array([Digi(data_parsed,i, metadata_digi) for i in range(len(data_parsed["Digi_x"]))])
@@ -227,23 +257,25 @@ class Event:
         self.digi_truth_track_ids = tid
         self.digi_truth_track_nhits = tid_counts
     
-    def plot_truetracks(self, ind_h, ind_v):
+    def plot_truetracks(self, ind_h, ind_v, scale = 0.001):
+        if not self.HAS_TRUTH:
+            return
         for t in self.truetracks:
             if t.plot_en:
-                plt.plot(t.xyzts[ind_h], t.xyzts[ind_v], linewidth=1, alpha=0.9)  
+                plt.plot(t.xyzts[ind_h]*scale, t.xyzts[ind_v]*scale, linewidth=1, alpha=0.9)  
 
-    def plot_digis(self, ind_h, ind_v):
+    def plot_digis(self, ind_h, ind_v, scale = 0.001):
         # Plot used hits
         plot_xs = []
         plot_ys = []
         plot_xerrs = []
         plot_yerrs = []
         for d in self.digis:
-            if d.type==0 and d.id in self.digis_used_inds:
-                plot_xs.append(d.xyzt[ind_h])
-                plot_ys.append(d.xyzt[ind_v])
-                plot_xerrs.append(d.err4[ind_h])
-                plot_yerrs.append(d.err4[ind_v])   
+            if d.type>=0 and d.id in self.digis_used_inds:
+                plot_xs.append(d.xyzt[ind_h] * scale)
+                plot_ys.append(d.xyzt[ind_v] * scale)
+                plot_xerrs.append(d.err4[ind_h] * scale)
+                plot_yerrs.append(d.err4[ind_v] * scale)   
         plt.errorbar(plot_xs, plot_ys, xerr=plot_xerrs, yerr=plot_yerrs, fmt="o", color="C0", markersize=3, alpha=0.3, capsize=2)
 
         # Plot unused hits
@@ -252,11 +284,11 @@ class Event:
         plot_xerrs = []
         plot_yerrs = []
         for d in self.digis:
-            if d.type==0 and d.id not in self.digis_used_inds:
-                plot_xs.append(d.xyzt[ind_h])
-                plot_ys.append(d.xyzt[ind_v])
-                plot_xerrs.append(d.err4[ind_h])
-                plot_yerrs.append(d.err4[ind_v])   
+            if d.type>=0 and d.id not in self.digis_used_inds:
+                plot_xs.append(d.xyzt[ind_h] * scale)
+                plot_ys.append(d.xyzt[ind_v] * scale)
+                plot_xerrs.append(d.err4[ind_h] * scale)
+                plot_yerrs.append(d.err4[ind_v] * scale)   
         plt.errorbar(plot_xs, plot_ys, xerr=plot_xerrs, yerr=plot_yerrs, fmt="o", color="salmon", markersize=3, alpha=0.3, capsize=2)
 
         # Plot noise hits and other hit types
@@ -265,14 +297,14 @@ class Event:
         plot_xerrs = []
         plot_yerrs = []
         for d in self.digis:
-            if d.type!=0:
-                plot_xs.append(d.xyzt[ind_h])
-                plot_ys.append(d.xyzt[ind_v])
-                plot_xerrs.append(d.err4[ind_h])
-                plot_yerrs.append(d.err4[ind_v])   
+            if d.type==-1:
+                plot_xs.append(d.xyzt[ind_h] * scale)
+                plot_ys.append(d.xyzt[ind_v] * scale)
+                plot_xerrs.append(d.err4[ind_h] * scale)
+                plot_yerrs.append(d.err4[ind_v] * scale)   
         plt.errorbar(plot_xs, plot_ys, xerr=plot_xerrs, yerr=plot_yerrs, fmt="o", color="grey", markersize=3, alpha=0.3, capsize=2)
 
-    def plot_vertex(self, ind_h, ind_v, plot_tracks=True, lim_x = 100e3, lim_y = 100e3):
+    def plot_vertex(self, ind_h, ind_v, plot_tracks=True, lim_x = 100e3, lim_y = 100e3, scale = 0.001):
         icolor=0
         for v in self.vertices:
             x,y = v.params[ind_h], v.params[ind_v]
@@ -281,14 +313,47 @@ class Event:
             if abs(y)>lim_y:
                 continue                
                 
-            plt.scatter(x,y, marker="^", color=f"C{icolor}")
+            plt.scatter(x * scale,y * scale, marker="^", color=f"C{icolor}")
             for track_id in v.track_ids:
-                self.tracks[track_id].plot(ind_h,ind_v, from_time = v.params[3], color=f"C{icolor}")
+                self.tracks[track_id].plot(ind_h,ind_v, from_time = v.params[3], color=f"C{icolor}", scale = scale)
             icolor +=1;
 
         for t in self.tracks:
             if t.id not in self.tracks_used_inds:
-                t.plot(ind_h,ind_v)  
+                t.plot(ind_h,ind_v, scale = scale)  
 
+    def plot(self, figsize=(16, 8)):
+        fig = plt.figure(figsize=figsize, layout="constrained")
+        spec = fig.add_gridspec(4, 7)
+        
+        axfront = fig.add_subplot(spec[:2, :4])
+        axside = fig.add_subplot(spec[2:, :4])
+        axtop = fig.add_subplot(spec[:3, 4:])
+        
+        plt.sca(axfront)
+        self.plot_truetracks(0,2)
+        self.plot_digis(0,2)
+        self.plot_vertex(0,2)
+        self.genvertices.plot(0,2)
+        plt.xlabel("x (beamline) [m]")
+        plt.ylabel("z (verticle) [m]")
+        
+        plt.sca(axside)
+        self.plot_truetracks(1,2)
+        self.plot_digis(1,2)
+        self.plot_vertex(1,2)
+        self.genvertices.plot(1,2)
+        plt.xlabel("y (other) [m]")
+        plt.ylabel("z (verticle) [m]")
+        
+        plt.sca(axtop)
+        self.plot_truetracks(0,1)
+        self.plot_digis(0,1)
+        self.plot_vertex(0,1)
+        self.genvertices.plot(0,1)
+        plt.xlabel("x (beamline) [m]")
+        plt.ylabel("y (other) [m]")
+        
+        plt.show()    
 
                 

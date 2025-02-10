@@ -158,6 +158,8 @@ void MuRunAction::EndOfRunAction(const G4Run * /*run*/)
   // Save the ROOT file
   analysisManager->Write();
   analysisManager->CloseFile();
+
+  G4cout << "Run finished, output saved as: " << fileName_output << G4endl;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

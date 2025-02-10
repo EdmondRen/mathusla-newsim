@@ -34,7 +34,7 @@ int main(int argc, const char *argv[])
         ("r,rawfile", "Filename for simulation truth. If provided, it will be merged to the output.", cxxopts::value<std::string>()->default_value(""))
         ("R,raw_reduced", "Use this flag to save just the random seed and generator status from the simulation.", cxxopts::value<bool>()->default_value("false"))
         ("c,config", "Filename for configuration.", cxxopts::value<std::string>()->default_value("../macros/tracker/tracker_default.conf"))
-        ("k,save_option", "Save only events with track (1) or vertex (2)", cxxopts::value<int>()->default_value("0"))
+        ("k,save_option", "Save only events with track (1) or vertex (2)  or upward vertex (3)", cxxopts::value<int>()->default_value("0"))
         ("s,seed", "Seed for random number generator", cxxopts::value<int>()->default_value("-1"))
         ("p,print_progress", "Print progress every `p` events", cxxopts::value<int>()->default_value("100"))
         ("d,debug_track", "Enable debugging information for track reconstruction", cxxopts::value<bool>()->default_value("false"))
@@ -53,11 +53,10 @@ int main(int argc, const char *argv[])
         return 0; // Exit the program after showing help
     }
 
-    print("**************************************************************");
+    print("\n**************************************************************");
     print("   MATHUSLA SIM reconstruction, version ", util::VERSION);
     print("      - MATHUSLA Collaboration");
     print("      - Authors: ");
-    print(" ");
     print("**************************************************************");
 
     // Input and output file
@@ -168,7 +167,8 @@ int main(int argc, const char *argv[])
             info.nevt_with_vertex += 1;
 
         // 3. find number of tracklets associated with each vertex
-        std::vector<std::unordered_map<int,int>> track_stats_all; // A counter for number of tracks. Pairs of {number_of_hits: number of track}
+        std::vector<std::unordered_map<int, int>> track_stats_all; // A counter for number of tracks. Pairs of {number_of_hits: number of track}
+        int nvertices_upward = 0;
         if (vertices_found.size() > 0)
         {
             if (args["debug_vertex"].as<bool>())
@@ -188,6 +188,11 @@ int main(int argc, const char *argv[])
             // Actually, do this on all vertices
             for (auto j = 0; j < static_cast<int>(vertices_found.size()); j++)
             {
+                if (!vertices_found[j]->is_downward)
+                {
+                    nvertices_upward += 1;
+                }
+
                 track_stats_all.emplace_back();
                 for (auto &hits_group : hits_groupped)
                 {
@@ -206,7 +211,8 @@ int main(int argc, const char *argv[])
         // 4. Append to the output file
         // Disable saving if there is no tracks/vertices
         if ((save_option == 1 && tracks_found.size() == 0) ||
-            (save_option == 2 && vertices_found.size() == 0))
+            (save_option == 2 && vertices_found.size() == 0) ||
+            (save_option == 3 && nvertices_upward == 0))
             continue;
         output_writer->ApplyRecon(tracks_found, vertices_found, track_stats_all, i);
         output_writer->ApplyCopy(i); // Copy digi & raw data
