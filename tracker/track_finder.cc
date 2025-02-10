@@ -617,7 +617,7 @@ namespace Tracker
         this->tracks_found = TrackList();
 
         // Set the default parameters
-        config["tracklet_cut_SeedRange"] = 1;           // [ns] Proper time of the seed pair
+        config["tracklet_cut_SeedRangeSigma"] = 3;           // Number of Sigma
         config["tracklet_cut_HitProjectionSigma"] = 10; // Range to look for the next hit, in unit of sigmas
         config["tracklet_cut_HitAddChi2First"] = 15;    // Maximum chi2 for a hit to be added
         config["tracklet_cut_HitAddChi2Other"] = 7;     // Maximum chi2 for a hit to be added
@@ -649,14 +649,16 @@ namespace Tracker
         {
             for (auto hit_pair : hits_grouped[igroup])
             {
-                auto new_seed = new VertexTrackSeed(this->vertex->params, hit_pair.second);
+                auto new_seed = new VertexTrackSeed(this->vertex, hit_pair.second);
                 new_seed->layer = hit_pair.second->layer;
-                if (new_seed->score < config["tracklet_cut_SeedRange"])
+                if (new_seed->score < config["tracklet_cut_SeedRangeSigma"])
                     this->seeds_unused.push_back(new_seed);
                 else
                     delete new_seed;
             }
         }
+        this->track_stats[0] = this->seeds_unused.size();
+
         // Sort seeds by the total distance from small to large. Larger distance should have higher priority.
         // Larger ones are at the end because pop_back is easier for vector
         std::sort(seeds_unused.begin(), seeds_unused.end(),
@@ -1005,6 +1007,7 @@ namespace Tracker
                     ntrack += 1;
             }
             summary += util::py::f("   # tracks with {} hits: {}\n", nhits_curr, ntrack);
+            this->track_stats[nhits_curr] = ntrack;
         }
 
         info_ntracks = tracks_found.size();

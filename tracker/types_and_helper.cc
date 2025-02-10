@@ -157,7 +157,7 @@ namespace Tracker
 
         if (this->hit_ids.size() == 4)
         {
-            cov_residual *= 4;
+            cov_residual *= 2;
         }
 
         return std::make_pair(pos_full, cov_residual);
@@ -415,7 +415,7 @@ namespace Tracker
         // }
 
         std::unordered_map<int, int> hit_inds_to_skip;
-        for (int i = 0; i < hits_tmp.size(); i++)
+        for (int i = 0; i < static_cast<int>(hits_tmp.size()); i++)
         {
             if (hit_inds_to_skip.count(i) > 0)
             {
@@ -425,7 +425,7 @@ namespace Tracker
             // Check if there is an adjacent hit
             bool found_adjacent = false;
             int k = -1;
-            for (int j = i + 1; j < hits_tmp.size(); j++)
+            for (int j = i + 1; j < static_cast<int>(hits_tmp.size()); j++)
             {
                 if (std::abs(hits_tmp[i]->detector_id - hits_tmp[j]->detector_id) == 1 &&
                     std::abs(hits_tmp[i]->t() - hits_tmp[j]->t()) < 5)
@@ -498,6 +498,10 @@ namespace Tracker
         outputTree->Branch("Vertex_chi2", &Vertex_chi2);
         outputTree->Branch("Vertex_id", &Vertex_id);
         outputTree->Branch("Vertex_trackInds", &Vertex_trackInds);
+        outputTree->Branch("Vertex_tracklet_n0", &Vertex_tracklet_n0);
+        outputTree->Branch("Vertex_tracklet_n2", &Vertex_tracklet_n2);
+        outputTree->Branch("Vertex_tracklet_n3", &Vertex_tracklet_n3);
+        outputTree->Branch("Vertex_tracklet_n4p", &Vertex_tracklet_n4p);
 
         // Setup copy methods for raw/digi data
         EN_COPY_DIGI = filename_digi.size() > 0 ? true : false;
@@ -542,7 +546,7 @@ namespace Tracker
         }
     }
 
-    int TreeWriterRecon::ApplyRecon(TrackList &tracks, VertexLilst &vertices, int &simulation_entry_number)
+    int TreeWriterRecon::ApplyRecon(TrackList &tracks, VertexLilst &vertices, std::vector<std::unordered_map<int, int>> &track_stats_all, int &simulation_entry_number)
     {
         SimEntry = simulation_entry_number;
 
@@ -585,6 +589,16 @@ namespace Tracker
                 Vertex_trackInds.push_back(trackid);
             Vertex_trackInds.push_back(-1);
         }
+
+        for (auto &track_stats : track_stats_all)
+        {
+            Vertex_tracklet_n0.push_back(track_stats[0]);
+            Vertex_tracklet_n2.push_back(track_stats[2]);
+            Vertex_tracklet_n3.push_back(track_stats[3]);
+            Vertex_tracklet_n4p.push_back(track_stats[4] + track_stats[5] + track_stats[6] + track_stats[7] + track_stats[8]);
+            // std::cout<<(track_stats[4] + track_stats[5] + track_stats[6] + track_stats[7] + track_stats[8]) << std::endl;
+        }
+
         return 0;
     }
 
@@ -622,6 +636,10 @@ namespace Tracker
         Vertex_chi2.clear();
         Vertex_id.clear();
         Vertex_trackInds.clear();
+        Vertex_tracklet_n0.clear();
+        Vertex_tracklet_n2.clear();
+        Vertex_tracklet_n3.clear();
+        Vertex_tracklet_n4p.clear();        
     }
 
     void TreeWriterRecon::Fill()

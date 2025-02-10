@@ -81,13 +81,14 @@ int main(int argc, const char *argv[])
     auto track_finder = Tracker::TrackFinder(args["debug_track"].as<bool>());
     auto vertex_finder = Tracker::VertexFinder(args["debug_vertex"].as<bool>());
     auto vertex_track_finder = Tracker::VertexTrackFinder(args["debug_vertex"].as<bool>());
-    // Configuration
+    // Use Configuration file to set up the finder
     auto setup_filename = args["config"].as<std::string>();
     auto parcard = util::io::ParHandler(setup_filename);
     std::map<std::string, double> config = parcard.GetConfig();
     print("  Using config file:", setup_filename);
     track_finder.Config(config);
     vertex_finder.Config(config);
+    vertex_track_finder.Config(config);
 
     struct
     {
@@ -124,7 +125,7 @@ int main(int argc, const char *argv[])
         {
             stop_i = std::chrono::high_resolution_clock::now();
             float duration = std::chrono::duration<float>(stop_i - start_i).count();
-            print(util::py::f("  Processing {} / {}, {:.2f} sec.", i+1, inds_to_run.size(), duration));
+            print(util::py::f("  Processing {} / {}, {:.2f} sec.", i + 1, inds_to_run.size(), duration));
             start_i = stop_i;
         }
 
@@ -167,28 +168,38 @@ int main(int argc, const char *argv[])
             info.nevt_with_vertex += 1;
 
         // 3. find number of tracklets associated with each vertex
+        std::vector<std::unordered_map<int,int>> track_stats_all; // A counter for number of tracks. Pairs of {number_of_hits: number of track}
         if (vertices_found.size() > 0)
-        {   
+        {
             if (args["debug_vertex"].as<bool>())
                 print("==================Finding tracklets that are consistent with each vertex===================");
-            // Use the vertex with most tracks
-            int ind_maxtrack = -1;
-            int maxtrack = -1;
+            // // Use the vertex with most tracks
+            // int ind_maxtrack = -1;
+            // int maxtrack = -1;
+            // for (auto j = 0; j < static_cast<int>(vertices_found.size()); j++)
+            // {
+            //     if (static_cast<int>(vertices_found[j]->track_ids.size()) > maxtrack)
+            //     {
+            //         maxtrack = vertices_found[j]->track_ids.size();
+            //         ind_maxtrack = j;
+            //     }
+            // }
+
+            // Actually, do this on all vertices
             for (auto j = 0; j < static_cast<int>(vertices_found.size()); j++)
             {
-                if (static_cast<int>(vertices_found[j]->track_ids.size()) > maxtrack)
+                track_stats_all.emplace_back();
+                for (auto &hits_group : hits_groupped)
                 {
-                    maxtrack = vertices_found[j]->track_ids.size();
-                    ind_maxtrack = j;
-                }
-            }
 
-            for (auto &hits_group : hits_groupped)
-            {
-                std::vector<Tracker::DigiHit *> hits = hits_group.second;
-                vertex_track_finder.FindAll(hits, vertices_found[ind_maxtrack].get());
-                Tracker::TrackList tracklets_found = vertex_track_finder.GetResults();
-                print("Tracklets found!", tracklets_found.size());
+                    std::vector<Tracker::DigiHit *> hits = hits_group.second;
+                    vertex_track_finder.FindAll(hits, vertices_found[j].get());
+                    vertex_track_finder.Summary();
+                    for (auto &pair : vertex_track_finder.track_stats)
+                    {
+                        track_stats_all.back()[pair.first] += pair.second;
+                    }
+                }
             }
         }
 
@@ -197,7 +208,7 @@ int main(int argc, const char *argv[])
         if ((save_option == 1 && tracks_found.size() == 0) ||
             (save_option == 2 && vertices_found.size() == 0))
             continue;
-        output_writer->ApplyRecon(tracks_found, vertices_found, i);
+        output_writer->ApplyRecon(tracks_found, vertices_found, track_stats_all, i);
         output_writer->ApplyCopy(i); // Copy digi & raw data
         output_writer->Fill();
     }

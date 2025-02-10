@@ -139,7 +139,7 @@ namespace Tracker
 
         // Get the <dist, chi2> at the same value of independent variable
         std::pair<Vector4d, MatrixXd> get_same_invar_pos_and_cov(Vector4d point, double speed_constraint = -1.0, bool multiple_scattering = true) const;
-        std::pair<double, double> get_same_invar_dist_and_chi2(Vector4d point, double speed_constraint = -1.0, bool multiple_scattering = true) const;        
+        std::pair<double, double> get_same_invar_dist_and_chi2(Vector4d point, double speed_constraint = -1.0, bool multiple_scattering = true) const;
 
         // Get the <dist, cov> at the closest point of approach (CPA) on the track to a given point
         std::pair<Vector4d, MatrixXd> get_cpa_pos_and_cov(Vector4d point, double speed_constraint = -1.0, bool multiple_scattering = true) const;
@@ -170,7 +170,7 @@ namespace Tracker
         float score;
         VectorXd dvec;
         float dr, dt, dstep;
-        int nhits_found; // Number of hits found using this seed. Save time when reusing this seed.
+        int nhits_found;       // Number of hits found using this seed. Save time when reusing this seed.
         double chi2prob_found; //
         int nhit_occur;
 
@@ -293,6 +293,10 @@ namespace Tracker
         std::vector<float> Vertex_chi2;
         std::vector<int> Vertex_id;
         std::vector<int> Vertex_trackInds;
+        std::vector<int> Vertex_tracklet_n0;
+        std::vector<int> Vertex_tracklet_n2;
+        std::vector<int> Vertex_tracklet_n3;
+        std::vector<int> Vertex_tracklet_n4p;
 
         // Utility for copying raw and digits to the recon file
         // iroot::file::EntryCopy *copier_raw, *copier_digi;
@@ -314,7 +318,7 @@ namespace Tracker
 
         void SetSimBranches(bool save_raw_reduced);
 
-        int ApplyRecon(TrackList &tracks, VertexLilst &vertices, int &simulation_entry_number);
+        int ApplyRecon(TrackList &tracks, VertexLilst &vertices, std::vector<std::unordered_map<int,int>> &track_statsm, int &simulation_entry_number);
         int ApplyCopy(long long entry);
         void Fill();
         void Clear();
@@ -332,7 +336,7 @@ namespace Tracker
 
         // Buffer for metadata
         //   Put this in public. Too troublesome to write set for each of them
-        void FillMetadata(){outputTreeMetadata->Fill();}
+        void FillMetadata() { outputTreeMetadata->Fill(); }
         std::string meta_ReconstructionConfigStr;
     };
 

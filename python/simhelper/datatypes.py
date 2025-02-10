@@ -158,7 +158,10 @@ class Vertex:
             self.chi2 = data["Vertex_chi2"][i]
             self.track_ids =  data["Vertex_trackInds_unpacked"][i]
             self.ntracks = len(self.track_ids)
-
+            self.vertex_ntracklet_0 = data["Vertex_tracklet_n0"][i]
+            self.vertex_ntracklet_2 = data["Vertex_tracklet_n2"][i]
+            self.vertex_ntracklet_3 = data["Vertex_tracklet_n3"][i] + data["Vertex_tracklet_n4p"][i]
+    
     def set_tracks(self, tracks_all):
         tracks_purity = []
         for i in self.track_ids:

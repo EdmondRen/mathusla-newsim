@@ -88,14 +88,16 @@ namespace Tracker
     class VertexTrackSeed
     {
     public:
-        VertexTrackSeed(Vector4d point, DigiHit *hit2) : nhits_found(-1)
+        VertexTrackSeed(Vertex *vertex, DigiHit *hit2) : nhits_found(-1)
         {
             float c = 299.7; // speed of light [mm/ns]
+            auto point = vertex->params;
             this->dvec = hit2->vec4 - point;
             this->dstep = std::abs(hit2->get_step() - point(hit2->iv_index));
             this->dr = dvec.segment(0, 3).norm();
             this->dt = std::abs(dvec(3));
-            this->score = std::abs(dr / c - dt);
+            double dt_err = std::pow(vertex->cov(3,3) + hit2->et()*hit2->et(), 1/2);
+            this->score = std::abs(dr / c - dt)/dt_err;
 
             // Make a pair and put the earlier one in front
             this->hits = std::make_pair(hit2->id, hit2);
@@ -153,6 +155,7 @@ namespace Tracker
         std::string Summary();
         int info_ntracks;
         int info_nhits;
+        std::unordered_map<int,int> track_stats; // A counter for number of tracks. Pairs of {number_of_hits: number of track}
 
         // Configuration
         void Config(std::map<std::string, double> &config_ext);
