@@ -157,7 +157,7 @@ namespace Tracker
 
         if (this->hit_ids.size() == 4)
         {
-            cov_residual *= 2;
+            cov_residual *= 3;
         }
 
         return std::make_pair(pos_full, cov_residual);

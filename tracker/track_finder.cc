@@ -829,14 +829,15 @@ namespace Tracker
                 }
 
                 // Skip to next round if nhits is fewer than asked
-                int ndof = nhits_found * 3 - 6;
+                int ndof = (nhits_found+1) * 3 - 6;
                 if (nhits_found < nhits_curr)
                 {
                     seeds_unused.back()->nhits_found = nhits_found;
                     seeds_unused.back()->chi2prob_found = ROOT::Math::chisquared_cdf(hits_found_temp_chi2, ndof);
                     if (seeds_unused.back()->chi2prob_found > config["tracklet_cut_TrackChi2Prob"])
                     {
-                        print_dbg("-x Track rejected, only {} hits and chi2 is larger than specified");
+                        print_dbg(util::py::f("-x Track rejected, only {} hits and chi2 {} prob {} is larger than specified", 
+                        nhits_found, hits_found_temp_chi2, seeds_unused.back()->chi2prob_found));
                     }
                     else
                     {
