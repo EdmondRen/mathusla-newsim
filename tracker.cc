@@ -32,6 +32,7 @@ int main(int argc, const char *argv[])
     options.add_options()
         ("h,help", "Print help")
         ("r,rawfile", "Filename for simulation truth. If provided, it will be merged to the output.", cxxopts::value<std::string>()->default_value(""))
+        ("o,output", "Output filename. If not given, will be automatically set as {input_filename}_recon.root", cxxopts::value<std::string>())
         ("R,raw_reduced", "Use this flag to save just the random seed and generator status from the simulation.", cxxopts::value<bool>()->default_value("false"))
         ("c,config", "Filename for configuration.", cxxopts::value<std::string>()->default_value("../macros/tracker/tracker_default.conf"))
         ("k,save_option", "Save only events with track (1) or vertex (2)  or upward vertex (3)", cxxopts::value<int>()->default_value("0"))
@@ -65,7 +66,10 @@ int main(int argc, const char *argv[])
 
     std::filesystem::path input_filename = std::filesystem::canonical(args["filename"].as<std::string>());
     std::filesystem::path output_filename = input_filename;
-    output_filename.replace_filename(output_filename.stem().string() + "_recon" + output_filename.extension().string());
+    if (args.count("output") == 0)
+        output_filename.replace_filename(output_filename.stem().string() + "_recon" + output_filename.extension().string());
+    else
+        output_filename = args["output"].as<std::string>();
     print("Processing input file", input_filename.string());
     print("Output will be saved as", output_filename.string());
     auto input_reader = std::make_unique<Tracker::TreeReaderDigi>(input_filename.string());
