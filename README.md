@@ -10,7 +10,7 @@ There are three external libraries needed to complie this simulation code
 
 1. GEANT4 10.07
 2. ROOT 6.28/10
-3. Eigen 3.4: https://eigen.tuxfamily.org/index.php?title=Main_Page
+3. Eigen 3: https://eigen.tuxfamily.org/index.php?title=Main_Page
 
 GEANT4 and ROOT have detailed instruction on the website using CMake build system. They should be compliled with C++ 17 standard as it is used by this package. 
 

@@ -31,6 +31,7 @@
 #define MuAnalysis_h 1
 
 #include <any>
+#include "G4Version.hh"
 
 #if (G4VERSION_NUMBER < 1100)
 #include "g4root.hh"

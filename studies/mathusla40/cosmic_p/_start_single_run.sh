@@ -11,19 +11,22 @@ NOSIE_RATE_PER_BAR_HZ="27.4"
 
 cd $SIM_REPO_DIR/build
 
+## Simulation
 ./simulation -r $RUN_NUMBER \
     -s $SEED \
     -m $SIM_REPO_DIR/studies/mathusla40/cosmic_p/scripts/run_parma_mathusla40.mac,events,$EVENTS_PER_RUN \
     -o $OUTPUT_DIR
 
+## Digitizer
 ./digitizer $OUTPUT_DIR/run_${RUN_NUMBER}.root \
     -s $SEED \
     -p 10000 \
     -n $NOSIE_RATE_PER_BAR_HZ
 
-## -k 3: save only events with UPWARD vertices
-## -R: discard simulation truth except for the generator status to reproduce the event later
-## -p 10000: print every 100000 events
+## Reconstruction
+# -k 3: save only events with UPWARD vertices
+# -R: discard simulation truth except for the generator status to reproduce the event later
+# -p 10000: print every 100000 events
 ./tracker $OUTPUT_DIR/run_${RUN_NUMBER}_digi.root \
     -r $OUTPUT_DIR/run_${RUN_NUMBER}.root \
     -k 3 \
