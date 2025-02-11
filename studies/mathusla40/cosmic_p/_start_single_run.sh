@@ -12,7 +12,7 @@ NOSIE_RATE_PER_BAR_HZ="27.4"
 cd $SIM_REPO_DIR/build
 
 ## Simulation
-./simulation -r $RUN_NUMBER \
+env G4RUN_MANAGER_TYPE=Serial ./simulation -r $RUN_NUMBER \
     -s $SEED \
     -m $SIM_REPO_DIR/studies/mathusla40/cosmic_p/scripts/run_parma_mathusla40.mac,events,$EVENTS_PER_RUN \
     -o $OUTPUT_DIR

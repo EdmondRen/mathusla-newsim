@@ -6,3 +6,7 @@ debug_commands.md
 
 /build/
 /data/
+
+# CRY
+external/cry_v1.7/lib/libCRY.a
+external/cry_v1.7/src/*.o

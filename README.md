@@ -16,6 +16,10 @@ GEANT4 and ROOT have detailed instruction on the website using CMake build syste
 
 Eigen is a header-only library. It doesn't matter where you put the downloaded file, but you should still run cmake to build the automate detection files for cmake. After that a Eigen3Config.cmake file is generate, which is usually at lib/share/eigen3/cmake. This path needs to be saved in install.sh as $EIGEN3_USER
 
+On cedar, you can load the requried packages with command:
+
+    module load StdEnv/2020 gcc/9.3.0 qt/5.12.8 root/6.26.06  eigen/3.3.7 geant4/10.7.3 geant4-data/10.7.3
+
 ### How to build
 
 There is a shell script `install.sh` to automate the build process. For the first time, run `./install --cmake`. Aftwards only `./install` is needed.

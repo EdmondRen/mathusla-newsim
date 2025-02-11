@@ -59,6 +59,9 @@ else
         -c ${CLEAN_FILES}"
 fi
 
+# Make directory for logs
+mkdir -p ${MERGE_DIR}/log
+
 slurm_text="#!/bin/bash
 #SBATCH --time=${JOB_TIME_HOURS}:00:00
 #SBATCH --account=rrg-mdiamond

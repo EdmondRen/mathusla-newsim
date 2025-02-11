@@ -23,29 +23,29 @@ namespace MuGenerators
         // on DetectorConstruction class we get world volume
         // from G4LogicalVolumeStore
         //
-        G4double worldZHalfLength = 0.;
-        auto worldLV = G4LogicalVolumeStore::GetInstance()->GetVolume("World");
+        // G4double worldZHalfLength = 0.;
+        // auto worldLV = G4LogicalVolumeStore::GetInstance()->GetVolume("World");
 
-        // Check that the world volume has box shape
-        G4Box *worldBox = nullptr;
-        if (worldLV)
-            worldBox = dynamic_cast<G4Box *>(worldLV->GetSolid());
+        // // Check that the world volume has box shape
+        // G4Box *worldBox = nullptr;
+        // if (worldLV)
+        //     worldBox = dynamic_cast<G4Box *>(worldLV->GetSolid());
 
-        if (worldBox)
-            worldZHalfLength = worldBox->GetZHalfLength();
-        else
-        {
-            G4ExceptionDescription msg;
-            msg << "World volume of box shape not found." << G4endl;
-            msg << "Perhaps you have changed geometry." << G4endl;
-            msg << "The gun will be place in the center.";
-            G4Exception("MuPrimaryGeneratorAction::GeneratePrimaries()",
-                        "MyCode0002", JustWarning, msg);
-        }
+        // if (worldBox)
+        //     worldZHalfLength = worldBox->GetZHalfLength();
+        // else
+        // {
+        //     G4ExceptionDescription msg;
+        //     msg << "World volume of box shape not found." << G4endl;
+        //     msg << "Perhaps you have changed geometry." << G4endl;
+        //     msg << "The gun will be place in the center.";
+        //     G4Exception("MuPrimaryGeneratorAction::GeneratePrimaries()",
+        //                 "MyCode0002", JustWarning, msg);
+        // }
 
-        // Set gun position to top at the middle of world. 
-        fParticleGun
-            ->SetParticlePosition(G4ThreeVector(0., 0., worldZHalfLength));        
+        // // Set gun position to top at the middle of world. 
+        // fParticleGun
+        //     ->SetParticlePosition(G4ThreeVector(0., 0., worldZHalfLength));        
 
     }
 

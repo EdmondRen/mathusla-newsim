@@ -60,6 +60,7 @@ find_package (Eigen3 REQUIRED NO_MODULE)
 # Setup include directory for this project
 #
 include(${Geant4_USE_FILE} )
+MESSAGE ("Geant4 include: " ${Geant4_USE_FILE} )
 include(${ROOT_USE_FILE})
 include_directories(${PROJECT_SOURCE_DIR}/include
                     ${CRY_INCLUDE_DIRS}

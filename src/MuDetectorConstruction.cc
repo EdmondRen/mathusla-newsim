@@ -98,7 +98,7 @@ MuDetectorConstruction::~MuDetectorConstruction()
 
 G4VPhysicalVolume *MuDetectorConstruction::Construct()
 {
-  G4cout << "** Constructing detector" << _det_name_ << G4endl;
+  G4cout << "** Constructing detector: " << _det_name_ << G4endl;
   _det_->Construct();
   return _det_->worldPV;
 }
@@ -137,6 +137,6 @@ void MuDetectorConstruction::SetNewValue(G4UIcommand *command,
   {
     _det_name_ = value;
     _det_ = _det_map_[_det_name_];
-    G4cout << "** Selecting detector " << _det_name_ << G4endl;
+    G4cout << "** Selecting detector: " << _det_name_ << G4endl;
   }
 }

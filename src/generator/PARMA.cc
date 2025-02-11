@@ -293,7 +293,8 @@ namespace MuGenerators
 
     std::map<std::string, std::string> MuPARMA::getMetaData()
     {
-        return {};
+        metadata["flux [/cm2/s]"] = util::py::f("{}", fPARMAgenerator.TotalFlux);
+        return metadata;
     }
 
     float MuPARMA::getEventWeight()

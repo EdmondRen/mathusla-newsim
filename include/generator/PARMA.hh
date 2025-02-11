@@ -50,6 +50,7 @@ namespace MuGenerators
         // Event information
         long event_counter;
         float event_weight;
+        std::map<std::string, std::string> metadata;
 
         // Two corners of the box
         double subboxLength;

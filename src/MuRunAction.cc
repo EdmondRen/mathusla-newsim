@@ -89,7 +89,7 @@ MuRunAction::MuRunAction(std::string OutDir, int RunNumber)
   auto analysisManager = G4AnalysisManager::Instance();
   G4cout << "Using " << analysisManager->GetType() << G4endl;
 
-  analysisManager->SetNtupleMerging(true);
+  // analysisManager->SetNtupleMerging(true);
   analysisManager->SetVerboseLevel(0);
 }
 

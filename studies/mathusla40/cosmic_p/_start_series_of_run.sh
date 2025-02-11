@@ -60,7 +60,7 @@ for irun in $(seq 1 $N_RUNS_PER_SERIES); do
 
     # Merge the reconstruction result
     if ((irun > 1)); then
-        ./merge $current_file_name_recon $merged_file_name
+        ./merge $current_file_name_recon $merged_file_name "data"
         echo " Results merged to $merged_file_name"
     else
         echo $current_file_name_recon
