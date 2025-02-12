@@ -26,7 +26,7 @@
 
 ## Setup PARMA generator
 /gen/select parma
-/gen/parma/pathname ../tests/mathusla40/parma_config_mathusla40.conf
+/gen/parma/pathname ../studies/mathusla40/cosmic_p/scripts/parma_cms_511m.conf
 # pdgids
 # 13: muon
 # 11: electron

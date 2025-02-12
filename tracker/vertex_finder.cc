@@ -52,9 +52,14 @@ namespace Tracker
                 // print(i,j);
                 // print(tracks_all[i]->params_time.transpose());
                 // print(tracks_all[j]->params_time.transpose());
+
                 if (new_seed->distance < config["vertex_cut_SeedDist"])
                 {
-                    if (new_seed->GetChi2(config["vertex_fit_MultipleScattering"] > 0) < config["vertex_cut_SeedChi2"])
+                    double seed_chi2 = new_seed->GetChi2(config["vertex_fit_MultipleScattering"] > 0);
+                    bool seed_is_later_than_track = new_seed->vertex_is_later_than_track;
+
+                    // Use seeds that have small enough chi2 and also later than any of the tracks.
+                    if (seed_chi2 < config["vertex_cut_SeedChi2"] && !seed_is_later_than_track)
                         this->seeds_unused.push_back(new_seed);
                     else
                         print_dbg("  seed rejected: distance, chi2:", new_seed->distance, ",", new_seed->chi2);

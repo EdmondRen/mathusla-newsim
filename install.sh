@@ -74,7 +74,7 @@ echo "  Building MATHUSLA simulations"
 make -j8
 # make install -j8
 echo "  Finished building MATHUSLA simulations"
-echo "------------------------------------------------\n"
+echo "------------------------------------------------"
 
 if [[ ! "$?" -eq 0 ]]; then
     echo -e "\nBuild Failed!\n"

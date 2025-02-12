@@ -43,6 +43,7 @@ public:
   static const std::string GetName();
   static const MuGenerators::Generator* GetGenerator();
   static const MuGenerators::ParticleVector GetLastEvent(); 
+  static const std::map<std::string, std::string> GetMetadata();
 
 
 private:

@@ -301,8 +301,8 @@ void CRYGenerator::genEvent(std::vector<CRYParticle*> *retList) {
       //
       // instead just sample directly
       //
-      //double xPosSecondary=_utils->randomFlat(-0.5*_boxSize,0.5*_boxSize);
-      //double yPosSecondary=_utils->randomFlat(-0.5*_boxSize,0.5*_boxSize);
+      // double xPosSecondary=_utils->randomFlat(-0.5*_subboxSize,0.5*_subboxSize);
+      // double yPosSecondary=_utils->randomFlat(-0.5*_subboxSize,0.5*_subboxSize);
 
       //....only keep this secondary if it is inside the user-selected box
       if ( fabs(xPosSecondary)>0.5*_subboxSize) continue;

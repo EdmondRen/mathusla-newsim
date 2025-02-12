@@ -68,6 +68,7 @@ slurm_text="#!/bin/bash
 #SBATCH --array=1-${N_JOB}
 #SBATCH --mem=4G
 #SBATCH --job-name=musim-${JOB_NAME}
+#SBATCH --constraint=[skylake|cascade]
 #SBATCH --output=${MERGE_DIR}/log/${JOB_NAME}_%a.out
 
 echo current job id is: \$SLURM_ARRAY_TASK_ID

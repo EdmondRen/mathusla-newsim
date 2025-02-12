@@ -164,35 +164,6 @@ namespace MuGenerators
                 else
                     countAttempt++;
 
-                // // 2. Only select events with tracks that intersect with the box
-                // if (this->samplingShape == box)
-                // {
-                //     G4double fParticlePosX = (*cry_generated)[j]->x() * m + fCRY_additional_setup["offset_x"];
-                //     G4double fParticlePosY = (*cry_generated)[j]->y() * m + fCRY_additional_setup["offset_y"];
-                //     G4double fParticlePosZ = (*cry_generated)[j]->z() * m + fCRY_additional_setup["offset_z"];
-                //     G4double fParticlePu = (*cry_generated)[j]->u();
-                //     G4double fParticlePv = (*cry_generated)[j]->v();
-                //     G4double fParticlePw = (*cry_generated)[j]->w();
-
-                //     Vec3 line_point = {fParticlePosX, fParticlePosY, fParticlePosZ};
-                //     Vec3 line_direction = {fParticlePu, fParticlePv, fParticlePw};
-                //     if ((std::abs((*cry_generated)[j]->x() * m) < fCRY_additional_setup["box_lenx"]*0.5 &&
-                //          std::abs((*cry_generated)[j]->y() * m) < fCRY_additional_setup["box_leny"]*0.5) ||
-                //         doesLineIntersectBox(line_point, line_direction, this->subBoxMin, this->subBoxMax))
-                //     {
-                //         pass_cuts2 = true;
-                //     }
-                //     else{
-                //         print(subBoxMin.x,subBoxMin.y,subBoxMin.z);
-                //         print(subBoxMax.x,subBoxMax.y,subBoxMax.z);
-                //         print(line_point.x,line_point.y,line_point.z);
-                //         print(line_direction.x,line_direction.y,line_direction.z);
-                //         print("failed");
-                //     }
-                // }
-                // else
-                //     pass_cuts2=true;
-
                 // Find the time of the first particle
                 if ((*cry_generated)[j]->t() < tmin)
                     tmin = (*cry_generated)[j]->t();
@@ -361,4 +332,11 @@ namespace MuGenerators
         std::cerr << "Error: 'subboxLength' not found in the file." << std::endl;
         return -1; // Return -1 to indicate the key was not found
     }
+
+    std::map<std::string, std::string> MuCRY::getMetaData()
+    {
+        std::map<std::string, std::string> metadata;
+        metadata["Real time simulated"] = util::py::f("{}", fCRYgenerator->timeSimulated());
+        return metadata;
+    }    
 }

@@ -102,6 +102,13 @@ const std::string MuPrimaryGeneratorAction::GetName()
   return _gen_name_;
 }
 
+const std::map<std::string, std::string> MuPrimaryGeneratorAction::GetMetadata()
+{
+  
+  return _gen_->getMetaData();
+}
+
+
 const MuGenerators::ParticleVector MuPrimaryGeneratorAction::GetLastEvent()
 {
   return _gen_->genParticles;

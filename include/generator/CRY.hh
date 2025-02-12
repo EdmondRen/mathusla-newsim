@@ -10,7 +10,6 @@
 #include "CRYParticle.h"
 #include "CRYUtils.h"
 
-
 // Project
 #include "_Generator.hh"
 
@@ -42,25 +41,25 @@ namespace MuGenerators
 
         // Other helper functions
         // std::ostream &Print(std::ostream &os = std::cout) const override;
-        float extractSubBoxLength(const std::string& filename);
-        void startCRY(const std::string& cry_config, const std::string& cry_data);
+        float extractSubBoxLength(const std::string &filename);
+        void startCRY(const std::string &cry_config, const std::string &cry_data);
         void resetDimensions();
+
+        std::map<std::string, std::string> getMetaData() override;
+
     private:
-
-
-
         G4ParticleGun *fParticleGun;
         G4ParticleTable *fparticleTable;
-        
+
         CRYGenerator *fCRYgenerator;
         std::vector<CRYParticle *> *cry_generated;
         std::map<std::string, float> fCRY_additional_setup;
-        
+
         std::string PROJECT_SOURCE_DIR;
 
         // Two corners of the box
         double subboxLength;
-        Vec3 subBoxMin,subBoxMax;
+        Vec3 subBoxMin, subBoxMax;
         GEOTYPE samplingShape;
 
         // Messenger commands

@@ -64,7 +64,7 @@ namespace Kalman
 
         // Filter instance
         KF_Forward kf;
-        KF_FULL kf_full;        
+        KF_FULL kf_full;
 
     protected:
         bool DEBUG;
@@ -202,6 +202,10 @@ namespace Kalman
 
             // Get covariance
             this->cov = vertex_fitter.cov;
+            double t_err = std::pow(this->cov(3, 3), 0.5);
+
+            this->vertex_is_later_than_track = (this->vertex_fit(3) > this->tracks.first->params_full(3) + t_err * 4 ||
+                                                this->vertex_fit(3) > this->tracks.second->params_full(3) + t_err * 4);
 
             // Make a score out of it
             this->score = -chi2;
@@ -218,6 +222,7 @@ namespace Kalman
         int ntracks_found;    // Number of track compatible with this seed
         int nhits;            // number of hits in the track pair.
         double distance_r0;   // Distance at the starting point of the track
+        bool vertex_is_later_than_track;
 
         std::vector<std::tuple<int, double, double>> track_distance_chi2_list; // {id, distance, chi2}
     };

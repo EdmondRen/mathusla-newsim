@@ -1,5 +1,5 @@
 
-# Production cut for charged particle range, global setting.
+## Production cut for charged particle range, global setting.
 # Secondaries with range less than this nunmber will not be generated.
 # Primary particle just goes through continuous energy loss
 /run/setCut 10 mm
