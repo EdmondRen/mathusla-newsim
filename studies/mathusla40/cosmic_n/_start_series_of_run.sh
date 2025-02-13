@@ -53,7 +53,7 @@ for irun in $(seq 1 $N_RUNS_PER_SERIES); do
     mkdir -p $SIM_TEMP_DIR
 
     # Run simulation and recon
-    bash $SIM_REPO_DIR/studies/mathusla40/cosmic_p/_start_single_run.sh $SIM_REPO_DIR $SIM_TEMP_DIR $N_EVENTS_PER_RUN $actual_run_number
+    bash $SIM_REPO_DIR/studies/mathusla40/cosmic_n/_start_single_run.sh $SIM_REPO_DIR $SIM_TEMP_DIR $N_EVENTS_PER_RUN $actual_run_number
 
     # filenames
     current_file_name_truth=$SIM_TEMP_DIR/run_${actual_run_number}.root

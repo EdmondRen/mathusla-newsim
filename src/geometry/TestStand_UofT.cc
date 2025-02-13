@@ -87,7 +87,7 @@ namespace MuGeoBuilder
   // Calculate detector ID based on the four copy numbers
   long long int Uoft1_Builder::GetDetectorID(std::vector<int> copy_numbers, G4ThreeVector local_coord)
   {
-    (void) local_coord;
+    (void)local_coord;
     if (copy_numbers.size() != uoftdims::GEO_DEPTH)
     {
       G4cout << " [ERROR] Geometry: The geometry depth is wrong. Please check geometry implementation." << G4endl;
@@ -106,12 +106,20 @@ namespace MuGeoBuilder
   BarPosition Uoft1_Builder::GetBarPosition(long long detector_id)
   {
     // for (auto const &[key, val] : IDMaps_inWorld)
-    // {
     // print(key, val.y_side_direction);
-    // }
-
     // print("Now asking for ID", detector_id);
-    return this->IDMaps_inWorld.at(detector_id);
+
+    // Use find to check if the key exists
+    auto it = this->IDMaps_inWorld.find(detector_id);
+    if (it != this->IDMaps_inWorld.end())
+    {
+      return it->second;
+    }
+    else
+    {
+      print("  Error finding detector id of", detector_id);
+      return BarPosition({0,0,0},{0,0,0},{0,0,0});
+    }
   }
 
   // Return the entire map

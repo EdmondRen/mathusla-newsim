@@ -111,6 +111,7 @@ public:
 
     // Internal states
     std::vector<SimHit *> hits;
+    std::vector<SimHit *> hits_noise; // keep track of newed noise hits to clear them afterwards
 
     G4ThreeVector ydirection; // xdirection: where the long end is pointing to, one of {0,1,2}
     G4ThreeVector zdirection; // zdirection: where the verticle end is pointing to, one of {0,1,2}
@@ -120,7 +121,13 @@ public:
 
     double *pos_vec[3] = {&x, &y, &z};
 
-    void AddHit(SimHit *hit, MuGeoBuilder::BarPosition bar_position)
+    ~DigitizerHit()
+    {
+        for (auto hit : hits_noise)
+            delete hit;
+    }
+
+    int AddHit(SimHit *hit, MuGeoBuilder::BarPosition bar_position)
     {
         hits.push_back(hit);
         if (hit->track_id < track_id)
@@ -155,6 +162,11 @@ public:
 
             direction = x_dirc_ind * 100 + y_dirc_ind * 10 + z_dirc_ind;
         }
+
+        if (bar_position.y_side_direction == G4ThreeVector({0, 0, 0}))
+            return -1;
+
+        return 0;
     }
 
     void Digitize(DigiConfig &config)
@@ -190,6 +202,7 @@ public:
         auto hit = new SimHit();
         hit->index = 9999999;
         hits.push_back(hit);
+        hits_noise.push_back(hit);
 
         track_id = -1;
         pdg_id = -1;
@@ -530,13 +543,19 @@ std::vector<DigitizerHit *> Digitize(std::vector<SimHit *> hits, DigiConfig &con
             if (e_sum > config.sipm_energy_threshold)
             {
                 DigitizerHit *current_digi = new DigitizerHit();
+                int add_hit_status = 0;
                 for (auto hit : used_hits)
                 {
-                    current_digi->AddHit(hit, geobulder->GetBarPosition(hit->det_id));
+                    add_hit_status = current_digi->AddHit(hit, geobulder->GetBarPosition(hit->det_id));
                 }
-                current_digi->index = (digis.size());
-                digis.push_back(current_digi);
-                current_hits = unused_hits;
+                if (add_hit_status == 0)
+                {
+                    current_digi->index = (digis.size());
+                    digis.push_back(current_digi);
+                    current_hits = unused_hits;
+                }
+                else
+                    current_hits.erase(current_hits.begin());
             }
             else
             {
@@ -590,7 +609,7 @@ public:
 
         // Average total number of noise events in all bars
         this->noise_counts_mean = noise_rate * noise_window * bar_index.size() * 2;
-        
+
         print("Digitizer > Noise maker enabled! Noise rate per bar [Hz]:", noise_rate, ", noise widow +/- [ns]:", noise_window, bar_map.size());
         print("Digitizer >    average noise counts per event: ", noise_counts_mean);
     }
@@ -731,9 +750,10 @@ int main(int argc, const char *argv[])
         }
 
         // Make noise hits
+        std::vector<DigitizerHit *> noise_digis;
         if (args["noise_rate"].as<float>() > 0)
         {
-            auto noise_digis = noise_maker.run();
+            noise_digis = noise_maker.run();
             int last_digi_index = digis.size() > 0 ? digis.back()->index : -1;
 
             // Set the index and type of the noise hits, then add to list
@@ -751,6 +771,8 @@ int main(int argc, const char *argv[])
 
         // Clear the digis
         for (auto digi : digis)
+            delete digi;
+        for (auto digi : noise_digis)
             delete digi;
     }
 

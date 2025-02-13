@@ -207,13 +207,16 @@ namespace MuGeoBuilder
     // Get the bar position given a detector ID
     BarPosition Mathusla40_Builder::GetBarPosition(long long detector_id)
     {
-        // for (auto const &[key, val] : IDMaps_inWorld)
-        // {
-        // print(key, val.y_side_direction);
-        // }
-        // print("Now asking for ID", detector_id);
-
-        return this->IDMaps_inWorld.at(detector_id);
+        auto it = this->IDMaps_inWorld.find(detector_id);
+        if (it != this->IDMaps_inWorld.end())
+        {
+            return it->second;
+        }
+        else
+        {
+            print("  Error finding detector id of", detector_id);
+            return BarPosition({0, 0, 0}, {0, 0, 0}, {0, 0, 0});
+        }
     }
 
     // Return the entire map
@@ -543,12 +546,12 @@ namespace MuGeoBuilder
                                        offset);            // offset
         auto detectorPV = new G4PVPlacement(
             transform,
-            this->detectorLV,     // its logical volume
-            "Main detector",      // its name
-            _worldLV,             // its mother volume
-            false,                // no boolean operation
+            this->detectorLV,          // its logical volume
+            "Main detector",           // its name
+            _worldLV,                  // its mother volume
+            false,                     // no boolean operation
             detector_copy_number_main, // copy number (detector number within the world)
-            fCheckOverlaps);      // checking overlaps
+            fCheckOverlaps);           // checking overlaps
         (void)detectorPV;
         // Place backwall detector in world
         auto offset_backwall = G4ThreeVector(mu40dims::detector_modules_xoffset.back() + mu40dims::module_lenx * 0.5 + mu40dims::module_lenz * 0.5 + 5 * cm,
@@ -558,12 +561,12 @@ namespace MuGeoBuilder
                                                 offset_backwall);   // offset
         auto detector_backwallPV = new G4PVPlacement(
             transform_backwall,
-            detector_backwallLV,  // its logical volume
-            "Backwall",           // its name
-            _worldLV,             // its mother volume
-            false,                // no boolean operation
+            detector_backwallLV,           // its logical volume
+            "Backwall",                    // its name
+            _worldLV,                      // its mother volume
+            false,                         // no boolean operation
             detector_copy_number_backwall, // copy number (detector number within the world)
-            fCheckOverlaps);      // checking overlaps
+            fCheckOverlaps);               // checking overlaps
         (void)detector_backwallPV;
 
         // Add the detector to the detector position map

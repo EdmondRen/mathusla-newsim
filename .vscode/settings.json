@@ -195,6 +195,7 @@
         "qrot": "cpp",
         "rotf": "cpp",
         "senum": "cpp",
-        "CreateSampleTree.C": "cpp"
+        "CreateSampleTree.C": "cpp",
+        "dict": "cpp"
     }
 }
