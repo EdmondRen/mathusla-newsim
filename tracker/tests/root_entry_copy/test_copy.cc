@@ -9,8 +9,6 @@
 #include <iostream>
 #include <variant>
 
-
-
 void CopyTreeBranches(TTree *sourceTree, TTree *destTree)
 {
     // Get the list of branches in the source tree
@@ -41,7 +39,6 @@ void CopyTreeBranches(TTree *sourceTree, TTree *destTree)
     int vfloat_n = 0;
     int vdouble_n = 0;
     int vint_n = 0;
-
 
     // Iterate over all branches in the source tree
     for (Int_t i = 0; i < branches->GetEntries(); i++)
@@ -95,7 +92,6 @@ void CopyTreeBranches(TTree *sourceTree, TTree *destTree)
             branchData.push_back(std::move(value));
         }
 
-
         else if (strcmp(leafType, "vector<float>") == 0)
         {
             auto value = new std::vector<float>();
@@ -103,6 +99,10 @@ void CopyTreeBranches(TTree *sourceTree, TTree *destTree)
             destTree->Branch(branchName, &(*branchData_vfloat[vfloat_n]));          // Use the raw pointer
             sourceTree->SetBranchAddress(branchName, &branchData_vfloat[vfloat_n]); // Use the raw pointer
             vfloat_n += 1;
+
+            // Convert raw pointer to unique_ptr and save to the list
+            std::unique_ptr<std::vector<float>> uniquePtr(value);
+            branchData.push_back(std::move(uniquePtr));
         }
         else if (strcmp(leafType, "vector<double>") == 0)
         {
@@ -111,6 +111,10 @@ void CopyTreeBranches(TTree *sourceTree, TTree *destTree)
             destTree->Branch(branchName, &(*branchData_vdouble[vdouble_n]));          // Use the raw pointer
             sourceTree->SetBranchAddress(branchName, &branchData_vdouble[vdouble_n]); // Use the raw pointer
             vdouble_n += 1;
+
+            // Convert raw pointer to unique_ptr and save to the list
+            std::unique_ptr<std::vector<double>> uniquePtr(value);
+            branchData.push_back(std::move(uniquePtr));            
         }
         else if (strcmp(leafType, "vector<int>") == 0)
         {
@@ -119,6 +123,10 @@ void CopyTreeBranches(TTree *sourceTree, TTree *destTree)
             destTree->Branch(branchName, &(*branchData_vint[vint_n]));          // Use the raw pointer
             sourceTree->SetBranchAddress(branchName, &branchData_vint[vint_n]); // Use the raw pointer
             vint_n += 1;
+
+            // Convert raw pointer to unique_ptr and save to the list
+            std::unique_ptr<std::vector<int>> uniquePtr(value);
+            branchData.push_back(std::move(uniquePtr));            
         }
 
         else
@@ -142,12 +150,12 @@ void CopyTreeBranches(TTree *sourceTree, TTree *destTree)
 int main()
 {
     // Open the source file and get the source tree
-    TFile *sourceFile = TFile::Open("../build/data/run_0.root");
-    TTree *sourceTree = (TTree *)sourceFile->Get("raw");
+    TFile *sourceFile = TFile::Open("../../../build/data/run_0.root");
+    TTree *sourceTree = (TTree *)sourceFile->Get("data");
 
     // Create a new file and a new tree
-    TFile *destFile = new TFile("../build/data/destination.root", "RECREATE");
-    TTree *destTree = new TTree("destTree", "Tree with copied branches");
+    TFile *destFile = new TFile("../../../build/data/destination.root", "RECREATE");
+    TTree *destTree = new TTree("data", "Tree with copied branches");
 
     // Copy branches from sourceTree to destTree
     CopyTreeBranches(sourceTree, destTree);

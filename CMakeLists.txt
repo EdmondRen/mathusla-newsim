@@ -136,6 +136,11 @@ add_executable(merge merge.cc)
 target_link_libraries(merge PUBLIC  ${ROOT_LIBRARIES})
 
 
+## Recon post processing
+add_executable(skim ${PROJECT_SOURCE_DIR}/studies/mathusla40/skim_vertex.cc)
+target_link_libraries(skim PUBLIC mu_recon mu_sim ${ROOT_LIBRARIES})
+
+
 #----------------------------------------------------------------------------
 # Copy all scripts to the build directory, i.e. the directory in which we
 # build Mu. This is so that we can run the executable directly because it

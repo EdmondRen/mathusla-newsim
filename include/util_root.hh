@@ -284,8 +284,7 @@ namespace iroot
         class EntryCopy
         {
         private:
-            // Create a vector to hold pointers to the variables used for branch data
-            std::vector<std::variant<
+            typedef std::variant<
                 std::unique_ptr<Int_t>,
                 std::unique_ptr<Float_t>,
                 std::unique_ptr<Double_t>,
@@ -294,8 +293,12 @@ namespace iroot
                 std::unique_ptr<std::vector<float>>,
                 std::unique_ptr<std::vector<double>>,
                 std::unique_ptr<std::vector<int>>,
-                std::unique_ptr<std::vector<Long64_t>>>>
-                branchData;
+                std::unique_ptr<std::vector<Long64_t>>>
+                supported_types;
+
+            // Create a vector to hold pointers to the variables used for branch data and names
+            std::vector<supported_types> branchData;
+            std::vector<std::string> branchNames;
 
             static const int N = 200;
             std::vector<float> *branchData_vfloat[N];
@@ -308,11 +311,11 @@ namespace iroot
             int vint64_n = 0;
 
         public:
-            EntryCopy(){}
+            EntryCopy() {}
 
             // Setup same branches in the destTree as the sourceTree
             void Setup(TTree *sourceTree,
-                      TTree *destTree, int verbose=0)
+                       TTree *destTree, int verbose = 0)
             {
 
                 // Get the list of branches in the source tree
@@ -334,7 +337,7 @@ namespace iroot
 
                     // Determine the type of the leaf
                     const char *leafType = leaf->GetTypeName();
-                    if (verbose>0)
+                    if (verbose > 0)
                         std::cout << "  Leaf type: " << leafType << " for branch " << branchName << std::endl;
 
                     // Create a new branch in the destination tree with the same name and type
@@ -381,6 +384,9 @@ namespace iroot
                         destTree->Branch(branchName, &(*branchData_vfloat[vfloat_n]));          // Use the raw pointer
                         sourceTree->SetBranchAddress(branchName, &branchData_vfloat[vfloat_n]); // Use the raw pointer
                         vfloat_n += 1;
+                        // Convert raw pointer to unique_ptr and save to the list
+                        std::unique_ptr<std::vector<float>> uniquePtr(value);
+                        branchData.push_back(std::move(uniquePtr));
                     }
                     else if (strcmp(leafType, "vector<double>") == 0)
                     {
@@ -389,6 +395,9 @@ namespace iroot
                         destTree->Branch(branchName, &(*branchData_vdouble[vdouble_n]));          // Use the raw pointer
                         sourceTree->SetBranchAddress(branchName, &branchData_vdouble[vdouble_n]); // Use the raw pointer
                         vdouble_n += 1;
+                        // Convert raw pointer to unique_ptr and save to the list
+                        std::unique_ptr<std::vector<double>> uniquePtr(value);
+                        branchData.push_back(std::move(uniquePtr));
                     }
                     else if (strcmp(leafType, "vector<int>") == 0)
                     {
@@ -397,6 +406,9 @@ namespace iroot
                         destTree->Branch(branchName, &(*branchData_vint[vint_n]));          // Use the raw pointer
                         sourceTree->SetBranchAddress(branchName, &branchData_vint[vint_n]); // Use the raw pointer
                         vint_n += 1;
+                        // Convert raw pointer to unique_ptr and save to the list
+                        std::unique_ptr<std::vector<int>> uniquePtr(value);
+                        branchData.push_back(std::move(uniquePtr));
                     }
                     else if (strcmp(leafType, "vector<Long64_t>") == 0)
                     {
@@ -405,6 +417,9 @@ namespace iroot
                         destTree->Branch(branchName, &(*branchData_vint64[vint64_n]));          // Use the raw pointer
                         sourceTree->SetBranchAddress(branchName, &branchData_vint64[vint64_n]); // Use the raw pointer
                         vint64_n += 1;
+                        // Convert raw pointer to unique_ptr and save to the list
+                        std::unique_ptr<std::vector<Long64_t>> uniquePtr(value);
+                        branchData.push_back(std::move(uniquePtr));
                     }
 
                     else
@@ -424,6 +439,25 @@ namespace iroot
                 // Copy the data from the source tree to the destination tree
                 sourceTree->GetEntry(entry);
             }
+
+            int index(std::string key)
+            {
+                auto it = std::find(branchNames.begin(), branchNames.end(), key);
+                int index = -1;
+                if (it != branchNames.end())
+                    index = std::distance(branchNames.begin(), it);
+                return index;
+            }
+
+            // Get methods to easily read value with key name
+            Int_t GetInt(std::string key) { return *std::get<std::unique_ptr<Int_t>>(branchData[this->index(key)]); }
+            Float_t GetFloat(std::string key) { return *std::get<std::unique_ptr<Float_t>>(branchData[this->index(key)]); }
+            Double_t GetDouble(std::string key) { return *std::get<std::unique_ptr<Double_t>>(branchData[this->index(key)]); }
+            Bool_t GetBool(std::string key) { return *std::get<std::unique_ptr<Bool_t>>(branchData[this->index(key)]); }
+            Char_t GetChar(std::string key) { return *std::get<std::unique_ptr<Char_t>>(branchData[this->index(key)]); }
+            std::vector<int> GetIntV(std::string key) { return *std::get<std::unique_ptr<std::vector<int>>>(branchData[this->index(key)]); }
+            std::vector<float> GetFloatV(std::string key) { return *std::get<std::unique_ptr<std::vector<float>>>(branchData[this->index(key)]); }
+            std::vector<double> GetDoubleV(std::string key) { return *std::get<std::unique_ptr<std::vector<double>>>(branchData[this->index(key)]); }
         };
 
     } // namespace file

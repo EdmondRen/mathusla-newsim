@@ -61,6 +61,8 @@ fi
 
 # Make directory for logs
 mkdir -p ${MERGE_DIR}/log
+# Make a separate log file to record finished jobs
+echo "Finished Jobs" > ${MERGE_DIR}/finshed_list.log
 
 slurm_text="#!/bin/bash
 #SBATCH --time=${JOB_TIME_HOURS}:00:00

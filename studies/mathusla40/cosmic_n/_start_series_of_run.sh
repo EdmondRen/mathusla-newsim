@@ -85,3 +85,6 @@ done
 echo ""
 echo ""
 echo "Series #$SERIES_NUMBER finished!"
+
+# Write in the common log file
+echo $SERIES_NUMBER >> ${MERGE_DIR}/finshed_list.log

@@ -333,9 +333,9 @@ namespace Tracker
             outputTree->Write("", TObject::kOverwrite);
             outputTreeMetadata->Write();
             if (EN_COPY_DIGI)
-                digiTreeMetadata->CloneTree()->Write();
+                digiTreeMetadata->CloneTree()->Write("metadata_digi", TObject::kOverwrite);
             if (EN_COPY_RAW)
-                simTreeMetadata->CloneTree()->Write();
+                simTreeMetadata->CloneTree()->Write("metadata_recon", TObject::kOverwrite);
         }
         void Close() { outputFile->Close(); }
 
