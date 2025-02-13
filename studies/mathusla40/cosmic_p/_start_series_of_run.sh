@@ -34,7 +34,8 @@ if [[ -z "$SLURM_TMPDIR" && -z "$SIM_TEMP_DIR" ]]; then
     mkdir -p $SIM_TEMP_DIR
 elif [[ -z "$SIM_TEMP_DIR" ]]; then
     echo "No output_dir, use SLURM_TMPDIR to temporarily save output"
-    SIM_TEMP_DIR=$SLURM_TMPDIR
+    SIM_TEMP_DIR=$SLURM_TMPDIR/series_$SERIES_NUMBER
+    mkdir -p $SIM_TEMP_DIR
 fi
 
 
@@ -45,7 +46,10 @@ merged_file_name=$MERGE_DIR/series_${SERIES_NUMBER}_digi_recon.root
 for irun in $(seq 1 $N_RUNS_PER_SERIES); do
     RUN=$((irun - 1))
     # Print the progress
-    echo "Running $RUN/$N_RUNS_PER_SERIES of series $SERIES_NUMBER"
+    echo
+    echo
+    echo "================================================================"
+    echo "Running $((RUN+1))/$N_RUNS_PER_SERIES of series #$SERIES_NUMBER"
 
     actual_run_number=$((N_RUNS_PER_SERIES * SERIES_NUMBER + RUN))
     mkdir -p $SIM_TEMP_DIR
@@ -77,3 +81,7 @@ for irun in $(seq 1 $N_RUNS_PER_SERIES); do
     fi
 
 done
+
+echo ""
+echo ""
+echo "Series #$SERIES_NUMBER finished!"

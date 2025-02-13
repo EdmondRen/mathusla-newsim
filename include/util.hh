@@ -72,7 +72,7 @@ namespace util
             }
 
             // Print the result with the specified ending
-            std::cout << output << end;
+            std::cout << output << end << std::flush;
         }
 
         template <typename... Args>

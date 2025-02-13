@@ -123,6 +123,9 @@ namespace Tracker
     public:
         VertexTrackFinder(bool debug = false,
                     bool debug_kalman = false);
+        ~VertexTrackFinder() {
+            delete finder;
+        }
 
         // Clear the internal states
         void Clear();

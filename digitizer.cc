@@ -385,6 +385,8 @@ public:
     {
         auto output_tree_name = "data";
         outputFile = TFile::Open(filename.c_str(), "RECREATE");
+        outputFile->Delete("data;*");
+        outputFile->Delete("metadata;*");
         outputTreeRaw = new TTree(output_tree_name, "Digitized Tree");
         outputTreeMetadata = new TTree("metadata", "Metadata for digitization");
 
@@ -463,7 +465,10 @@ public:
 
     void Write()
     {
-        outputTreeRaw->Write();
+        // outputFile->Write();
+        // Write the trees explicitly with overwrite mode
+        outputTreeRaw->Write("data", TObject::kOverwrite);
+        outputTreeMetadata->Write("metadata", TObject::kOverwrite);        
     }
 
     void WriteConfig(DigiConfig &config)
@@ -473,7 +478,6 @@ public:
         Uncertainty_y = config.bar_width_y / std::sqrt(12);
         Uncertainty_z = config.bar_width_z / std::sqrt(12);
         outputTreeMetadata->Fill();
-        outputTreeMetadata->Write();
     }
 
     void Close()
@@ -725,7 +729,7 @@ int main(int argc, const char *argv[])
         config.bar_width_y = MuGeoBuilder::mu40dims::bar_leny_real;
         config.bar_width_z = MuGeoBuilder::mu40dims::bar_lenz;
     }
-    // 2. Add info from config
+    // 2. fill info output file
     outfile->WriteConfig(config);
 
     // Start noise maker
@@ -771,8 +775,6 @@ int main(int argc, const char *argv[])
 
         // Clear the digis
         for (auto digi : digis)
-            delete digi;
-        for (auto digi : noise_digis)
             delete digi;
     }
 

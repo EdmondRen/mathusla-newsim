@@ -315,6 +315,10 @@ namespace Tracker
         ~TreeWriterRecon()
         {
             outputFile->Close();
+            if (EN_COPY_RAW)
+                simFile->Close();            
+            if (EN_COPY_DIGI)
+                digiFile->Close();
         }
 
         void SetSimBranches(bool save_raw_reduced);
@@ -326,7 +330,7 @@ namespace Tracker
         void Write()
         {
             outputFile->cd();
-            outputTree->Write();
+            outputTree->Write("", TObject::kOverwrite);
             outputTreeMetadata->Write();
             if (EN_COPY_DIGI)
                 digiTreeMetadata->CloneTree()->Write();

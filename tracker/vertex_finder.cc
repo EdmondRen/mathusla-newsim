@@ -204,8 +204,11 @@ namespace Tracker
         tracks_found_temp.push_back(seed->tracks.second);
 
         auto vertex_fitter = Kalman::LSVertex4DFitter(3, config["vertex_fit_MultipleScattering"] > 0);
-        auto vertex_found = vertex_fitter.run_fit(tracks_found_temp);
-        float chi2_prev = vertex_found->chi2;
+        // auto vertex_found = vertex_fitter.run_fit(tracks_found_temp);
+        // float chi2_prev = vertex_found->chi2;
+        vertex_fitter.fit(tracks_found_temp);
+        float chi2_prev = vertex_fitter.chi2;
+
 
         // Try all tracks that are recorded in the seed
         for (int i = seed->track_distance_chi2_list.size() - 1; i >= 0; i--)
@@ -236,14 +239,16 @@ namespace Tracker
             // auto &track = tracks_unused[track_id];
 
             tracks_found_temp.push_back(tracks_unused[track_id]);
-            auto vertex_temp = vertex_fitter.run_fit(tracks_found_temp);
-            track_chi2 = vertex_temp->chi2 - chi2_prev;
+            // auto vertex_temp = vertex_fitter.run_fit(tracks_found_temp);
+            // track_chi2 = vertex_temp->chi2 - chi2_prev;
+            vertex_fitter.fit(tracks_found_temp);
+            track_chi2 =vertex_fitter.chi2 - chi2_prev;
 
             if (track_chi2 < config["vertex_cut_TrackAddChi2"])
             {
                 print_dbg(util::py::f("  Track {} is added with chi2 {:.3f}.", track_id, track_chi2));
-                vertex_found = vertex_temp;
-                chi2_prev = vertex_temp->chi2;
+                // vertex_found = vertex_temp;
+                chi2_prev = vertex_fitter.chi2;
             }
             else
             {

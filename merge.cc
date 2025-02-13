@@ -8,6 +8,7 @@
 #include <TKey.h>
 #include <TTree.h>
 #include <TChain.h>
+#include <TParameter.h>
 
 void mergeTrees(std::string source_fname, std::string target_fname, std::string tree_name)
 {
@@ -15,9 +16,8 @@ void mergeTrees(std::string source_fname, std::string target_fname, std::string 
     TFile *source_file = TFile::Open(source_fname.c_str(), "READ");
     TFile *target_file = TFile::Open(target_fname.c_str(), "UPDATE");
 
-    // Auto get Tree name
+    // If tree name not given, auto get Tree name
     source_file->GetListOfKeys();
-
     TKey *keyref;
     TIter nextref(source_file->GetListOfKeys());
     if (tree_name.size() == 0)
@@ -33,11 +33,19 @@ void mergeTrees(std::string source_fname, std::string target_fname, std::string 
         }
     }
 
+    // Make a counter for number of files merged
+    TParameter<int> *N_MERGED = nullptr;
+    if (source_file->GetListOfKeys()->FindObject("N_MERGED"))
+        N_MERGED = (TParameter<int> *)source_file->Get("N_MERGED");
+    if (!N_MERGED)
+        N_MERGED = new TParameter<int>("N_MERGED", 1);
+
+    N_MERGED->SetVal(N_MERGED->GetVal() + 1);
+
     // Retrieve the trees
     TTree *source_tree = (TTree *)source_file->Get(tree_name.c_str());
     TTree *target_tree = (TTree *)target_file->Get(tree_name.c_str());
 
-    
     // Method 1: use TChain
     // // Add trees to a list
     // TList *list = new TList;
@@ -49,7 +57,7 @@ void mergeTrees(std::string source_fname, std::string target_fname, std::string 
     //     target_tree->Merge(list);
     // else
     //     std::cerr << "Error: One or both trees not found!" << std::endl;
-    
+
     // Method 2: direct copy
     // Clone the tree structure (but not the entries)
     target_tree->CopyAddresses(source_tree);
@@ -59,11 +67,12 @@ void mergeTrees(std::string source_fname, std::string target_fname, std::string 
     // for (Long64_t i = 0; i < nEntries; i++) {
     //     source_tree->GetEntry(i);  // Load entry data
     //     target_tree->Fill();        // Fill current tree with loaded entry
-    // }    
-
+    // }
 
     // Write and close the files
     target_file->cd();
+    // Write the Counter to the file
+    N_MERGED->Write("", TObject::kOverwrite);
     target_file->Write("", TObject::kOverwrite);
     target_file->Close();
     source_file->Close();

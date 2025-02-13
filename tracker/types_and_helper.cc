@@ -511,6 +511,8 @@ namespace Tracker
             digiFile = TFile::Open(filename_digi.c_str());
             digiTree = (TTree *)digiFile->Get(output_tree_name);
             digiTreeMetadata = (TTree *)digiFile->Get("metadata");
+            // Setup(digiTreeMetadata, outputTreeMetadata); // Setup for copying from digiTree to outputTree
+            // digiTreeMetadata->GetEntry(0);
             Setup(digiTree, outputTree); // Setup for copying from digiTree to outputTree
         }
         if (EN_COPY_RAW)
@@ -518,6 +520,8 @@ namespace Tracker
             simFile = TFile::Open(filename_sim.c_str());
             simTree = (TTree *)simFile->Get(output_tree_name);
             simTreeMetadata = (TTree *)simFile->Get("metadata");
+            // Setup(simTreeMetadata, outputTreeMetadata); // Setup for copying from digiTree to outputTree
+            // simTreeMetadata->GetEntry(0);
             SetSimBranches(save_raw_reduced);
             Setup(simTree, outputTree); // Setup for copying from rawTree to outputTree
         }
