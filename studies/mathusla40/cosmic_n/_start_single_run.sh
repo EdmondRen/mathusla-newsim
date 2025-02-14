@@ -20,7 +20,7 @@ env G4RUN_MANAGER_TYPE=Serial ./simulation -r $RUN_NUMBER \
 ## Digitizer
 ./digitizer $OUTPUT_DIR/run_${RUN_NUMBER}.root \
     -s $SEED \
-    -p 10000 \
+    -p 30000 \
     -n $NOSIE_RATE_PER_BAR_HZ
 
 ## Reconstruction
@@ -30,5 +30,4 @@ env G4RUN_MANAGER_TYPE=Serial ./simulation -r $RUN_NUMBER \
 ./tracker $OUTPUT_DIR/run_${RUN_NUMBER}_digi.root \
     -r $OUTPUT_DIR/run_${RUN_NUMBER}.root \
     -k 3 \
-    -R \
-    -p 10000
+    -p 30000
