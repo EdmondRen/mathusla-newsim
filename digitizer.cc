@@ -344,7 +344,7 @@ public:
                                           (*Hit_pz)[i],
                                           (*Hit_trackID)[i],
                                           (*Hit_pdgID)[i],
-                                          (*Hit_detectorID)[i]));
+                                          std::round((*Hit_detectorID)[i])));
             }
         }
     }
@@ -468,7 +468,7 @@ public:
         // outputFile->Write();
         // Write the trees explicitly with overwrite mode
         outputTreeRaw->Write("data", TObject::kOverwrite);
-        outputTreeMetadata->Write("metadata", TObject::kOverwrite);        
+        outputTreeMetadata->Write("metadata", TObject::kOverwrite);
     }
 
     void WriteConfig(DigiConfig &config)
@@ -503,12 +503,28 @@ std::vector<DigitizerHit *> Digitize(std::vector<SimHit *> hits, DigiConfig &con
         auto current_id = (current_remaining_hits[0])->det_id;
         // double x = (current_remaining_hits[0])->x;
 
+        // Make sure the detector id is valid
+        bool det_id_valid = true;
+        try
+        {
+            auto barposition = geobulder->GetBarPosition(current_id);
+            if (barposition.y_side_direction.getR()<0.001)
+                det_id_valid = false;
+        }
+        catch (...)
+        {
+            std::cout << "  [Warning] detector id not found: " << current_id << std::endl;
+            det_id_valid = false;
+            continue;
+        }
+
         // taking out all hits with the same detector id to be digitized, leaving the remaing for the next iteration
         for (auto hit : current_remaining_hits)
         {
             if (hit->det_id == current_id)
-            {
-                current_hits.push_back(hit);
+            {   
+                if (det_id_valid)
+                    current_hits.push_back(hit);
             }
             else
             {

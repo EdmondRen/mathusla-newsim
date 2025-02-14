@@ -129,21 +129,28 @@ namespace MuGeoBuilder
             // Now we need to manually calculate which bar it is in based on the local coordinate.
             int nx = floor(local_coord.x() / mu40dims::bar_lenx_real) + mu40dims::layer_Nbars_x_real / 2;
             int ny = floor(local_coord.y() / mu40dims::bar_leny_real) + mu40dims::layer_Nbars_y_real / 2;
+            // Handel edge cases, if the hit lies on the edge and got rounded wrong. 
             if (nx == mu40dims::layer_Nbars_x_real)
                 nx = mu40dims::layer_Nbars_x_real - 1;
+            if (nx == -1)
+                nx = 0;
             if (ny == mu40dims::layer_Nbars_y_real)
                 ny = mu40dims::layer_Nbars_y_real - 1;
+            if (ny == -1)
+                ny = 0;                
 
-            det_id += ny + nx * mu40dims::layer_Nbars_y_real;
-            int layer_number = copy_numbers[1];
-            int tower_number = copy_numbers[2];
-            int detector_nuber = copy_numbers[3];
+            long bar_id = ny + nx * mu40dims::layer_Nbars_y_real;
+            if (bar_id<0)
+                bar_id=0;
+            det_id += bar_id;
+            G4int layer_number = copy_numbers[1];
+            G4int tower_number = copy_numbers[2];
+            G4int detector_nuber = copy_numbers[3];
 
             // if (tower_number >= 16)
             //     detector_nuber += 1;
 
-            det_id += layer_number * 1e5 + tower_number * 1e8 + detector_nuber * 1e11; // Depth 0 takes 5 digits, the rest takes 3 digits each.
-
+            det_id += layer_number * 100000 + tower_number * 100000000 + detector_nuber * 100000000000; // Depth 0 takes 5 digits, the rest takes 3 digits each.
             // for (size_t i = 1; i < copy_numbers.size(); i++)
             // {
             //     det_id += copy_numbers[i] * std::pow(10, 5 + (i - 1) * 3); // Depth 0 takes 5 digits, the rest takes 3 digits each.
@@ -170,36 +177,36 @@ namespace MuGeoBuilder
             {
                 nx = floor((-local_coord.x()) / mu40dims::bar_lenx_real) + mu40dims::vw_Nbars_z_layer2 / 2;
                 ny = floor((local_coord.y()) / mu40dims::bar_leny_real) + mu40dims::vw_Nbars_y_layer2 / 2;
-                if (nx == mu40dims::vw_Nbars_z_layer1)
-                    nx = mu40dims::vw_Nbars_z_layer1 - 1;
-                if (ny == mu40dims::vw_Nbars_y_layer1)
-                    ny = mu40dims::vw_Nbars_y_layer1 - 1;
+                if (nx == mu40dims::vw_Nbars_z_layer2)
+                    nx = mu40dims::vw_Nbars_z_layer2 - 1;
+                if (ny == mu40dims::vw_Nbars_y_layer2)
+                    ny = mu40dims::vw_Nbars_y_layer2 - 1;
                 ny_total = mu40dims::vw_Nbars_y_layer2;
             }
             else if (layer_number == 2)
             {
                 nx = floor((local_coord.x()) / mu40dims::bar_leny_real) + mu40dims::vf_Nbars_x_layer1 / 2;
                 ny = floor((local_coord.y()) / mu40dims::bar_lenx_real) + mu40dims::vf_Nbars_y_layer1 / 2;
-                if (nx == mu40dims::vw_Nbars_z_layer1)
-                    nx = mu40dims::vw_Nbars_z_layer1 - 1;
-                if (ny == mu40dims::vw_Nbars_y_layer1)
-                    ny = mu40dims::vw_Nbars_y_layer1 - 1;
+                if (nx == mu40dims::vf_Nbars_x_layer1)
+                    nx = mu40dims::vf_Nbars_x_layer1 - 1;
+                if (ny == mu40dims::vf_Nbars_y_layer1)
+                    ny = mu40dims::vf_Nbars_y_layer1 - 1;
                 ny_total = mu40dims::vf_Nbars_y_layer1;
             }
             else if (layer_number == 3)
             {
                 nx = floor((local_coord.x()) / mu40dims::bar_lenx_real) + mu40dims::vf_Nbars_x_layer2 / 2;
                 ny = floor((local_coord.y()) / mu40dims::bar_leny_real) + mu40dims::vf_Nbars_y_layer2 / 2;
-                if (nx == mu40dims::vw_Nbars_z_layer1)
-                    nx = mu40dims::vw_Nbars_z_layer1 - 1;
-                if (ny == mu40dims::vw_Nbars_y_layer1)
-                    ny = mu40dims::vw_Nbars_y_layer1 - 1;
+                if (nx == mu40dims::vf_Nbars_x_layer2)
+                    nx = mu40dims::vf_Nbars_x_layer2 - 1;
+                if (ny == mu40dims::vf_Nbars_y_layer2)
+                    ny = mu40dims::vf_Nbars_y_layer2 - 1;
                 ny_total = mu40dims::vf_Nbars_y_layer2;
             }
             det_id += ny + nx * ny_total;
             int veto_detector_number = 0;
-            det_id += layer_number * 1e5 + veto_detector_number * 1e5 * 1e6;
-        }
+            det_id += layer_number * 100000 + veto_detector_number * 100000 * 1000000;
+        }  
 
         return det_id;
     }
@@ -215,7 +222,7 @@ namespace MuGeoBuilder
         else
         {
             print("  Error finding detector id of", detector_id);
-            return BarPosition({0, 0, 0}, {0, 0, 0}, {0, 0, 0});
+            return BarPosition(G4ThreeVector(0, 0, 0), G4ThreeVector(0, 0, 0), G4ThreeVector(0, 0, 0));
         }
     }
 

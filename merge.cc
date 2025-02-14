@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
+#include <filesystem>
 
 #include <TFile.h>
 #include <TTree.h>
@@ -79,7 +80,9 @@ void mergeTrees(std::string source_fname, std::string target_fname, std::string 
 }
 
 int main(int argc, char *argv[])
-{
+{   
+
+    // Handel input arguments
     std::string source_fname, target_fname, tree_name;
     if (argc < 3 || argc > 5)
         throw std::invalid_argument("Usage: ./merge source target [tree_name]");
@@ -97,9 +100,15 @@ int main(int argc, char *argv[])
     std::cout << "Target: " << target_fname << std::endl;
     std::cout << "Tree name: " << tree_name << std::endl;
 
-    mergeTrees(source_fname, target_fname, tree_name);
 
-    std::cout << "File merging completed" << std::endl;
+    if (std::filesystem::exists(target_fname)) {
+        mergeTrees(source_fname, target_fname, tree_name);
+        std::cout << "File merging completed" << std::endl;
+    } else {
+        std::filesystem::copy_file(source_fname, target_fname, std::filesystem::copy_options::overwrite_existing);
+        std::cout << "Target file does not exist. Source file copied as target.\n";
+    }
+
 
     return 0;
 }
