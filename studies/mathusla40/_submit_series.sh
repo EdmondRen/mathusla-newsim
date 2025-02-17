@@ -45,7 +45,7 @@ shift $((OPTIND - 1))
 if [[ ! -z $SIM_TEMP_DIR ]]; then
     cmd_start_series="${SCRIPT_FILENAME} \\
         -p ${SIM_REPO_DIR} \\
-        -o ${SIM_TEMP_DIR} \\ 
+        -o ${SIM_TEMP_DIR} \\
         -m ${MERGE_DIR} \\
         -e ${N_EVENTS_PER_RUN} \\
         -r ${N_RUNS_PER_SERIES} \\

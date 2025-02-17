@@ -17,7 +17,7 @@
 
 namespace util
 {
-    static std::string VERSION = "0.1";
+    static std::string VERSION = "1.0";
 
     namespace globals
     {

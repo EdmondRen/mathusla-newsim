@@ -40,6 +40,7 @@ fi
 
 
 cd $SIM_REPO_DIR/build
+echo "Start series #$SERIES_NUMBER with $N_RUNS_PER_SERIES runs "
 
 # Loop each run number
 merged_file_name=$MERGE_DIR/series_${SERIES_NUMBER}_digi_recon.root

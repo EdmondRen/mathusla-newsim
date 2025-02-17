@@ -24,7 +24,7 @@
 
 std::string util::globals::PROJECT_SOURCE_DIR = "";
 
-class ReconFileHandeler
+class ReconFileHandeler : iroot::file::EntryCopy
 {
 public:
     TFile *outputFile;
@@ -70,95 +70,131 @@ public:
         auto tree_name = "data";
         reconFile = TFile::Open(filename_recon.c_str());
         reconTree = (TTree *)reconFile->Get(tree_name);
+        auto metadata1 = (TTree *)reconFile->Get("metadata;1");
+        auto metadata2 = (TTree *)reconFile->Get("metadata;2");
+        auto metadata3 = (TTree *)reconFile->Get("metadata;3");
 
         outputFile = TFile::Open(filename_out.c_str(), "RECREATE");
         outputTree = new TTree(tree_name, "Reconstruction Tree Skimmed");
+        TTree *newTree1 = metadata1->CloneTree(); // Copies all entries
+        TTree *newTree2 = metadata2->CloneTree(); // Copies all entries
+        TTree *newTree3 = metadata3->CloneTree(); // Copies all entries
+        newTree1->Write("metadata;1", TObject::kOverwrite);
+        newTree2->Write("metadata;2", TObject::kOverwrite);
+        newTree3->Write("metadata;3", TObject::kOverwrite);
 
         // Setup for the address of all branches
         // They could then be accessed by the key names
-        // this->Setup(reconTree, outputTree);
+        this->Setup(reconTree, outputTree);
 
-        // Track_x0 = this->GetFloatV("Track_x0");
-        // Track_y0 = this->GetFloatV("Track_y0");
-        // Track_z0 = this->GetFloatV("Track_z0");
-        // Track_t0 = this->GetFloatV("Track_t0");
-        // Track_kx = this->GetFloatV("Track_kx");
-        // Track_ky = this->GetFloatV("Track_ky");
-        // Track_kz = this->GetFloatV("Track_kz");
-        // Track_kt = this->GetFloatV("Track_kt");
-        // Track_cov = this->GetFloatV("Track_cov");
-        // Track_chi2 = this->GetFloatV("Track_chi2");
-        // Track_id = this->GetIntV("Track_id");
-        // Track_iv_ind = this->GetIntV("Track_iv_ind");
-        // Track_iv_err = this->GetIntV("Track_iv_err");
-        // Track_digiInds = this->GetIntV("Track_digiInds");
-        // Vertex_x0 = this->GetFloatV("Vertex_x0");
-        // Vertex_y0 = this->GetFloatV("Vertex_y0");
-        // Vertex_z0 = this->GetFloatV("Vertex_z0");
-        // Vertex_t0 = this->GetFloatV("Vertex_t0");
-        // Vertex_cov = this->GetFloatV("Vertex_cov");
-        // Vertex_chi2 = this->GetFloatV("Vertex_chi2");
-        // Vertex_id = this->GetIntV("Vertex_id");
-        // Vertex_trackInds = this->GetIntV("Vertex_trackInds");
-        // Vertex_tracklet_n0 = this->GetIntV("Vertex_tracklet_n0");
-        // Vertex_tracklet_n2 = this->GetIntV("Vertex_tracklet_n2");
-        // Vertex_tracklet_n3 = this->GetIntV("Vertex_tracklet_n3");
-        // Vertex_tracklet_n4p = this->GetIntV("Vertex_tracklet_n4p");
+        Track_x0 = this->GetFloatV("Track_x0");
+        Track_y0 = this->GetFloatV("Track_y0");
+        Track_z0 = this->GetFloatV("Track_z0");
+        Track_t0 = this->GetFloatV("Track_t0");
+        Track_kx = this->GetFloatV("Track_kx");
+        Track_ky = this->GetFloatV("Track_ky");
+        Track_kz = this->GetFloatV("Track_kz");
+        Track_kt = this->GetFloatV("Track_kt");
+        Track_cov = this->GetFloatV("Track_cov");
+        Track_chi2 = this->GetFloatV("Track_chi2");
+        Track_id = this->GetIntV("Track_id");
+        Track_iv_ind = this->GetIntV("Track_iv_ind");
+        Track_iv_err = this->GetIntV("Track_iv_err");
+        Track_digiInds = this->GetIntV("Track_digiInds");
+        Vertex_x0 = this->GetFloatV("Vertex_x0");
+        Vertex_y0 = this->GetFloatV("Vertex_y0");
+        Vertex_z0 = this->GetFloatV("Vertex_z0");
+        Vertex_t0 = this->GetFloatV("Vertex_t0");
+        Vertex_cov = this->GetFloatV("Vertex_cov");
+        Vertex_chi2 = this->GetFloatV("Vertex_chi2");
+        Vertex_id = this->GetIntV("Vertex_id");
+        Vertex_trackInds = this->GetIntV("Vertex_trackInds");
+        Vertex_tracklet_n0 = this->GetIntV("Vertex_tracklet_n0");
+        Vertex_tracklet_n2 = this->GetIntV("Vertex_tracklet_n2");
+        Vertex_tracklet_n3 = this->GetIntV("Vertex_tracklet_n3");
+        Vertex_tracklet_n4p = this->GetIntV("Vertex_tracklet_n4p");
 
-        // Setup tree pointer to data buffer
-        reconTree->SetBranchAddress("Track_x0", &Track_x0);
-        reconTree->SetBranchAddress("Track_y0", &Track_y0);
-        reconTree->SetBranchAddress("Track_z0", &Track_z0);
-        reconTree->SetBranchAddress("Track_t0", &Track_t0);
-        reconTree->SetBranchAddress("Track_kx", &Track_kx);
-        reconTree->SetBranchAddress("Track_ky", &Track_ky);
-        reconTree->SetBranchAddress("Track_kz", &Track_kz);
-        reconTree->SetBranchAddress("Track_kt", &Track_kt);
-        reconTree->SetBranchAddress("Track_cov", &Track_cov); // Have to be flattened, each track takes 6x6=36 elements
-        reconTree->SetBranchAddress("Track_chi2", &Track_chi2);
-        reconTree->SetBranchAddress("Track_id", &Track_id);
-        reconTree->SetBranchAddress("Track_iv_ind", &Track_iv_ind);
-        reconTree->SetBranchAddress("Track_iv_err", &Track_iv_err);
-        reconTree->SetBranchAddress("Track_digiInds", &Track_digiInds);
-        reconTree->SetBranchAddress("Vertex_x0", &Vertex_x0);
-        reconTree->SetBranchAddress("Vertex_y0", &Vertex_y0);
-        reconTree->SetBranchAddress("Vertex_z0", &Vertex_z0);
-        reconTree->SetBranchAddress("Vertex_t0", &Vertex_t0);
-        reconTree->SetBranchAddress("Vertex_cov", &Vertex_cov); // Have to be flattened, each track takes 6x6=36 elements
-        reconTree->SetBranchAddress("Vertex_chi2", &Vertex_chi2);
-        reconTree->SetBranchAddress("Vertex_id", &Vertex_id);
-        reconTree->SetBranchAddress("Vertex_trackInds", &Vertex_trackInds);
-        reconTree->SetBranchAddress("Vertex_tracklet_n0", &Vertex_tracklet_n0);
-        reconTree->SetBranchAddress("Vertex_tracklet_n2", &Vertex_tracklet_n2);
-        reconTree->SetBranchAddress("Vertex_tracklet_n3", &Vertex_tracklet_n3);
-        reconTree->SetBranchAddress("Vertex_tracklet_n4p", &Vertex_tracklet_n4p);
+        // Track_x0 = nullptr;
+        // Track_y0 = nullptr;
+        // Track_z0 = nullptr;
+        // Track_t0 = nullptr;
+        // Track_kx = nullptr;
+        // Track_ky = nullptr;
+        // Track_kz = nullptr;
+        // Track_kt = nullptr;
+        // Track_cov = nullptr;
+        // Track_chi2 = nullptr;
+        // Track_id = nullptr;
+        // Track_iv_ind = nullptr;
+        // Track_iv_err = nullptr;
+        // Track_digiInds = nullptr;
+        // Vertex_x0 = nullptr;
+        // Vertex_y0 = nullptr;
+        // Vertex_z0 = nullptr;
+        // Vertex_t0 = nullptr;
+        // Vertex_cov = nullptr;
+        // Vertex_chi2 = nullptr;
+        // Vertex_id = nullptr;
+        // Vertex_trackInds = nullptr;
+        // Vertex_tracklet_n0 = nullptr;r;
+        // Vertex_tracklet_n3 = nullptr;
+        // Vertex_tracklet_n4p = null
+        // Vertex_tracklet_n2 = nullptptr;        
 
-        outputTree->Branch("Track_x0", &(*Track_x0));
-        outputTree->Branch("Track_y0", &(*Track_y0));
-        outputTree->Branch("Track_z0", &(*Track_z0));
-        outputTree->Branch("Track_t0", &(*Track_t0));
-        outputTree->Branch("Track_kx", &(*Track_kx));
-        outputTree->Branch("Track_ky", &(*Track_ky));
-        outputTree->Branch("Track_kz", &(*Track_kz));
-        outputTree->Branch("Track_kt", &(*Track_kt));
-        outputTree->Branch("Track_cov", &(*Track_cov)); // Have to be flattened, each track takes 6x6=36 elements
-        outputTree->Branch("Track_chi2", &(*Track_chi2));
-        outputTree->Branch("Track_id", &(*Track_id));
-        outputTree->Branch("Track_iv_ind", &(*Track_iv_ind));
-        outputTree->Branch("Track_iv_err", &(*Track_iv_err));
-        outputTree->Branch("Track_digiInds", &(*Track_digiInds));
-        outputTree->Branch("Vertex_x0", &(*Vertex_x0));
-        outputTree->Branch("Vertex_y0", &(*Vertex_y0));
-        outputTree->Branch("Vertex_z0", &(*Vertex_z0));
-        outputTree->Branch("Vertex_t0", &(*Vertex_t0));
-        outputTree->Branch("Vertex_cov", &(*Vertex_cov)); // Have to be flattened, each track takes 6x6=36 elements
-        outputTree->Branch("Vertex_chi2", &(*Vertex_chi2));
-        outputTree->Branch("Vertex_id", &(*Vertex_id));
-        outputTree->Branch("Vertex_trackInds", &(*Vertex_trackInds));
-        outputTree->Branch("Vertex_tracklet_n0", &(*Vertex_tracklet_n0));
-        outputTree->Branch("Vertex_tracklet_n2", &(*Vertex_tracklet_n2));
-        outputTree->Branch("Vertex_tracklet_n3", &(*Vertex_tracklet_n3));
-        outputTree->Branch("Vertex_tracklet_n4p", &(*Vertex_tracklet_n4p));
+        // // Setup tree pointer to data buffer
+        // reconTree->SetBranchAddress("Track_x0", &Track_x0);
+        // reconTree->SetBranchAddress("Track_y0", &Track_y0);
+        // reconTree->SetBranchAddress("Track_z0", &Track_z0);
+        // reconTree->SetBranchAddress("Track_t0", &Track_t0);
+        // reconTree->SetBranchAddress("Track_kx", &Track_kx);
+        // reconTree->SetBranchAddress("Track_ky", &Track_ky);
+        // reconTree->SetBranchAddress("Track_kz", &Track_kz);
+        // reconTree->SetBranchAddress("Track_kt", &Track_kt);
+        // reconTree->SetBranchAddress("Track_cov", &Track_cov); // Have to be flattened, each track takes 6x6=36 elements
+        // reconTree->SetBranchAddress("Track_chi2", &Track_chi2);
+        // reconTree->SetBranchAddress("Track_id", &Track_id);
+        // reconTree->SetBranchAddress("Track_iv_ind", &Track_iv_ind);
+        // reconTree->SetBranchAddress("Track_iv_err", &Track_iv_err);
+        // reconTree->SetBranchAddress("Track_digiInds", &Track_digiInds);
+        // reconTree->SetBranchAddress("Vertex_x0", &Vertex_x0);
+        // reconTree->SetBranchAddress("Vertex_y0", &Vertex_y0);
+        // reconTree->SetBranchAddress("Vertex_z0", &Vertex_z0);
+        // reconTree->SetBranchAddress("Vertex_t0", &Vertex_t0);
+        // reconTree->SetBranchAddress("Vertex_cov", &Vertex_cov); // Have to be flattened, each track takes 6x6=36 elements
+        // reconTree->SetBranchAddress("Vertex_chi2", &Vertex_chi2);
+        // reconTree->SetBranchAddress("Vertex_id", &Vertex_id);
+        // reconTree->SetBranchAddress("Vertex_trackInds", &Vertex_trackInds);
+        // reconTree->SetBranchAddress("Vertex_tracklet_n0", &Vertex_tracklet_n0);
+        // reconTree->SetBranchAddress("Vertex_tracklet_n2", &Vertex_tracklet_n2);
+        // reconTree->SetBranchAddress("Vertex_tracklet_n3", &Vertex_tracklet_n3);
+        // reconTree->SetBranchAddress("Vertex_tracklet_n4p", &Vertex_tracklet_n4p);
+
+        // outputTree->Branch("Track_x0", &(*Track_x0));
+        // outputTree->Branch("Track_y0", &(*Track_y0));
+        // outputTree->Branch("Track_z0", &(*Track_z0));
+        // outputTree->Branch("Track_t0", &(*Track_t0));
+        // outputTree->Branch("Track_kx", &(*Track_kx));
+        // outputTree->Branch("Track_ky", &(*Track_ky));
+        // outputTree->Branch("Track_kz", &(*Track_kz));
+        // outputTree->Branch("Track_kt", &(*Track_kt));
+        // outputTree->Branch("Track_cov", &(*Track_cov)); // Have to be flattened, each track takes 6x6=36 elements
+        // outputTree->Branch("Track_chi2", &(*Track_chi2));
+        // outputTree->Branch("Track_id", &(*Track_id));
+        // outputTree->Branch("Track_iv_ind", &(*Track_iv_ind));
+        // outputTree->Branch("Track_iv_err", &(*Track_iv_err));
+        // outputTree->Branch("Track_digiInds", &(*Track_digiInds));
+        // outputTree->Branch("Vertex_x0", &(*Vertex_x0));
+        // outputTree->Branch("Vertex_y0", &(*Vertex_y0));
+        // outputTree->Branch("Vertex_z0", &(*Vertex_z0));
+        // outputTree->Branch("Vertex_t0", &(*Vertex_t0));
+        // outputTree->Branch("Vertex_cov", &(*Vertex_cov)); // Have to be flattened, each track takes 6x6=36 elements
+        // outputTree->Branch("Vertex_chi2", &(*Vertex_chi2));
+        // outputTree->Branch("Vertex_id", &(*Vertex_id));
+        // outputTree->Branch("Vertex_trackInds", &(*Vertex_trackInds));
+        // outputTree->Branch("Vertex_tracklet_n0", &(*Vertex_tracklet_n0));
+        // outputTree->Branch("Vertex_tracklet_n2", &(*Vertex_tracklet_n2));
+        // outputTree->Branch("Vertex_tracklet_n3", &(*Vertex_tracklet_n3));
+        // outputTree->Branch("Vertex_tracklet_n4p", &(*Vertex_tracklet_n4p));
     }
 
     ~ReconFileHandeler()
@@ -170,7 +206,7 @@ public:
     Long64_t GetEntries() { return reconTree->GetEntries(); }
     void Fill() { outputTree->Fill(); }
     void Write() { outputFile->Write(); }
-    void Close() { outputFile->Close(); }
+    void Close() { reconFile->Close(); outputFile->Close(); }
 
     std::vector<std::vector<int>> splitVector(const std::vector<int> &input, int splitValue)
     {
@@ -214,23 +250,24 @@ public:
         this->vertices.clear();
 
         // Make tracks
-        for (int i = 1; i < (int)Track_x0->size(); i++)
+        for (int i = 0; i < (int)Track_x0->size(); i++)
         {
             auto track = std::make_unique<Tracker::Track>();
             track->id = (*Track_id)[i];
             track->iv_index = (*Track_iv_ind)[i];
             track->iv_error = (*Track_iv_err)[i];
-            track->params_full = VectorXd(8);
+            track->params_full.resize(8);
             track->params_full << (*Track_x0)[i], (*Track_y0)[i], (*Track_z0)[i], (*Track_t0)[i], (*Track_kx)[i], (*Track_ky)[i], (*Track_kz)[i], (*Track_kt)[i];
             auto params = Tracker::Helper::removeElement(track->params_full, track->iv_index + 4);
             params = Tracker::Helper::removeElement(params, track->iv_index);
+            track->params.resize(6);
             track->params = params;
             this->tracks.push_back(std::move(track));
         }
 
         // Make vertices
         std::vector<std::vector<int>> vertex_trackid_split = splitVector((*Vertex_trackInds), -1);
-        for (int i = 1; i < (int)Vertex_x0->size(); i++)
+        for (int i = 0; i < (int)Vertex_x0->size(); i++)
         {
             auto vertex = std::make_unique<Tracker::Vertex>();
             vertex->params = Vector4d((*Vertex_x0)[i], (*Vertex_y0)[i], (*Vertex_z0)[i], (*Vertex_t0)[i]);
@@ -240,6 +277,36 @@ public:
             vertex->track_ids = vertex_trackid_split[i];
             this->vertices.push_back(std::move(vertex));
         }
+
+
+        // // Make tracks
+        // for (int i = 0; i < (int)Track_x0.size(); i++)
+        // {
+        //     auto track = std::make_unique<Tracker::Track>();
+        //     track->id = (Track_id)[i];
+        //     track->iv_index = (Track_iv_ind)[i];
+        //     track->iv_error = (Track_iv_err)[i];
+        //     track->params_full.resize(8);
+        //     track->params_full << (Track_x0)[i], (Track_y0)[i], (Track_z0)[i], (Track_t0)[i], (Track_kx)[i], (Track_ky)[i], (Track_kz)[i], (Track_kt)[i];
+        //     auto params = Tracker::Helper::removeElement(track->params_full, track->iv_index + 4);
+        //     params = Tracker::Helper::removeElement(params, track->iv_index);
+        //     track->params.resize(6);
+        //     track->params = params;
+        //     this->tracks.push_back(std::move(track));
+        // }
+
+        // // Make vertices
+        // std::vector<std::vector<int>> vertex_trackid_split = splitVector((Vertex_trackInds), -1);
+        // for (int i = 0; i < (int)Vertex_x0.size(); i++)
+        // {
+        //     auto vertex = std::make_unique<Tracker::Vertex>();
+        //     vertex->params = Vector4d((Vertex_x0)[i], (Vertex_y0)[i], (Vertex_z0)[i], (Vertex_t0)[i]);
+
+        //     // std::vector<float> cov_vec(Vertex_cov.begin() + i * 16, Vertex_cov.begin() + (i + 1) * 16);
+        //     // vertex->cov = MatrixXd(4,4);
+        //     vertex->track_ids = vertex_trackid_split[i];
+        //     this->vertices.push_back(std::move(vertex));
+        // }        
 
         return status;
     }
@@ -302,6 +369,7 @@ int main(int argc, const char *argv[])
 
     // Loop all events
     auto entries = data->GetEntries();
+    int npassed = 0;
     for (int i = 0; i < entries; i++)
     {
         if ((i + 1) % args["print_progress"].as<int>() == 0)
@@ -339,7 +407,7 @@ int main(int argc, const char *argv[])
                     break;
                 }
             }
-            print(is_inside, is_outward);
+            print(i, is_inside, is_outward);
 
             if (passed = (is_inside && is_outward))
                 break;
@@ -350,6 +418,10 @@ int main(int argc, const char *argv[])
         {
             data->Fill();
             print("Vertex passed");
+            npassed+=1;
         }
     }
+
+    data->Write();
+    data->Close();
 }

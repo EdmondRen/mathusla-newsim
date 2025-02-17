@@ -347,6 +347,7 @@ namespace iroot
                         destTree->Branch(branchName, value.get());
                         sourceTree->SetBranchAddress(branchName, value.get());
                         branchData.push_back(std::move(value));
+                        branchNames.push_back(branchName);
                     }
                     else if (strcmp(leafType, "Float_t") == 0)
                     {
@@ -354,6 +355,7 @@ namespace iroot
                         destTree->Branch(branchName, value.get());
                         sourceTree->SetBranchAddress(branchName, value.get());
                         branchData.push_back(std::move(value));
+                        branchNames.push_back(branchName);
                     }
                     else if (strcmp(leafType, "Double_t") == 0)
                     {
@@ -361,6 +363,7 @@ namespace iroot
                         destTree->Branch(branchName, value.get());
                         sourceTree->SetBranchAddress(branchName, value.get());
                         branchData.push_back(std::move(value));
+                        branchNames.push_back(branchName);
                     }
                     else if (strcmp(leafType, "Bool_t") == 0)
                     {
@@ -368,6 +371,7 @@ namespace iroot
                         destTree->Branch(branchName, value.get());
                         sourceTree->SetBranchAddress(branchName, value.get());
                         branchData.push_back(std::move(value));
+                        branchNames.push_back(branchName);
                     }
                     else if (strcmp(leafType, "Char_t") == 0)
                     {
@@ -375,6 +379,7 @@ namespace iroot
                         destTree->Branch(branchName, value.get());
                         sourceTree->SetBranchAddress(branchName, value.get());
                         branchData.push_back(std::move(value));
+                        branchNames.push_back(branchName);
                     }
 
                     else if (strcmp(leafType, "vector<float>") == 0)
@@ -387,6 +392,7 @@ namespace iroot
                         // Convert raw pointer to unique_ptr and save to the list
                         std::unique_ptr<std::vector<float>> uniquePtr(value);
                         branchData.push_back(std::move(uniquePtr));
+                        branchNames.push_back(branchName);
                     }
                     else if (strcmp(leafType, "vector<double>") == 0)
                     {
@@ -398,6 +404,7 @@ namespace iroot
                         // Convert raw pointer to unique_ptr and save to the list
                         std::unique_ptr<std::vector<double>> uniquePtr(value);
                         branchData.push_back(std::move(uniquePtr));
+                        branchNames.push_back(branchName);
                     }
                     else if (strcmp(leafType, "vector<int>") == 0)
                     {
@@ -409,6 +416,7 @@ namespace iroot
                         // Convert raw pointer to unique_ptr and save to the list
                         std::unique_ptr<std::vector<int>> uniquePtr(value);
                         branchData.push_back(std::move(uniquePtr));
+                        branchNames.push_back(branchName);
                     }
                     else if (strcmp(leafType, "vector<Long64_t>") == 0)
                     {
@@ -420,6 +428,7 @@ namespace iroot
                         // Convert raw pointer to unique_ptr and save to the list
                         std::unique_ptr<std::vector<Long64_t>> uniquePtr(value);
                         branchData.push_back(std::move(uniquePtr));
+                        branchNames.push_back(branchName);
                     }
 
                     else
@@ -455,9 +464,9 @@ namespace iroot
             Double_t GetDouble(std::string key) { return *std::get<std::unique_ptr<Double_t>>(branchData[this->index(key)]); }
             Bool_t GetBool(std::string key) { return *std::get<std::unique_ptr<Bool_t>>(branchData[this->index(key)]); }
             Char_t GetChar(std::string key) { return *std::get<std::unique_ptr<Char_t>>(branchData[this->index(key)]); }
-            std::vector<int> GetIntV(std::string key) { return *std::get<std::unique_ptr<std::vector<int>>>(branchData[this->index(key)]); }
-            std::vector<float> GetFloatV(std::string key) { return *std::get<std::unique_ptr<std::vector<float>>>(branchData[this->index(key)]); }
-            std::vector<double> GetDoubleV(std::string key) { return *std::get<std::unique_ptr<std::vector<double>>>(branchData[this->index(key)]); }
+            std::vector<int> *GetIntV(std::string key) { return (std::get<std::unique_ptr<std::vector<int>>>(branchData[this->index(key)])).get(); }
+            std::vector<float> *GetFloatV(std::string key) { return (std::get<std::unique_ptr<std::vector<float>>>(branchData[this->index(key)])).get(); }
+            std::vector<double> *GetDoubleV(std::string key) { return (std::get<std::unique_ptr<std::vector<double>>>(branchData[this->index(key)])).get(); }
         };
 
     } // namespace file
