@@ -36,8 +36,8 @@ void mergeTrees(std::string source_fname, std::string target_fname, std::string 
 
     // Make a counter for number of files merged
     TParameter<int> *N_MERGED = nullptr;
-    if (source_file->GetListOfKeys()->FindObject("N_MERGED"))
-        N_MERGED = (TParameter<int> *)source_file->Get("N_MERGED");
+    if (target_file->GetListOfKeys()->FindObject("N_MERGED"))
+        N_MERGED = (TParameter<int> *)target_file->Get("N_MERGED");
     if (!N_MERGED)
         N_MERGED = new TParameter<int>("N_MERGED", 1);
 
