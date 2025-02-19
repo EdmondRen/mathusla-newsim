@@ -1,0 +1,37 @@
+# Macro file for example Mu
+# 
+# Can be run in batch, without graphic
+# or interactively: Idle> /control/execute run1.mac
+#
+# Change the default number of workers (in multi-threading mode) 
+# /run/numberOfThreads 4
+#
+## Initialize kernel
+/vis/disable
+/tracking/verbose 0
+
+## Select detector, one of {uoft1, mu40v0}
+/det/select mu40v0
+
+## Initialize run
+/run/initialize
+/run/printProgress 10
+
+
+
+# Special run setting - production cut for charged particle range, global setting.
+# Secondaries with range less than this nunmber will not be generated.
+# Primary particle just goes through continuous energy loss
+# Step limiter
+/control/execute ../macros/init_limit.mac
+
+## Specify the ROOT file to recreate
+/gen/recreate/pathname /home/tomren/geant_projects/temp/LLP_bb_35_ctau_1000.root
+## Setup recreate generator
+/gen/select recreate
+
+/run/beamOn 1000
+
+
+## !! NO NEED TO CALL  run beamOn !!
+## ALL EVENTS WITHIN THE ROOT FILE WILL AUTOMATICALLY BE GENERATED
