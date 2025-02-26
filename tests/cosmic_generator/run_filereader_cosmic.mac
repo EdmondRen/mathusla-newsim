@@ -13,9 +13,13 @@
 ## Select detector, one of {uoft1, mu40v0}
 /det/select mu40v0
 
+## Extend the max energy to 1 PeV 
+/process/eLoss/maxKinEnergy 1 PeV
+/process/had/maxEnergy 1 PeV
+
 ## Initialize run
 /run/initialize
-/run/printProgress 10
+/run/printProgress 1
 
 
 
@@ -26,11 +30,11 @@
 /control/execute ../macros/init_limit.mac
 
 ## Specify the ROOT file to recreate
-/gen/recreate/pathname ../tests/cosmic/LLP_bb_35_ctau_1000.root
+/gen/recreate/pathname ../tests/cosmic_generator/neutron_100TeV.root
 ## Setup recreate generator
 /gen/select recreate
 
-/run/beamOn 1000
+/run/beamOn 10
 
 
 ## !! NO NEED TO CALL  run beamOn !!

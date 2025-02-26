@@ -961,7 +961,7 @@ def load_all(filelist, loader=None, datatype="dict", verbose=True, list_append_a
 
 
 def plot_angular_distribution(directions=None, angles=None, ref=[0,0,1], bins=100, range=(0, 3.1415926)):
-    """Plot the angular distribution
+    """Plot the zenith angular distribution
     """
     def angel(v1,v2):
         mag1 = np.linalg.norm(v1)
@@ -973,9 +973,9 @@ def plot_angular_distribution(directions=None, angles=None, ref=[0,0,1], bins=10
         raise Exception("Either directions or angles needs to be given")
     
     if directions is not None:
-        angels = [angel(v1, ref) for v1 in directions]
+        angles = [angel(v1, ref) for v1 in directions]
         
-    n,ibins=np.histogram(angels, bins=bins, range=range)
+    n,ibins=np.histogram(angles, bins=bins, range=range)
     weights=(np.cos(ibins[:-1])-np.cos(ibins[1:]))*2*np.pi
     stairs(n/weights, ibins)
     

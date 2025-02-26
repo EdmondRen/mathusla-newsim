@@ -70,20 +70,22 @@ public:
         auto tree_name = "data";
         reconFile = TFile::Open(filename_recon.c_str());
         reconTree = (TTree *)reconFile->Get(tree_name);
-        auto metadata1 = (TTree *)reconFile->Get("metadata;1");
-        auto metadata2 = (TTree *)reconFile->Get("metadata;2");
-        auto metadata3 = (TTree *)reconFile->Get("metadata;3");
+        auto metadata1 = (TTree *)reconFile->Get("metadata");
+        auto metadata2 = (TTree *)reconFile->Get("metadata_digi");
+        auto metadata3 = (TTree *)reconFile->Get("metadata_recon");
 
         outputFile = TFile::Open(filename_out.c_str(), "RECREATE");
         outputTree = new TTree(tree_name, "Reconstruction Tree Skimmed");
+        outputFile->cd();
         TTree *newTree1 = metadata1->CloneTree(); // Copies all entries
         TTree *newTree2 = metadata2->CloneTree(); // Copies all entries
         TTree *newTree3 = metadata3->CloneTree(); // Copies all entries
-        newTree1->Write("metadata;1", TObject::kOverwrite);
-        newTree2->Write("metadata;2", TObject::kOverwrite);
-        newTree3->Write("metadata;3", TObject::kOverwrite);
+        newTree1->Write("", TObject::kOverwrite);
+        newTree2->Write("metadata_digi");
+        newTree3->Write("metadata_recon");
 
-        // Setup for the address of all branches
+        // ** Use the wrapper to set up two trees.
+        // This avoids manually copying address for every branch
         // They could then be accessed by the key names
         this->Setup(reconTree, outputTree);
 
@@ -139,7 +141,7 @@ public:
         // Vertex_tracklet_n0 = nullptr;r;
         // Vertex_tracklet_n3 = nullptr;
         // Vertex_tracklet_n4p = null
-        // Vertex_tracklet_n2 = nullptptr;        
+        // Vertex_tracklet_n2 = nullptptr;
 
         // // Setup tree pointer to data buffer
         // reconTree->SetBranchAddress("Track_x0", &Track_x0);
@@ -205,8 +207,16 @@ public:
 
     Long64_t GetEntries() { return reconTree->GetEntries(); }
     void Fill() { outputTree->Fill(); }
-    void Write() { outputFile->Write(); }
-    void Close() { reconFile->Close(); outputFile->Close(); }
+    void Write()
+    {
+        outputFile->cd();
+        outputTree->Write("", TObject::kOverwrite);
+    }
+    void Close()
+    {
+        reconFile->Close();
+        outputFile->Close();
+    }
 
     std::vector<std::vector<int>> splitVector(const std::vector<int> &input, int splitValue)
     {
@@ -278,7 +288,6 @@ public:
             this->vertices.push_back(std::move(vertex));
         }
 
-
         // // Make tracks
         // for (int i = 0; i < (int)Track_x0.size(); i++)
         // {
@@ -306,7 +315,7 @@ public:
         //     // vertex->cov = MatrixXd(4,4);
         //     vertex->track_ids = vertex_trackid_split[i];
         //     this->vertices.push_back(std::move(vertex));
-        // }        
+        // }
 
         return status;
     }
@@ -385,42 +394,69 @@ int main(int argc, const char *argv[])
 
         // Check all vertices.
         // It takes only one vertex that passed all cuts to keep this event.
-        bool passed = false;
-        for (auto &v : data->vertices)
+
+        // Use the vertex with most tracks
+        int ind_maxtrack = -1;
+        int maxtrack = -1;
+        for (auto j = 0; j < static_cast<int>(data->vertices.size()); j++)
         {
+            if (static_cast<int>(data->vertices[j]->track_ids.size()) > maxtrack)
+            {
+                maxtrack = data->vertices[j]->track_ids.size();
+                ind_maxtrack = j;
+            }
+        }
+
+        bool passed = false;
+        if (ind_maxtrack != -1)
+        {
+            auto &v = data->vertices[ind_maxtrack];
+            // for (auto &v : data->vertices)
+            // {
 
             // 0. Vertex is inside the box
             bool is_inside = (v->params(0) > box_x[0] && v->params(0) < box_x[1] &&
                               v->params(1) > box_y[0] && v->params(1) < box_y[1] &&
                               v->params(2) > box_z[0] && v->params(2) < box_z[1]);
 
-            // 1. No inward tracks
+            // 1. All tracks are outwards
+            // 2. Exists one upward tracks
             bool is_outward = true;
+            bool is_upward = false;
             for (auto j : v->track_ids)
             {
                 auto &t = data->tracks[j];
                 bool track_is_outward = (t->iv_index == 2 && t->params_full(7) > 0) ||
                                         (t->iv_index == 0 && t->params_full(7) > 0);
+                bool track_is_upward = (t->iv_index == 2 && t->params_full(7) > 0) ||
+                                        (t->iv_index == 0 && t->params_full(6) > 0.12);
                 if (!track_is_outward)
                 {
                     is_outward = false;
-                    break;
                 }
+                if (track_is_upward)
+                {
+                    is_upward = true;
+                }                
             }
-            print(i, is_inside, is_outward);
 
-            if (passed = (is_inside && is_outward))
-                break;
+            passed = (is_inside && is_outward && is_upward);
+            // print(i, is_inside, is_outward);
+
+            //     if (passed = (is_inside && is_outward))
+            //         break;
+            // }
         }
 
         // Save the event to the output file if passed cuts.
         if (passed)
         {
             data->Fill();
-            print("Vertex passed");
-            npassed+=1;
+            // print("Vertex passed");
+            npassed += 1;
         }
     }
+    print(util::py::f("{} / {} events selected", npassed, entries));
 
     data->Write();
     data->Close();

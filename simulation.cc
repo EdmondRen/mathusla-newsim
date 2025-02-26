@@ -166,7 +166,7 @@ int main(int argc, char **argv)
         // const MuPrimaryGeneratorAction * generatoraction = static_cast<const MuPrimaryGeneratorAction*> (runManager->GetUserPrimaryGeneratorAction());
         // int numberOfEvent = generatoraction->GetGenerator()->GetEntries();
         int numberOfEvent = (MuPrimaryGeneratorAction::GetGenerator())->GetEntries();
-        print(" [Generator] using recreate generator", generator_name, "with", numberOfEvent, "events");
+        print(" [Generator] using generator", generator_name, "to procuce", numberOfEvent, "events");
         // runManager->BeamOn(numberOfEvent);
         UImanager->ApplyCommand("/run/beamOn " + std::to_string(numberOfEvent));
       }

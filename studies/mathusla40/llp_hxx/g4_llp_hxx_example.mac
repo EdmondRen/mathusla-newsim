@@ -15,7 +15,7 @@
 
 ## Initialize run
 /run/initialize
-/run/printProgress 10
+/run/printProgress 50
 
 
 
@@ -30,7 +30,6 @@
 ## Setup recreate generator
 /gen/select recreate
 
-/run/beamOn 1000
 
 
 ## !! NO NEED TO CALL  run beamOn !!

@@ -15,7 +15,7 @@
 
 ## Initialize run
 /run/initialize
-/run/printProgress 10
+/run/printProgress 50
 
 
 
@@ -26,11 +26,10 @@
 /control/execute ../macros/init_limit.mac
 
 ## Specify the ROOT file to recreate
-/gen/recreate/pathname ../tests/cosmic/LLP_bb_35_ctau_1000.root
+/gen/recreate/pathname /home/tomren/geant_projects/temp//LLP_bb_35_ctau_1000.root
 ## Setup recreate generator
 /gen/select recreate
 
-/run/beamOn 1000
 
 
 ## !! NO NEED TO CALL  run beamOn !!

@@ -3,6 +3,7 @@ import random
 from pathlib import Path
 
 import numpy as np
+import joblib
 import pylorentz
 
 from . import root as iroot
@@ -815,6 +816,172 @@ def read_raw_vertex_weight(filename):
                 else:
                     continue
     return np.array(vertices), np.array(weights)
-            
-            
+
+
+
+
+def cumsum0(y):
+    y=np.array(y)
+    return np.cumsum(y) - 0.5*y[0] - 0.5*y
+
+def sample_neutron_energy_zenith(flux_dict, energies, num_samples=1, energy_range=None, box_size_meter = [10,10], seed = 1):
+    """
+    Samples neutron energy and zenith angle from given differential flux distributions.
+    
+    Parameters:
+        flux_dict (dict):
+            - Keys are zenith angles (in degrees).
+            - Values are numpy arrays of differential flux corresponding to the energy points.
+        energies (numpy array):
+            - A numpy array of energy values corresponding to the flux arrays.
+        num_samples (int):
+            - The number of neutron samples to generate.
+        energy_range (tuple, optional):
+            - A tuple (E_min, E_max) to specify the energy range to sample from.
+    
+    Returns:
+        events: numpy array of shape (num_samples, 2):
+            - Each row contains (sampled xyz, sampled uvw, sampled_ekin [GeV])
+        flux: total flux [/cm2/s] within the given energy range
+    """
+    # Setup random generator
+    rng = np.random.default_rng(seed = seed)
+    
+    # Convert angles to a sorted list
+    zenith_angles = np.array(sorted(flux_dict.keys()))
+    zenith_radians = zenith_angles * np.pi / 180  # Convert to radians
+
+    # Apply energy range filter if specified
+    if energy_range is not None:
+        E_min, E_max = energy_range
+        energy_mask = (energies >= E_min) & (energies <= E_max)
+        filtered_energies = energies[energy_mask]
+        filtered_flux_dict = {angle: flux[energy_mask] for angle, flux in flux_dict.items()}
+    else:
+        filtered_energies = energies
+        filtered_flux_dict = flux_dict
+    
+    # Compute total flux at each zenith angle (integrating over filtered energy)
+    total_flux_per_angle = np.array([np.trapz(filtered_flux_dict[angle], filtered_energies) for angle in zenith_angles])
+    
+    # Compute the solid angle element for each zenith angle
+    zenith_radians_diff = np.diff(zenith_radians)
+    d_omega = 2 * np.pi * (np.cos(zenith_radians[1:] - 0.5*zenith_radians_diff) - np.cos(zenith_radians[1:] + 0.5*zenith_radians_diff))
+    d_omega = np.concatenate(([2 * np.pi * (1-np.cos(0.5*zenith_radians_diff[0])) * 2], d_omega))
+    
+    # Normalize flux by solid angle to get correct probability distribution
+    weighted_flux = total_flux_per_angle * d_omega
+    weighted_cdf = cumsum0(weighted_flux)
+    weighted_cdf /= weighted_cdf[-1]  # Normalize to [0,1]
+
+    total_flux = sum(weighted_flux)/sum(d_omega)
+    
+    # Sample continuous zenith angles using inverse transform sampling
+    sampled_zenith_angles = np.interp(rng.random(num_samples), weighted_cdf, zenith_radians)
+    
+    sampled_energies = []
+
+    # print(zenith_radians)
+    # plt.plot(zenith_radians, weighted_cdf)
+    for angle in sampled_zenith_angles:
+        # Interpolate flux for continuous angles
+        nearest_indices = np.searchsorted(zenith_radians, angle, side='left')
+        if nearest_indices == 0:
+            interpolated_flux = filtered_flux_dict[zenith_angles[0]]
+        elif nearest_indices == len(zenith_angles):
+            interpolated_flux = filtered_flux_dict[zenith_angles[-1]]
+        else:
+            lower_angle, upper_angle = zenith_angles[nearest_indices - 1], zenith_angles[nearest_indices]
+            lower_flux, upper_flux = filtered_flux_dict[lower_angle], filtered_flux_dict[upper_angle]
+            interpolated_flux = lower_flux + (upper_flux - lower_flux) * (angle - lower_angle * np.pi / 180) / ((upper_angle - lower_angle) * np.pi / 180)
+        
+        # Normalize the flux to create a probability distribution for energy sampling
+        cumulative_distribution = cumsum0(interpolated_flux)
+        cumulative_distribution /= cumulative_distribution[-1]  # Normalize to [0,1]
+        
+        # Sample energy using inverse transform sampling
+        random_value = rng.random()
+        sampled_energy = np.interp(random_value, cumulative_distribution, filtered_energies)
+        sampled_energies.append(sampled_energy)
+
+    sampled_xs = (rng.random(num_samples)-0.5) * box_size_meter[0]
+    sampled_ys = (rng.random(num_samples)-0.5) * box_size_meter[1]
+    sampled_zs = np.zeros_like(sampled_xs)
+
+    phis = rng.random(num_samples) * 2 * np.pi
+    sampled_us = np.sin(sampled_zenith_angles) * np.cos(phis)
+    sampled_vs = np.sin(sampled_zenith_angles) * np.sin(phis)
+    sampled_ws = -np.cos(sampled_zenith_angles)
+    
+    
+    # Return samples as a NumPy array
+    return np.column_stack((sampled_xs, sampled_ys ,sampled_zs, sampled_us, sampled_vs, sampled_ws, sampled_energies)), total_flux
+
+def gen_cosmic(filename_output, particle = "n" ,num_samples=1, energy_range=[1e5,1e12], rand_seed=1,  nprint=1000,metadata=None, box_size_meter = [10,10], box_z = 0):
+    """
+    
+    Parameters:
+        filename_output: str
+        particle: str, one of {"n", "p"}
+
+    Return:
+        total_flux: float
+            total flux in this energy range
+    
+    Example:
+    """
+
+    # setup output file
+    if not os.path.exists(os.path.dirname(filename_output)):
+        Path(os.path.dirname(filename_output)).mkdir( parents=True, exist_ok=True )
+    tree_writer = iroot.tfile_writer("data", filename_output)
+    tree_writer.define_branch("Gen_pdgID", 'vector<double>')    
+    tree_writer.define_branch("Gen_x", 'vector<float>')    
+    tree_writer.define_branch("Gen_y", 'vector<float>')    
+    tree_writer.define_branch("Gen_z", 'vector<float>')    
+    tree_writer.define_branch("Gen_t", 'vector<float>')    
+    tree_writer.define_branch("Gen_px", 'vector<float>')    
+    tree_writer.define_branch("Gen_py", 'vector<float>')    
+    tree_writer.define_branch("Gen_pz", 'vector<float>')   
+
+    # Load flux table
+    if particle=="n":
+        data = joblib.load(os.path.dirname(os.path.realpath(__file__)) + "/data/flux_table_neutron.joblib")
+        egrid = data["egrid"]
+        flux_table = data["flux_table"]
+        pdgid = 2112
+        mass = 0.939
+    elif particle=="p":
+        data = joblib.load(os.path.dirname(os.path.realpath(__file__)) + "/data/flux_table_proton.joblib")        
+        egrid = data["egrid"]
+        flux_table = data["flux_table"]
+        pdgid = 2212
+        mass = 0.938
+    else:
+        raise ValueError('Set particle to one of {"n", "p"} ')
+
+    samples, total_flux = sample_neutron_energy_zenith(flux_table, egrid, num_samples=num_samples, energy_range=energy_range, box_size_meter = box_size_meter)
+
+    print(f"Total flux in selected energy range : {total_flux} /cm2/s")
+
+    for i in range(num_samples):
+        keys = ["Gen_pdgID","Gen_x","Gen_y","Gen_z","Gen_t","Gen_px","Gen_py","Gen_pz"]
+        data = {key: [] for key in keys}
+        sample = samples[i]
+        ek = sample[-1]
+        p = np.sqrt(ek**2 + 2 * ek * mass)
+        
+        data["Gen_pdgID"].append(pdgid)
+        data["Gen_x"].append(sample[0] * 1000) # m->mm
+        data["Gen_y"].append(sample[1] * 1000) # m->mm
+        data["Gen_z"].append(box_z * 1000) # m->mm
+        data["Gen_t"].append(0)
+        data["Gen_px"].append(p*sample[0+3] * 1000) # GeV-> MeV
+        data["Gen_py"].append(p*sample[1+3] * 1000) # GeV-> MeV
+        data["Gen_pz"].append(p*sample[2+3] * 1000) # GeV-> MeV
+        tree_writer.fill(data)
+    
+    tree_writer.write_and_close()    
+
+    return total_flux
 
