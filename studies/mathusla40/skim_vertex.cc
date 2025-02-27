@@ -456,7 +456,13 @@ int main(int argc, const char *argv[])
             npassed += 1;
         }
     }
+
+    // Time it 
+    stop_i = std::chrono::high_resolution_clock::now();
+    float duration = std::chrono::duration<float>(stop_i - start).count();
+
     print(util::py::f("{} / {} events selected", npassed, entries));
+    print("  Time used [s]:", duration);
 
     data->Write();
     data->Close();

@@ -36,6 +36,7 @@ class Digi:
     def __init__(self, data=None, i=0, metadata_digi=None):
         if data is not None:
             self.xyzt = np.array([data["Digi_x"][i], data["Digi_y"][i], data["Digi_z"][i], data["Digi_t"][i]])
+            self.x, self.y, self.z, self.t = self.xyzt
             self.id = i
             self.pdg = data["Digi_pdgID"][i]
             self.is_primary = False
@@ -43,6 +44,11 @@ class Digi:
             self.direction = data["Digi_direction"][i]
             self.type = data["Digi_type"][i]
             self.track_id = data["Digi_trackID"][i]
+            self.detector_id = data["Digi_detectorID"][i]
+            self.copy_bar = self.detector_id%100000
+            self.copy_layer = (self.detector_id//100000)%1000
+            self.copy_module = (self.detector_id//100000_000)%1000
+            self.copy_det = (self.detector_id//100000_000_000)%1000
             
             if (self.type>0 and "Hit_x" in data):
                 try:
@@ -114,6 +120,7 @@ class Track:
                 k+=1
 
         self.vabs = np.linalg.norm(self.params_time[3:])
+        self.vdirection = self.params_time[3:]/self.vabs
     
 
     def set_digis(self, digis_all):
@@ -158,6 +165,7 @@ class Vertex:
     def __init__(self, data=None, i=0):
         if data is not None:
             self.params = np.array([data["Vertex_x0"][i], data["Vertex_y0"][i], data["Vertex_z0"][i], data["Vertex_t0"][i]])
+            self.x0,self.y0,self.z0,self.t0 = self.params
             self.cov = np.array(data["Vertex_cov_unpacked"][i])
             self.chi2 = data["Vertex_chi2"][i]
             self.track_ids =  data["Vertex_trackInds_unpacked"][i]
@@ -168,11 +176,14 @@ class Vertex:
     
     def set_tracks(self, tracks_all):
         tracks_purity = []
+        tracks_nhits = []
         for i in self.track_ids:
             t = tracks_all[i]
             tracks_purity.append(t.track_purity)
+            tracks_nhits.append(t.nhits)
 
         self.vertex_purity = np.mean(tracks_purity)
+        self.nhits = np.sum(tracks_nhits)
 
 class PDG:    
     name_map = {
@@ -199,7 +210,11 @@ class PDG:
 
 
 class Event:
-    def __init__(self, data_parsed, metadata_digi):
+    def __init__(self, data_parsed, metadata_digi, parse_truth = True):
+        ## Identity
+        self.Run_number = data_parsed['Run_number']
+        self.Evt_number = data_parsed['Evt_number']
+        
         ## Add some RRQ
         self.process_recon(data_parsed)
         
@@ -208,7 +223,7 @@ class Event:
         self.genvertices = GenVertices(self.genparticles)
         
         # Get truth 
-        if ("Hit_x" in data_parsed):
+        if ("Hit_x" in data_parsed and parse_truth):
             self.HAS_TRUTH = True
 
             # Truth hits

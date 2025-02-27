@@ -1104,3 +1104,177 @@ def poissonerror_div(N1,N2):
 def chi2_calc(x_est, x_true, err):
     return sum([(x_est[i]-x_true[i])**2/err[i]**2 for i in range(len(err))])
 
+
+
+class _UnbiasedEstimators(object):
+    """
+    //From QETpy: https://github.com/ucbpylegroup/QETpy
+    Helper class for calculating the unbiased estimators of a 1D normal
+    distribution that has been truncated at specified bounds.
+    Attributes
+    ----------
+    mu0 : float
+        The biased estimator of the mean of the inputted and truncated data.
+    std0 : float
+        The biased estimator of the standard deviation of the inputted and
+        truncated data.
+    mu : float
+        The unbiased estimator of the mean of the inputted and truncated data.
+    std : float
+        The unbiased estimator of the standard deviation of the inputted and
+        truncated data.
+    """
+
+    def __init__(self, x, lwrbnd, uprbnd):
+        """
+        Initialization of the `_UnbiasedEstimators` helper class
+        Parameters
+        ----------
+        x : ndarray
+            A 1D array of data that has been truncated, for which the unbiased
+            estimators will be calculated.
+        lwrbnd : float
+            The lower bound of the truncation of the distribution.
+        uprbnd : float
+            The upper bound of the truncation of the distribution.
+        """
+
+        inds = (np.asarray(x) >= lwrbnd) & (np.asarray(x) <=uprbnd)
+
+        self._lwrbnd = lwrbnd
+        self._uprbnd = uprbnd
+
+        self._x = x[inds] # make sure data is only between the specified bounds
+        self._sumx = np.sum(self._x)
+        self._sumx2 = np.sum(self._x**2)
+        self._lenx = len(self._x)
+
+        self.mu0 = np.mean(self._x)
+        self.std0 = np.std(self._x)
+
+        self._calc_unbiased_estimators()
+
+    def _equations(self, p):
+        """
+        Helper method for calculating the system of equations that will be
+        numerically solved for find the unbiased estimators.
+        Parameters
+        ----------
+        p : tuple
+            A tuple of length 2 containing the current estimated values of the
+            unbiased estimators: (mu, std).
+        Returns
+        -------
+        (mu_eqn, std_eqn) : tuple
+            A tuple containing the two equations that will be solved to give the
+            unbiased estimators of the mean and standard deviation of the data.
+        """
+
+        mu, std = p
+
+        pdf_lwr = stats.norm.pdf(self._lwrbnd, loc=mu, scale=std)
+        pdf_upr = stats.norm.pdf(self._uprbnd, loc=mu, scale=std)
+
+        cdf_lwr = stats.norm.cdf(self._lwrbnd, loc=mu, scale=std)
+        cdf_upr = stats.norm.cdf(self._uprbnd, loc=mu, scale=std)
+
+        mu_eqn = self._sumx - self._lenx * mu
+        # term due to truncation
+        mu_eqn += self._lenx / (cdf_upr - cdf_lwr) * (pdf_upr - pdf_lwr)
+
+        std_eqn = self._sumx2 - 2 * mu * self._sumx + self._lenx * mu**2 - self._lenx * std**2
+        # term due to truncation
+        std_eqn += self._lenx * std**2 / (cdf_upr - cdf_lwr) * ((self._uprbnd - mu) * pdf_upr - (self._lwrbnd - mu) * pdf_lwr)
+
+        return (mu_eqn, std_eqn)
+
+    def _calc_unbiased_estimators(self):
+        """
+        Method for calculating the unbiased estimators of the truncated distribution.
+        """
+
+        self.mu, self.std = scipy.optimize.fsolve(self._equations, (self.mu0, self.std0))
+
+def removeoutliers(data, skew_target=0.05, skew_itermax=20, std_target=3, std_itermax=20, std_precision=1000, return_unbiased_estimates=False, axis=0, verbose=False):
+    """
+    Removing outliers by
+      1) skewness (minimizing to skewtarget)
+      2) standard deviation
+
+    Parameters
+        x : array
+            Array of real-valued variables from which to remove outliers.
+        skew_target:
+    Returns
+        inds : ndarray
+            Boolean indices
+    """
+    # 0) Adapt to data type
+    if type(data) is list:
+        data=np.array(data)
+    if data.ndim==1:
+        x=data
+
+
+    # 1) Skewness cut
+    if skew_target is not None:
+        i=1
+        inds=(x != np.inf)
+        sk=scipy.stats.skew(x[inds])
+        while(abs(sk) > skew_target):
+            dmed=x-np.median(x[inds])
+            dist=np.min([abs(min(dmed)),abs(max(dmed))])
+            inds=inds & (abs(dmed) < dist)
+            sk=scipy.stats.skew(x[inds])
+            if(i > skew_itermax):
+                if verbose:
+                    print(f"Skew Reaching maximum {skew_itermax} iterations. Stop at skew of {sk}")
+                break
+            i+=1
+    else:
+        inds=np.ones(len(x),dtype=bool)
+
+    # 2) Standard deviation cut
+    if std_target is not None:
+        # Trun the relative precision into absolute, in the unit of standard deviation
+        std_precision_abs = np.std(x)/std_precision
+        mean_last = np.mean(x[inds]); std_last = np.std(x[inds]);
+        i=0
+        nstable = 0
+
+        while nstable <= 3:
+            mask = inds& (abs(scipy.stats.zscore(x)) < std_target)
+            if sum(mask) <=1 and verbose:
+                warnings.warn(
+                    "The number of events passing iterative cut via iterstat is <= 1. "
+                    "Iteration not converging properly. Returning simple mean and std. "
+                    "No data will be cut."
+                )
+                mask = inds&np.ones(len(x),dtype=bool)
+                mean_this = np.mean(x[mask])
+                std_this = np.std(x[mask])
+                break
+
+            mean_this = np.mean(x[mask])
+            std_this = np.std(x[mask])
+
+            if (abs(mean_this - mean_last) > std_precision_abs) or (abs(std_this - std_last) > std_precision_abs):
+                nstable = 0
+            else:
+                nstable = nstable + 1
+
+            mean_last = mean_this
+            std_last = std_this
+
+            i+=1
+            if(i > std_itermax):
+                if verbose:
+                    print(f"STD Reaching maximum {std_itermax} iterations. Stop at standard deviation of {std_last}")
+                break
+
+    # 3. Calculate mean and stddev
+    if return_unbiased_estimates:
+        unb = _UnbiasedEstimators(x[mask], mean_this - std_target * std_this, mean_this + std_target * std_this)
+        mean_this=unb.mu; std_this=unb.std
+
+    return mask, mean_this, std_this
