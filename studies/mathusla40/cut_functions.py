@@ -156,18 +156,24 @@ class RRQ:
         * Compatible with the vertex at speed of light
         """
         is_after = np.array([self.v.t0 < digi.t for digi in self.event.digis])
+        is_above = np.array([self.v.z0 < digi.z for digi in self.event.digis])
         is_veto = np.array([(digi.copy_det in RRQ.CONST_VETO_DET) for digi in self.event.digis])
         is_comp = []
-        for i in np.flatnonzero(is_after&is_veto):
+        # for i in np.flatnonzero(is_after&is_veto):
+        for i in range(len(is_after)):
             digi = self.event.digis[i]
             dr = np.linalg.norm([digi.x - self.v.x0, digi.y - self.v.y0, digi.z - self.v.z0])
-            dt = digi.t - self.v.t0
-            speed = dr/np.abs(dt)
-            is_comp.append(np.abs(speed-300)<50)
+            dt = abs(digi.t - self.v.t0)
+            metric_dt = abs(dt - dr/290)
+            metric_speed = abs(abs(dr/dt) - 300)
+            # is_comp.append(np.abs(metric)<5)
+            is_comp.append(metric_speed<40)        
 
         n_veto_after = sum(is_after&is_veto)
-        n_veto_after_comp = sum(is_comp)
-        return n_veto_after, n_veto_after_comp
+        n_veto_after_comp = sum(is_after&is_veto&is_comp)
+        n_active_after = sum(is_after&~is_veto)
+        n_active_after_comp = sum(is_after&~is_veto&is_comp&is_above)        
+        return n_veto_after, n_veto_after_comp, n_active_after, n_active_after_comp
 
     def get_slowest_track(self):
         vs = [self.event.tracks[i].vabs for i in self.v.track_ids]
@@ -355,8 +361,9 @@ def run_processing(file, entries = -1):
     
             # 
             "event_ndigi_veto", "event_ndigi_active", 
-            "vertex_ndigi_veto_before", "vertex_ndigi_active_before", "vertex_slowest_track",
+            "vertex_ndigi_veto_before_limited", "vertex_ndigi_active_before_limited", "vertex_slowest_track",
             "vertex_ndigi_veto_after", "vertex_ndigi_veto_after_comp",
+            "vertex_ndigi_active_after", "vertex_ndigi_active_after_comp",
             
             "vertex_open_angle", "vertex_cms_angle_h", "vertex_cms_angle_v", "vertex_cms_angle",
             "vertex_hits_trend_1", "vertex_hits_trend_2", "vertex_hits_trend_3",
@@ -413,12 +420,14 @@ def run_processing(file, entries = -1):
         ndigi_veto,ndigi_active, ndigi_veto_before,ndigi_active_before = rrq.get_ndigi_veto_and_active(limit=100)
         res["event_ndigi_veto"].append(ndigi_veto)
         res["event_ndigi_active"].append(ndigi_active)
-        res["vertex_ndigi_veto_before"].append(ndigi_veto_before)
-        res["vertex_ndigi_active_before"].append(ndigi_active_before)
+        res["vertex_ndigi_veto_before_limited"].append(ndigi_veto_before)
+        res["vertex_ndigi_active_before_limited"].append(ndigi_active_before)
         # Number of veto that are later than the vertex and compatible with speed of light
-        n_veto_after, n_veto_after_comp = rrq.get_ndigi_veto_and_comp()    
+        n_veto_after, n_veto_after_comp, n_active_after, n_active_after_comp = rrq.get_ndigi_veto_and_comp()    
         res["vertex_ndigi_veto_after"].append(n_veto_after)
         res["vertex_ndigi_veto_after_comp"].append(n_veto_after_comp)
+        res["vertex_ndigi_active_after"].append(n_active_after)
+        res["vertex_ndigi_active_after_comp"].append(n_active_after_comp)        
         
         # Opening angle
         open_angle_max, open_angle_mean, axis, angle_diffh, angle_diffv, angle_diff_abs = rrq.eval_cone()
@@ -440,8 +449,8 @@ def run_processing(file, entries = -1):
     for key in res:
         res[key] = np.array(res[key])
 
-    res["event_ndigi_active_after"] = res["event_ndigi_active"] - res["vertex_ndigi_active_before"]
-    res["vertex_ndigi_before"] = res["vertex_ndigi_active_before"] + res["vertex_ndigi_veto_before"]
+    # res["event_ndigi_active_after"] = res["event_ndigi_active"] - res["vertex_ndigi_active_before_limited"]
+    res["vertex_ndigi_before_limited"] = res["vertex_ndigi_active_before_limited"] + res["vertex_ndigi_veto_before_limited"]
     print("Finished")
 
     return RQ_dict(res)
