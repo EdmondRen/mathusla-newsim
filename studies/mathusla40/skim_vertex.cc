@@ -36,7 +36,7 @@ public:
     std::vector<std::unique_ptr<Tracker::Track>> tracks;
     std::vector<std::unique_ptr<Tracker::Vertex>> vertices;
 
-    // Pointers to branches
+    // Pointers to existing branches
     std::vector<float> *Track_x0;
     std::vector<float> *Track_y0;
     std::vector<float> *Track_z0;
@@ -64,6 +64,9 @@ public:
     std::vector<int> *Vertex_tracklet_n3;
     std::vector<int> *Vertex_tracklet_n4p;
 
+    // Pointer to newly added branches
+    int Vertex_selected_ind;
+
     ReconFileHandeler(std::string filename_recon,
                       std::string filename_out)
     {
@@ -76,7 +79,6 @@ public:
 
         outputFile = TFile::Open(filename_out.c_str(), "RECREATE");
         outputTree = new TTree(tree_name, "Reconstruction Tree Skimmed");
-        outputFile->cd();
         TTree *newTree1 = metadata1->CloneTree(); // Copies all entries
         TTree *newTree2 = metadata2->CloneTree(); // Copies all entries
         TTree *newTree3 = metadata3->CloneTree(); // Copies all entries
@@ -115,6 +117,9 @@ public:
         Vertex_tracklet_n2 = this->GetIntV("Vertex_tracklet_n2");
         Vertex_tracklet_n3 = this->GetIntV("Vertex_tracklet_n3");
         Vertex_tracklet_n4p = this->GetIntV("Vertex_tracklet_n4p");
+
+        outputTree->Branch("Vertex_selected_ind", &Vertex_selected_ind);        
+
 
         // Track_x0 = nullptr;
         // Track_y0 = nullptr;
@@ -284,6 +289,7 @@ public:
 
             // std::vector<float> cov_vec(Vertex_cov.begin() + i * 16, Vertex_cov.begin() + (i + 1) * 16);
             // vertex->cov = MatrixXd(4,4);
+            vertex->id = i;
             vertex->track_ids = vertex_trackid_split[i];
             this->vertices.push_back(std::move(vertex));
         }
@@ -331,7 +337,7 @@ int main(int argc, const char *argv[])
         ("o,output", "Output filename. If not given, will be automatically set as {input_filename}_skim.root", cxxopts::value<std::string>())
         ("k,save_option", "Save only events with track (1) or vertex (2)  or upward vertex (3). Default is saving all events.", cxxopts::value<int>()->default_value("0"))
         ("p,print_progress", "Print progress every `p` events", cxxopts::value<int>()->default_value("100"))
-        ("filename", "Recon. file to work on", cxxopts::value<std::string>());
+        ("I,event_index", "The index of events to run the tracker, separated by comma. If only two numbers are provide, will treat it as a range.", cxxopts::value<std::vector<int>>()->default_value("0,-1"))        ("filename", "Recon. file to work on", cxxopts::value<std::string>());
     options.parse_positional({"filename"});
     options.positional_help("digit_filename"); // Add positional help description
     auto args = options.parse(argc, argv);
@@ -370,16 +376,33 @@ int main(int argc, const char *argv[])
     print("  Total entries", data->GetEntries());
 
     // Define the decay volume
-    float box_halflen_mm = 10700 * 2;
-    float box_fiducial_shrink = 300; // Shrink inside by 30cm
+    float box_halflen_mm = 10700 * 2; // [mm]
+    float box_fiducial_shrink = 300;  // [mm] Shrink inside by 30cm
     float box_x[2] = {-box_halflen_mm + box_fiducial_shrink, box_halflen_mm - box_fiducial_shrink};
     float box_y[2] = {-box_halflen_mm + box_fiducial_shrink, box_halflen_mm - box_fiducial_shrink};
     float box_z[2] = {1020 + box_fiducial_shrink, 12000 - box_fiducial_shrink};
 
     // Loop all events
     auto entries = data->GetEntries();
+    // Loop selected events
+    std::vector<int> inds_to_run;
+    auto event_inds = args["event_index"].as<std::vector<int>>();
+    if (event_inds.size() == 2)
+    {
+        int nmin = event_inds[0];
+        int nmax = event_inds[1];
+        if (nmax == -1)
+            nmax = data->GetEntries();
+        for (int i = nmin; i < nmax; i++)
+            inds_to_run.push_back(i);
+    }
+    else
+        inds_to_run = event_inds;
+
+
     int npassed = 0;
-    for (int i = 0; i < entries; i++)
+    // for (int i = 0; i < entries; i++)
+    for (int i : inds_to_run)
     {
         if ((i + 1) % args["print_progress"].as<int>() == 0)
         {
@@ -395,24 +418,14 @@ int main(int argc, const char *argv[])
         // Check all vertices.
         // It takes only one vertex that passed all cuts to keep this event.
 
-        // Use the vertex with most tracks
-        int ind_maxtrack = -1;
-        int maxtrack = -1;
-        for (auto j = 0; j < static_cast<int>(data->vertices.size()); j++)
-        {
-            if (static_cast<int>(data->vertices[j]->track_ids.size()) > maxtrack)
-            {
-                maxtrack = data->vertices[j]->track_ids.size();
-                ind_maxtrack = j;
-            }
-        }
+        std::sort(data->vertices.begin(), data->vertices.end(),
+                  [](auto &a, auto &b)
+                  { return a->track_ids.size() > b->track_ids.size(); });
 
         bool passed = false;
-        if (ind_maxtrack != -1)
+        int current_vertex_ind = -1;
+        for (auto &v : data->vertices)
         {
-            auto &v = data->vertices[ind_maxtrack];
-            // for (auto &v : data->vertices)
-            // {
 
             // 0. Vertex is inside the box
             bool is_inside = (v->params(0) > box_x[0] && v->params(0) < box_x[1] &&
@@ -429,7 +442,7 @@ int main(int argc, const char *argv[])
                 bool track_is_outward = (t->iv_index == 2 && t->params_full(7) > 0) ||
                                         (t->iv_index == 0 && t->params_full(7) > 0);
                 bool track_is_upward = (t->iv_index == 2 && t->params_full(7) > 0) ||
-                                        (t->iv_index == 0 && t->params_full(6) > 0.12);
+                                       (t->iv_index == 0 && t->params_full(6) > 0.12);
                 if (!track_is_outward)
                 {
                     is_outward = false;
@@ -437,27 +450,34 @@ int main(int argc, const char *argv[])
                 if (track_is_upward)
                 {
                     is_upward = true;
-                }                
+                }
             }
 
             passed = (is_inside && is_outward && is_upward);
             // print(i, is_inside, is_outward);
+            current_vertex_ind = v->id;
 
-            //     if (passed = (is_inside && is_outward))
-            //         break;
-            // }
+            if (passed)
+            {
+                break;
+            }
+            else
+            {
+                // print(i, is_inside, is_outward, is_upward);
+            }
         }
 
         // Save the event to the output file if passed cuts.
         if (passed)
         {
+            data->Vertex_selected_ind = current_vertex_ind;
             data->Fill();
             // print("Vertex passed");
             npassed += 1;
         }
     }
 
-    // Time it 
+    // Time it
     stop_i = std::chrono::high_resolution_clock::now();
     float duration = std::chrono::duration<float>(stop_i - start).count();
 

@@ -2,6 +2,7 @@ import numpy as np
 import scipy as sp
 import scipy
 from scipy.spatial import ConvexHull
+from scipy.optimize import minimize
 
 import sys
 sys.path.append("../../python")
@@ -22,16 +23,21 @@ class RRQ:
     CONST_VETO_FLOORLAYER = np.array([2,3])
     CONST_NOISE_RATE_SUPRESS = 0.1
 
-    def __init__(self,  event, seed=1):
+    def __init__(self,  event, root_data, seed=1):
         ## Random number generator
         RNG = np.random.default_rng(seed=seed)
 
         ## Get the vertex with most tracks
-        ntracks=[]
-        for j in range(len(event.vertices)):
-            v = event.vertices[j]
-            ntracks.append(v.ntracks)
-        i_vertex = np.argmax(ntracks)
+        i_vertex = 0
+        if ("Vertex_selected_ind" in root_data):
+            # In this case, the skim script already selected the vertex. 
+            i_vertex = root_data["Vertex_selected_ind"]
+        else:
+            ntracks=[]
+            for j in range(len(event.vertices)):
+                v = event.vertices[j]
+                ntracks.append(v.ntracks)
+            i_vertex = np.argmax(ntracks)
         self.event=event
         self.v = v =  event.vertices[i_vertex]
 
@@ -86,6 +92,12 @@ class RRQ:
             - axis (np.ndarray): The optimal unit vector representing the cone axis.
             - angle (float): The minimum half-angle (in radians) of the enclosing cone.
         """
+        # Objective function: maximize the max cosine similarity (minimize max angular deviation)
+        def objective(axis):
+            axis = axis / np.linalg.norm(axis)  # Ensure unit length
+            max_cos_theta = np.max(np.dot(unit_vectors, axis))
+            return -max_cos_theta  # We minimize the negative to find the best axis
+            
         num_vectors = len(vectors)
     
         # Normalize the vectors
@@ -101,49 +113,26 @@ class RRQ:
             angle = np.arccos(np.dot(unit_vectors[0], unit_vectors[1])) / 2
             return axis, angle, angle
     
-        # Compute SVD to check if vectors are coplanar
-        U, S, Vt = np.linalg.svd(unit_vectors - np.mean(unit_vectors, axis=0))
+        # Initial guess for the axis: normalized mean of vectors
+        init_axis = np.mean(unit_vectors, axis=0)
+        init_axis /= np.linalg.norm(init_axis)
     
-        if S[2] < 1e-10:  # If the smallest singular value is near zero, vectors are coplanar
-            # Coplanar case: Find a normal vector to the plane
-            normal = Vt[2]  # The last row of Vt gives the normal direction
+        # Objective function: maximize the maximum cosine similarity (minimize max angular deviation)
+        def objective(axis):
+            axis = axis / np.linalg.norm(axis)  # Ensure unit length
+            min_cos_theta = np.min(np.dot(unit_vectors, axis))
+            return -min_cos_theta  # We minimize the negative to find the best axis
     
-            # Choose two orthogonal unit vectors spanning the plane
-            u = Vt[0]  # First principal direction
-            v = Vt[1]  # Second principal direction
+        # Constrain the optimization so that the axis remains a unit vector
+        result = minimize(objective, init_axis, method='Powell')
     
-            # Project unit vectors onto the 2D plane
-            projected_2D = np.column_stack((np.dot(unit_vectors, u), np.dot(unit_vectors, v)))
+        # Extract the optimized axis and compute the enclosing angle
+        axis = result.x / np.linalg.norm(result.x)    
+        min_cos_theta = np.min(np.dot(unit_vectors, axis))
+        min_cone_angle = np.arccos(min_cos_theta)
+        mean_cone_angle = np.mean(np.arccos(np.dot(unit_vectors, axis)))            
     
-            # Compute the convex hull in 2D
-            hull = ConvexHull(projected_2D)
-    
-            # Find the best 2D enclosing cone axis
-            centroid_2D = np.mean(projected_2D[hull.vertices], axis=0)
-            centroid_2D /= np.linalg.norm(centroid_2D)
-    
-            # Compute the max angle deviation in 2D
-            min_cos_theta = np.min(np.dot(projected_2D[hull.vertices], centroid_2D))
-            min_cone_angle = np.arccos(min_cos_theta)
-            mean_cone_angle = np.mean(np.arccos(np.dot(projected_2D[hull.vertices], centroid_2D)))
-    
-            # Convert back to 3D axis
-            axis = centroid_2D[0] * u + centroid_2D[1] * v
-    
-        else:
-            # Compute the convex hull of the unit vectors in 3D
-            hull = ConvexHull(unit_vectors)
-    
-            # Find the best cone axis: Compute the centroid of the convex hull
-            centroid = np.mean(unit_vectors[hull.vertices], axis=0)
-            axis = centroid / np.linalg.norm(centroid)
-    
-            # Find the maximum angle from axis to any unit vector in the hull
-            min_cos_theta = np.min(np.dot(unit_vectors[hull.vertices], axis))
-            min_cone_angle = np.arccos(min_cos_theta)
-            mean_cone_angle = np.mean(np.arccos(np.dot(unit_vectors[hull.vertices], axis)))
-    
-        return axis, min_cone_angle, mean_cone_angle
+        return init_axis, min_cone_angle, mean_cone_angle
     
     def project_vector(self, vec):
         return [self.direction_longi.dot(vec), self.direction_horizontal.dot(vec), self.direction_other.dot(vec)]
@@ -159,6 +148,26 @@ class RRQ:
         n_veto = np.sum(is_veto)
         n_active = len(is_veto) - n_veto
         return [n_veto, n_active, sum(is_before&is_veto), sum(is_before&~is_veto)]
+
+    def get_ndigi_veto_and_comp(self, limit = 100):
+        """
+        Find number of veto hits that are
+        * Later than the vertex
+        * Compatible with the vertex at speed of light
+        """
+        is_after = np.array([self.v.t0 < digi.t for digi in self.event.digis])
+        is_veto = np.array([(digi.copy_det in RRQ.CONST_VETO_DET) for digi in self.event.digis])
+        is_comp = []
+        for i in np.flatnonzero(is_after&is_veto):
+            digi = self.event.digis[i]
+            dr = np.linalg.norm([digi.x - self.v.x0, digi.y - self.v.y0, digi.z - self.v.z0])
+            dt = digi.t - self.v.t0
+            speed = dr/np.abs(dt)
+            is_comp.append(np.abs(speed-300)<50)
+
+        n_veto_after = sum(is_after&is_veto)
+        n_veto_after_comp = sum(is_comp)
+        return n_veto_after, n_veto_after_comp
 
     def get_slowest_track(self):
         vs = [self.event.tracks[i].vabs for i in self.v.track_ids]
@@ -256,9 +265,58 @@ class RRQ:
             rtn_3 = np.mean(zs)
 
         return rtn_1, rtn_2, rtn_3
+
+
+    def eval_hits_time_exclude(self, ndiv = 2,  z_veto = 8000, z_veto_floor = 3000):
+        digi_xyzt = np.array([digi.xyzt for digi in self.event.digis])
+        digi_x, digi_y, digi_z, digi_t = digi_xyzt.T
+        digi_t_inds = np.argsort(digi_t).astype(int)
+        digi_t_sorted = digi_t[digi_t_inds]
+
+       
+        mask, tmean, t_std = util.removeoutliers(digi_t, skew_itermax=1, std_itermax=1)
+        t_std = max(t_std*2, 300)
+        t_std = min(t_std, 300)
+        digi_t_inds = digi_t_inds[(digi_t_sorted<(tmean + t_std)) & 
+                                  (digi_t_sorted>(tmean - t_std))]
+
+        # Exclude hits that are used in track
+        inds_used = []
+        for t in self.event.tracks:
+            inds_used.extend(list(t.hit_ids)) 
+        for i in range(len(digi_t_inds))[::-1]:
+            if digi_t_inds[i] in inds_used:
+                np.delete( digi_t_inds, [i])
+                continue
+            if self.event.digis[i].copy_det in RRQ.CONST_VETO_DET:
+                np.delete( digi_t_inds, [i])
+                continue            
+        
+        rtn_1 = True
+        rtn_2 = 10000
+        if (len(digi_t_inds)>6):
+            xs,ys,zs,ts = [],[],[],[]
+            for igroup in range(ndiv):
+                inds = digi_t_inds[len(digi_t_inds)//ndiv*igroup: len(digi_t_inds)//ndiv*(igroup+1)]
+                xs.append(np.mean(np.array(digi_x)[inds]))
+                ys.append(np.mean(np.array(digi_y)[inds]))
+                zs.append(np.mean(np.array(digi_z)[inds]))
+                ts.append(np.mean(np.array(digi_t)[inds]))
+
+            # 1. Check if [vertex is mostly on top tracker] 
+            #  and [any duration have verticle position too low]
+            if (self.vertex_topfrac>0.5 and any(np.array(zs[:]) < z_veto)) or \
+                (sum(np.array(zs) < z_veto_floor)>=1):
+                rtn_1 = False
+
+            # 2. Check if the overall trend is going downwards
+            dzdt = (zs[1]-zs[0])/(ts[1]-ts[0])
+            rtn_2 = dzdt
+
+        return rtn_1, rtn_2
     
 
-class rq:
+class RQ_dict:
     def __init__(self, dictionary):
         self.data = dictionary
         self.cuts = {}  # {name: mask}
@@ -298,8 +356,11 @@ def run_processing(file, entries = -1):
             # 
             "event_ndigi_veto", "event_ndigi_active", 
             "vertex_ndigi_veto_before", "vertex_ndigi_active_before", "vertex_slowest_track",
+            "vertex_ndigi_veto_after", "vertex_ndigi_veto_after_comp",
+            
             "vertex_open_angle", "vertex_cms_angle_h", "vertex_cms_angle_v", "vertex_cms_angle",
-            "vertex_hits_trend_1", "vertex_hits_trend_2", "vertex_hits_trend_3", 
+            "vertex_hits_trend_1", "vertex_hits_trend_2", "vertex_hits_trend_3",
+            "vertex_hits_trend_1b", "vertex_hits_trend_2b",
             
            ] 
     
@@ -313,9 +374,9 @@ def run_processing(file, entries = -1):
         if i%100==0:
             print(i, end="\r")
         
-        data = file.get_entry(i)
-        event = datatypes.Event(data, metadata_digi, parse_truth=False) 
-        rrq = RRQ(event)
+        root_data = file.get_entry(i)
+        event = datatypes.Event(root_data, metadata_digi, parse_truth=False) 
+        rrq = RRQ(event, root_data)
     
         # Basic information
         res["ROOT_entry"].append(i)
@@ -354,6 +415,10 @@ def run_processing(file, entries = -1):
         res["event_ndigi_active"].append(ndigi_active)
         res["vertex_ndigi_veto_before"].append(ndigi_veto_before)
         res["vertex_ndigi_active_before"].append(ndigi_active_before)
+        # Number of veto that are later than the vertex and compatible with speed of light
+        n_veto_after, n_veto_after_comp = rrq.get_ndigi_veto_and_comp()    
+        res["vertex_ndigi_veto_after"].append(n_veto_after)
+        res["vertex_ndigi_veto_after_comp"].append(n_veto_after_comp)
         
         # Opening angle
         open_angle_max, open_angle_mean, axis, angle_diffh, angle_diffv, angle_diff_abs = rrq.eval_cone()
@@ -366,6 +431,10 @@ def run_processing(file, entries = -1):
         res["vertex_hits_trend_1"].append(r1)
         res["vertex_hits_trend_2"].append(r2)
         res["vertex_hits_trend_3"].append(r3)
+
+        r1,r2 = rrq.eval_hits_time_exclude()
+        res["vertex_hits_trend_1b"].append(r1)
+        res["vertex_hits_trend_2b"].append(r2)        
         
     
     for key in res:
@@ -375,4 +444,4 @@ def run_processing(file, entries = -1):
     res["vertex_ndigi_before"] = res["vertex_ndigi_active_before"] + res["vertex_ndigi_veto_before"]
     print("Finished")
 
-    return rq(res)
+    return RQ_dict(res)
