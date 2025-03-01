@@ -216,17 +216,23 @@ class RRQ:
         angles_v_sign = np.sign(angles_v)
         angle_diffh = np.min(np.abs(angles_h))
         angle_diffv = np.min(np.abs(angles_v))
+        angle_diffh_mean = np.mean(angles_h)
+        angle_diffv_mean = np.mean(angles_v)  
+        angle_diffh_span = np.max(angles_h) - np.min(angles_h)
+        angle_diffv_span = np.max(angles_v) - np.min(angles_v)
         if any(angles_h_sign!=angles_h_sign[0]):
             angle_diffh *= -1
+            # angle_diffh_mean *= -1
         if any(angles_v_sign!=angles_v_sign[0]):
-            angle_diffv *= -1            
+            angle_diffv *= -1        
+            # angle_diffv_mean *= -1
             
         # Test the function with a set of 3D vectors
         axis, open_angle_max, open_angle_mean = self.min_enclosing_cone(track_directions)
 
         angle_diff_abs = self.angle(self.direction_longi, axis)
 
-        return open_angle_max, open_angle_mean, axis, angle_diffh, angle_diffv, angle_diff_abs
+        return open_angle_max, open_angle_mean, axis, angle_diffh, angle_diffv, angle_diff_abs, angle_diffh_mean, angle_diffv_mean, angle_diffh_span, angle_diffv_span
 
 
     def eval_hits_time(self, ndiv = 4,  z_veto = 8000, z_veto_floor = 3000):
@@ -260,10 +266,10 @@ class RRQ:
                 rtn_1 = False
 
             # 2. Check if the overall trend is going downwards
-            dzdt, intercept, r, p, std_err = scipy.stats.linregress(ts[:3], zs[:3])
-            dxdz, intercept, r, p, std_err = scipy.stats.linregress(zs[:3], xs[:3])
-            dydz, intercept, r, p, std_err = scipy.stats.linregress(zs[:3], ys[:3])
-            rtn_2 = dzdt
+            # dzdt, intercept, r, p, std_err = scipy.stats.linregress(ts[:3], zs[:3])
+            # dxdz, intercept, r, p, std_err = scipy.stats.linregress(zs[:3], xs[:3])
+            # dydz, intercept, r, p, std_err = scipy.stats.linregress(zs[:3], ys[:3])
+            # rtn_2 = dzdt
             
             # 3. Check how well the overall direction align with CMS direction.
             # direction = [dxdz, dydz, 1]
@@ -320,14 +326,44 @@ class RRQ:
             rtn_2 = dzdt
 
         return rtn_1, rtn_2
-    
+
+
+class CutItem:
+    def __init__(self, name, func, plot_binning = None, make_plot = False, cut_order = -1):
+        # Descriptive name of the cut
+        self.name = name
+
+        # Cut function (to be applied to the dictionary)
+        self.func = func
+        
+        # plot_binning: [start, stop, bins]
+        self.plot_binning=plot_binning 
+        
+        # make_plot: bool
+        self.make_plot=make_plot
+        
+        # cut_order: int, the priority of the cut. Lower number will be applied first
+        self.cut_order=cut_order
+        
+        # Event mask
+        self.mask = None
+        
+        # Passage fraction
+        self.passage_fraction = None
+        
+    def get_eff(self, mask, event_uid):
+        return self.passage_fraction
+        
+    def apply(self, data):
+        self.mask = self.func(data)
+        self.passage_fraction = sum(self.mask)/len(self.mask)
+        return self.mask
 
 class RQ_dict:
-    def __init__(self, dictionary):
-        self.data = dictionary
-        self.cuts = {}  # {name: mask}
-        self.cuts_order = {} # {name: index}
-        self.cuts_func = {} # {name: func}
+    def __init__(self, data = None):
+        self.data = data
+        self.cuts = {}  # dict of {name: CutItem}
+        self.default_cuts = []
 
     def __getitem__(self, key):
         return self.data[key]
@@ -352,6 +388,7 @@ def run_processing(file, entries = -1):
     keys = ["Run_number", "Evt_number", "ROOT_entry",
             "event_ntracks","event_nhits","event_nvertices",
             "event_ntrack_reconstructable", "event_ntrack_reconstructable_primary", "event_ntrack_recon", "event_vntrk_max",
+            "event_track_nhits", "event_track_nhits_upward",
             
             # Vertex stats
             "vertex_topfrac",
@@ -365,7 +402,11 @@ def run_processing(file, entries = -1):
             "vertex_ndigi_veto_after", "vertex_ndigi_veto_after_comp",
             "vertex_ndigi_active_after", "vertex_ndigi_active_after_comp",
             
-            "vertex_open_angle", "vertex_cms_angle_h", "vertex_cms_angle_v", "vertex_cms_angle",
+            "vertex_open_angle", 
+            "vertex_cms_angle_h", "vertex_cms_angle_v", 
+            "vertex_cms_angle_h_mean", "vertex_cms_angle_v_mean", 
+            "vertex_cms_angle_h_span", "vertex_cms_angle_v_span", 
+            "vertex_cms_angle",
             "vertex_hits_trend_1", "vertex_hits_trend_2", "vertex_hits_trend_3",
             "vertex_hits_trend_1b", "vertex_hits_trend_2b",
             
@@ -405,12 +446,14 @@ def run_processing(file, entries = -1):
         res["vertex_residual_longitrans"].append(rrq.project_vector(res["vertex_residual"][-1][:3]))
     
         ## Event level information
-        res["event_nhits"].append(len(event.tracks))
+        res["event_nhits"].append(len(event.digis))
         res["event_ntracks"].append(len(event.tracks))
         res["event_nvertices"].append(len(event.vertices))
         res["event_ntrack_reconstructable"].append(sum(event.digi_truth_track_nhits>=4))
         res["event_ntrack_reconstructable_primary"].append(sum((event.digi_truth_track_nhits>=4) & (event.digi_truth_track_ids<=len(event.genparticles))))
         res["event_ntrack_recon"].append(len(event.tracks))
+        res["event_track_nhits"].append(sum([t.nhits for t in event.tracks]))
+        res["event_track_nhits_upward"].append(sum([t.nhits for t in event.tracks if t.vdirection[2] > 0]))
     
         ## Calculate some features for cuts
         res["vertex_slowest_track"].append(rrq.get_slowest_track())
@@ -430,10 +473,14 @@ def run_processing(file, entries = -1):
         res["vertex_ndigi_active_after_comp"].append(n_active_after_comp)        
         
         # Opening angle
-        open_angle_max, open_angle_mean, axis, angle_diffh, angle_diffv, angle_diff_abs = rrq.eval_cone()
+        open_angle_max, open_angle_mean, axis, angle_diffh, angle_diffv, angle_diff_abs, angle_diffh_mean, angle_diffv_mean, angle_diffh_span, angle_diffv_span = rrq.eval_cone()
         res["vertex_open_angle"].append(open_angle_mean)
         res["vertex_cms_angle_h"].append(angle_diffh)
         res["vertex_cms_angle_v"].append(angle_diffv)
+        res["vertex_cms_angle_h_mean"].append(angle_diffh_mean)
+        res["vertex_cms_angle_v_mean"].append(angle_diffv_mean)  
+        res["vertex_cms_angle_h_span"].append(angle_diffh_span)
+        res["vertex_cms_angle_v_span"].append(angle_diffv_span)          
         res["vertex_cms_angle"].append(angle_diff_abs)
 
         r1,r2,r3 = rrq.eval_hits_time()
