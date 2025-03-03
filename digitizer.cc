@@ -694,6 +694,7 @@ int main(int argc, const char *argv[])
     DIGI_TYPE_MAP.insert({"gun", 0});
     DIGI_TYPE_MAP.insert({"cry", 1});
     DIGI_TYPE_MAP.insert({"parma", 2});
+    DIGI_TYPE_MAP.insert({"recreate", 3});
     DIGI_TYPE_MAP.insert({"filereader", 3});
     DIGI_TYPE_MAP.insert({"noise", -1});
 

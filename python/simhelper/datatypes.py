@@ -35,6 +35,8 @@ class Hit:
 class Digi:
     def __init__(self, data=None, i=0, metadata_digi=None):
         if data is not None:
+            self.dropped = False
+            
             self.xyzt = np.array([data["Digi_x"][i], data["Digi_y"][i], data["Digi_z"][i], data["Digi_t"][i]])
             self.x, self.y, self.z, self.t = self.xyzt
             self.id = i
@@ -91,6 +93,7 @@ class TrueTrack:
 
 class Track:
     def __init__(self, data=None, i=0):
+        self.dropped = False
         if data is not None:
             self.params_full = np.array([data["Track_x0"][i], data["Track_y0"][i], data["Track_z0"][i], data["Track_t0"][i], 
                                          data["Track_kx"][i], data["Track_ky"][i], data["Track_kz"][i], data["Track_kt"][i]])
@@ -123,7 +126,7 @@ class Track:
         self.vdirection = self.params_time[3:]/self.vabs
     
 
-    def set_digis(self, digis_all):
+    def set_digis(self, digis_all, digi_drop_inds=None, min_nhits = 4):
         ## Find the truth location
         digi = digis_all[self.hit_ids[-1]]
         digi_loc = digi.xyzt_truth
@@ -137,20 +140,37 @@ class Track:
         digi_trackid = []        
         digi_pdg = []
         digi_times = []
+        digi_hit_ids_new = []
         for i in self.hit_ids:
+            if (digi_drop_inds is not None) and (i in digi_drop_inds):
+                continue
             digi_trackid.append(digis_all[i].track_id)
             digi_pdg.append(digis_all[i].pdg)
             digi_times.append(digis_all[i].xyzt[-1])
+            digi_hit_ids_new.append(i)
+        self.hit_ids = digi_hit_ids_new
 
-        tid,tid_ind,tid_counts = np.unique(digi_trackid, return_counts=True, return_index=True)
-        itrack = np.argmax(tid_counts)
+        if (len(digi_trackid)>0):
+            tid,tid_ind,tid_counts = np.unique(digi_trackid, return_counts=True, return_index=True)
+            itrack = np.argmax(tid_counts)
+    
+            ## Calculate track purity etc.
+            self.track_purity = tid_counts[itrack]/self.nhits
+            self.track_id = tid[itrack]
+            self.track_pdg = digi_pdg[tid_ind[itrack]]
+            self.tmin = min(digi_times)
+            self.tmax = max(digi_times)
+            
+        else:
+            self.track_purity = 0
+            self.track_id = 0
+            self.track_pdg = 0
+            self.tmin = 0
+            self.tmax = 0
 
-        ## Calculate track purity etc.
-        self.track_purity = tid_counts[itrack]/self.nhits
-        self.track_id = tid[itrack]
-        self.track_pdg = digi_pdg[tid_ind[itrack]]
-        self.tmin = min(digi_times)
-        self.tmax = max(digi_times)
+        self.dropped = len(digi_trackid) < min_nhits
+
+        return self.dropped
 
     def plot(self, ind_h, ind_v, from_time = None, color="k", scale=0.001):
         tmin = self.tmin if from_time is None else from_time
@@ -163,6 +183,7 @@ class Track:
 
 class Vertex:
     def __init__(self, data=None, i=0):
+        self.dropped = False
         if data is not None:
             self.params = np.array([data["Vertex_x0"][i], data["Vertex_y0"][i], data["Vertex_z0"][i], data["Vertex_t0"][i]])
             self.x0,self.y0,self.z0,self.t0 = self.params
@@ -174,16 +195,25 @@ class Vertex:
             self.vertex_ntracklet_2 = data["Vertex_tracklet_n2"][i]
             self.vertex_ntracklet_3 = data["Vertex_tracklet_n3"][i] + data["Vertex_tracklet_n4p"][i]
     
-    def set_tracks(self, tracks_all):
+    def set_tracks(self, tracks_all, track_drop_inds=None, min_ntracks = 2):
         tracks_purity = []
         tracks_nhits = []
+        vertex_track_ids_new = []
         for i in self.track_ids:
+            if (track_drop_inds is not None) and (i in track_drop_inds):
+                continue            
             t = tracks_all[i]
             tracks_purity.append(t.track_purity)
             tracks_nhits.append(t.nhits)
+            vertex_track_ids_new.append(i)
+        
+        self.track_ids = vertex_track_ids_new
+        
+        self.vertex_purity = np.mean(tracks_purity) if len(self.track_ids)>0 else 0
+        self.nhits = np.sum(tracks_nhits) if len(self.track_ids)>0 else 0
 
-        self.vertex_purity = np.mean(tracks_purity)
-        self.nhits = np.sum(tracks_nhits)
+        self.dropped = len(self.track_ids) < min_ntracks
+        return self.dropped
 
 class PDG:    
     name_map = {
@@ -210,10 +240,13 @@ class PDG:
 
 
 class Event:
-    def __init__(self, data_parsed, metadata_digi, parse_truth = True):
+    def __init__(self, data_parsed, metadata_digi, parse_truth = True, detector_efficiency = 1, min_nhits=4):
         ## Identity
         self.Run_number = data_parsed['Run_number']
         self.Evt_number = data_parsed['Evt_number']
+
+        # Make a unique and reproducible random number generator
+        self.rng = np.random.default_rng(self.Run_number*100000000+self.Evt_number)
         
         ## Add some RRQ
         self.process_recon(data_parsed)
@@ -237,21 +270,43 @@ class Event:
         # Get Digits
         self.digis = np.array([Digi(data_parsed,i, metadata_digi) for i in range(len(data_parsed["Digi_x"]))])
         self.get_reconstructable()
+        digi_inds_drop = None
+        if (detector_efficiency<=0 or detector_efficiency>1):
+            print("Error: detector_efficiency must be between (0,1]")
+        else:
+            digi_inds_drop = self.get_inds_drop(detector_efficiency)        
 
         # Get recon tracks
         self.tracks = [Track(data_parsed, i) for i in range(len(data_parsed["Track_x0"]))]
         self.digis_used_inds = []
+        self.tracks_dropped_mask = []
         for t in self.tracks:
-            t.set_digis(self.digis)
+            track_is_dropped = t.set_digis(self.digis, digi_drop_inds = digi_inds_drop, min_nhits = min_nhits)
+            self.tracks_dropped_mask.append(track_is_dropped)
             self.digis_used_inds.extend(list(t.hit_ids))
 
         # Get recon vertices
         self.vertices = [Vertex(data_parsed, i) for i in range(len(data_parsed["Vertex_x0"]))]
         self.tracks_used_inds = []
+        self.vertices_dropped_mask = []
         for t in self.vertices:
-            t.set_tracks(self.tracks)
+            vertex_is_dropped = t.set_tracks(self.tracks, track_drop_inds=np.flatnonzero(self.tracks_dropped_mask), min_ntracks = 2)
+            self.vertices_dropped_mask.append(vertex_is_dropped)
             self.tracks_used_inds.extend(list(t.track_ids))
 
+        # Drop hits and tracks
+        # if (0<detector_efficiency<1):
+            # self.apply_drop()
+
+    def get_ndigis(self):
+        return sum(self.mask_digi_keep)
+
+    def get_ntracks(self):
+        return len(self.tracks_dropped_mask) - sum(self.tracks_dropped_mask)
+
+    def get_nvertices(self):
+        return len(self.vertices_dropped_mask) - sum(self.vertices_dropped_mask)    
+    
     def process_recon(self, data):
         data["Digi_hitInds_unpacked"] = parser.unpack_at(data["Digi_hitInds"], divider=-1)
         data["Track_cov_unpacked"] = parser.unpack_cov(data["Track_cov"], dim=6)
@@ -271,6 +326,35 @@ class Event:
 
         self.digi_truth_track_ids = tid
         self.digi_truth_track_nhits = tid_counts
+
+    def get_inds_drop(self, detector_efficiency):
+        # Sample to drop digits
+        mask_digi_keep = (1==self.rng.binomial(1, detector_efficiency, len(self.digis)))
+        
+        # Always keep noise hits
+        mask_digis_type = np.array([d.type==-1 for d in self.digis])
+        self.mask_digi_keep = mask_digi_keep | mask_digis_type
+
+        # List of digi index to drop
+        inds_drop = np.flatnonzero(~mask_digi_keep)
+
+        for i in inds_drop:
+            self.digis[i].dropped = True
+        
+        return inds_drop
+
+    def apply_drop(self):
+        # Drop digis
+        self.digis = self.digis[self.mask_digi_keep]
+
+        # Drop tracks
+        for i in np.flatnonzero(self.tracks_dropped_mask)[::-1]:
+            del self.tracks[i]
+
+        # Drop vertices
+        for i in np.flatnonzero(self.vertices_dropped_mask)[::-1]:
+            del self.vertices[i]
+        return
     
     def plot_truetracks(self, ind_h, ind_v, scale = 0.001):
         if not self.HAS_TRUTH:

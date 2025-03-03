@@ -22,38 +22,80 @@ class RRQ:
     CONST_VETO_WALLLAYER = np.array([0,1])
     CONST_VETO_FLOORLAYER = np.array([2,3])
     CONST_NOISE_RATE_SUPRESS = 0.1
-
+    box_halflen_mm = 10700 * 2; # [mm]
+    box_fiducial_shrink = 300;  # [mm] Shrink inside by 30cm
+    box_x = [-box_halflen_mm + box_fiducial_shrink, box_halflen_mm - box_fiducial_shrink]
+    box_y = [-box_halflen_mm + box_fiducial_shrink, box_halflen_mm - box_fiducial_shrink]
+    box_z = [1020 + box_fiducial_shrink, 12000 - box_fiducial_shrink]
+    
     def __init__(self,  event, root_data, seed=1):
         ## Random number generator
         RNG = np.random.default_rng(seed=seed)
 
         ## Get the vertex with most tracks
-        i_vertex = 0
+        i_vertex = -1
+        has_valid_vertex = False
+        v = None
         if ("Vertex_selected_ind" in root_data):
-            # In this case, the skim script already selected the vertex. 
+            # In this case, the skim script already pre-selected the vertex. 
             i_vertex = root_data["Vertex_selected_ind"]
-        else:
-            ntracks=[]
-            for j in range(len(event.vertices)):
-                v = event.vertices[j]
-                ntracks.append(v.ntracks)
-            i_vertex = np.argmax(ntracks)
-        self.event=event
-        self.v = v =  event.vertices[i_vertex]
+            v =  event.vertices[i_vertex]
+            has_valid_vertex = not v.dropped
+            
+        if not has_valid_vertex:
+            ntracks=[v.ntracks for v in event.vertices]
 
-        ## Find the CMS to vertex direction
-        direction_longi = v.params[:3] - RRQ.CONST_CMS_LOC
-        direction_longi = direction_longi/np.linalg.norm(direction_longi)
-        direction_horizontal = np.cross(direction_longi, [0,0,1])
-        direction_horizontal = direction_horizontal/np.linalg.norm(direction_horizontal)
-        direction_other = np.cross(direction_horizontal,direction_longi)    
-        self.direction_longi = direction_longi
-        self.direction_horizontal = direction_horizontal
-        self.direction_other = direction_other
+            passed = False;
+            current_vertex_ind = -1;
+            for iv in np.argsort(ntracks)[::-1]:
+                v = event.vertices[iv]
+                if v.dropped:
+                    continue
+                #  0. Vertex is inside the box
+                is_inside = (self.box_x[0] < v.params[0] < self.box_x[1] and \
+                             self.box_y[0] < v.params[1] < self.box_y[1] and \
+                             self.box_z[0] < v.params[2] < self.box_z[1])
 
-        ## Check if the vertex is mostly with top or side tracks
-        tracks_are_top = [self.event.tracks[i].iv_index == 2 for i in self.v.track_ids]
-        self.vertex_topfrac  = (sum(tracks_are_top)/len(tracks_are_top))
+                # 1. All tracks are outwards
+                # 2. Exists one upward tracks
+                is_outward = True;
+                is_upward = False;
+                for j in v.track_ids:
+                    t = event.tracks[j];
+                    track_is_outward = (t.iv_index == 2 and t.params_full[7] > 0) or \
+                                            (t.iv_index == 0 and t.params_full[7] > 0);
+                    track_is_upward = (t.iv_index == 2 and t.params_full[7] > 0) or \
+                                            (t.iv_index == 0 and t.params_full[6] > .12);
+                    if (not track_is_outward):
+                        is_outward = False;
+                    if (track_is_upward):
+                        is_upward = True;
+                passed = (is_inside and is_outward and is_upward);
+                current_vertex_ind = iv;
+    
+                if (passed):
+                    has_valid_vertex = True
+                    break
+                    
+        self.has_valid_vertex = has_valid_vertex
+
+        if self.has_valid_vertex:
+            self.event=event
+            self.v = v
+    
+            ## Find the CMS to vertex direction
+            direction_longi = v.params[:3] - RRQ.CONST_CMS_LOC
+            direction_longi = direction_longi/np.linalg.norm(direction_longi)
+            direction_horizontal = np.cross(direction_longi, [0,0,1])
+            direction_horizontal = direction_horizontal/np.linalg.norm(direction_horizontal)
+            direction_other = np.cross(direction_horizontal,direction_longi)    
+            self.direction_longi = direction_longi
+            self.direction_horizontal = direction_horizontal
+            self.direction_other = direction_other
+    
+            ## Check if the vertex is mostly with top or side tracks
+            tracks_are_top = [self.event.tracks[i].iv_index == 2 for i in self.v.track_ids]
+            self.vertex_topfrac  = (sum(tracks_are_top)/len(tracks_are_top))
             
     
     @staticmethod
@@ -139,23 +181,35 @@ class RRQ:
 
 
     def get_ndigi_before(self, limit = 100):
-        is_before = [(self.v.t0-limit) <digi.t < self.v.t0 for digi in self.event.digis]
+        is_before = [(self.v.t0-limit) <digi.t < self.v.t0 for digi in self.event.digis if not digi.dropped]
         return np.sum(is_before)   
 
-    def get_ndigi_veto_and_active(self, limit = 100):
+    def get_ndigi_veto_and_active_timelimit(self, limit = 100):
+        """ 
+        Return:
+        n_veto, 
+        n_active, 
+        n_veto_pre_veto_timelimit, 
+        n_veto_pre_active_timelimit
+        """
+        
+        is_valid = np.array([(not digi.dropped) for digi in self.event.digis])
         is_before = np.array([(self.v.t0-limit) <digi.t < self.v.t0 for digi in self.event.digis])
         is_veto = np.array([(digi.copy_det in RRQ.CONST_VETO_DET) for digi in self.event.digis])
-        n_veto = np.sum(is_veto)
-        n_active = len(is_veto) - n_veto
-        return [n_veto, n_active, sum(is_before&is_veto), sum(is_before&~is_veto)]
+        n_veto = np.sum(is_veto & is_valid)
+        n_active = sum(is_valid) - n_veto
+        n_veto_pre_veto_timelimit = sum(is_before&is_veto&is_valid)
+        n_veto_pre_active_timelimit = sum(is_before&~is_veto&is_valid)
+        return [n_veto, n_active, n_veto_pre_veto_timelimit, n_veto_pre_active_timelimit]
 
-    def get_ndigi_veto_and_comp(self, limit = 100):
+    def get_ndigi_veto_and_comp(self, limit = 200):
         """
         Find number of veto hits that are
         * Later than the vertex
         * Compatible with the vertex at speed of light
         """
-        is_after = np.array([self.v.t0 < digi.t for digi in self.event.digis])
+        is_valid = np.array([(not digi.dropped) for digi in self.event.digis])
+        is_after = np.array([self.v.t0 < digi.t < (self.v.t0+limit) for digi in self.event.digis])
         is_above = np.array([self.v.z0 < digi.z for digi in self.event.digis])
         is_veto = np.array([(digi.copy_det in RRQ.CONST_VETO_DET) for digi in self.event.digis])
         is_comp = []
@@ -169,10 +223,10 @@ class RRQ:
             # is_comp.append(np.abs(metric)<5)
             is_comp.append(metric_speed<40)        
 
-        n_veto_after = sum(is_after&is_veto)
-        n_veto_after_comp = sum(is_after&is_veto&is_comp)
-        n_active_after = sum(is_after&~is_veto)
-        n_active_after_comp = sum(is_after&~is_veto&is_comp&is_above)        
+        n_veto_after = sum(is_after&is_veto&is_valid)
+        n_veto_after_comp = sum(is_after&is_veto&is_comp&is_valid)
+        n_active_after = sum(is_after&~is_veto&is_valid)
+        n_active_after_comp = sum(is_after&~is_veto&is_comp&is_above&is_valid)        
         return n_veto_after, n_veto_after_comp, n_active_after, n_active_after_comp
 
     def get_slowest_track(self):
@@ -185,7 +239,7 @@ class RRQ:
         return np.sum(vz)
 
     def get_ev_downward_track(self):
-        vz = [self.event.tracks[i].vdirection[2]<0 for i in range(len(self.event.tracks))]
+        vz = [self.event.tracks[i].vdirection[2]<0 for i in range(len(self.event.tracks)) if not self.event.tracks[i].dropped]
         return np.sum(vz)    
 
     def eval_cone(self):
@@ -234,49 +288,6 @@ class RRQ:
 
         return open_angle_max, open_angle_mean, axis, angle_diffh, angle_diffv, angle_diff_abs, angle_diffh_mean, angle_diffv_mean, angle_diffh_span, angle_diffv_span
 
-
-    def eval_hits_time(self, ndiv = 4,  z_veto = 8000, z_veto_floor = 3000):
-        digi_xyzt = np.array([digi.xyzt for digi in self.event.digis])
-        digi_x, digi_y, digi_z, digi_t = digi_xyzt.T
-        digi_t_inds = np.argsort(digi_t).astype(int)
-        digi_t_sorted = digi_t[digi_t_inds]
-        
-        mask, tmean, t_std = util.removeoutliers(digi_t, skew_itermax=1, std_itermax=1)
-        t_std = max(t_std*2, 300)
-        t_std = min(t_std, 300)
-        digi_t_inds = digi_t_inds[(digi_t_sorted<(tmean + t_std)) & 
-                                  (digi_t_sorted>(tmean - t_std))]
-        
-        rtn_1 = True
-        rtn_2 = 10000
-        rtn_3 = True
-        if (len(digi_t_inds)>12):
-            xs,ys,zs,ts = [],[],[],[]
-            for igroup in range(ndiv):
-                inds = digi_t_inds[len(digi_t_inds)//ndiv*igroup: len(digi_t_inds)//ndiv*(igroup+1)]
-                xs.append(np.mean(np.array(digi_x)[inds]))
-                ys.append(np.mean(np.array(digi_y)[inds]))
-                zs.append(np.mean(np.array(digi_z)[inds]))
-                ts.append(np.mean(np.array(digi_t)[inds]))
-
-            # 1. Check if [vertex is mostly on top tracker] 
-            #  and [any duration have verticle position too low]
-            if (self.vertex_topfrac>0.5 and any(np.array(zs[:]) < z_veto)) or \
-                (sum(np.array(zs) < z_veto_floor)>=2):
-                rtn_1 = False
-
-            # 2. Check if the overall trend is going downwards
-            # dzdt, intercept, r, p, std_err = scipy.stats.linregress(ts[:3], zs[:3])
-            # dxdz, intercept, r, p, std_err = scipy.stats.linregress(zs[:3], xs[:3])
-            # dydz, intercept, r, p, std_err = scipy.stats.linregress(zs[:3], ys[:3])
-            # rtn_2 = dzdt
-            
-            # 3. Check how well the overall direction align with CMS direction.
-            # direction = [dxdz, dydz, 1]
-            # angle_to_cms = self.angle(direction, self.direction_longi)
-            rtn_3 = np.mean(zs)
-
-        return rtn_1, rtn_2, rtn_3
 
 
     def eval_hits_time_exclude(self, ndiv = 2,  z_veto = 8000, z_veto_floor = 3000):
@@ -375,7 +386,7 @@ class RQ_dict:
         return self.cuts[name]
 
 
-def run_processing(file, entries = -1):
+def run_processing(file, entries = -1, efficiency = 1, min_nhits=4):
 
     ## Get metadata
     file.get_tree("metadata_digi")
@@ -386,12 +397,13 @@ def run_processing(file, entries = -1):
     print("Entries", file.entries)
 
     keys = ["Run_number", "Evt_number", "ROOT_entry",
+            "gen_p3","gen_xyzt", "gen_pdgID",
             "event_ntracks","event_nhits","event_nvertices",
-            "event_ntrack_reconstructable", "event_ntrack_reconstructable_primary", "event_ntrack_recon", "event_vntrk_max",
+            "event_ntrack_reconstructable", "event_ntrack_reconstructable_primary", "event_vntrk_max",
             "event_track_nhits", "event_track_nhits_upward",
             
             # Vertex stats
-            "vertex_topfrac",
+            "vertex_topfrac", "vertex_xyzt",
             "vertex_ntracks", "vertex_ndigi", "vertex_chi2", "vertex_prob", "vertex_residual", "vertex_error", "vertex_residual_longitrans",
             "vertex_ntracklet_0", "vertex_ntracklet_2", "vertex_ntracklet_3+",   
             "vertex_ndownward_track", "event_ndownward_track",
@@ -407,7 +419,6 @@ def run_processing(file, entries = -1):
             "vertex_cms_angle_h_mean", "vertex_cms_angle_v_mean", 
             "vertex_cms_angle_h_span", "vertex_cms_angle_v_span", 
             "vertex_cms_angle",
-            "vertex_hits_trend_1", "vertex_hits_trend_2", "vertex_hits_trend_3",
             "vertex_hits_trend_1b", "vertex_hits_trend_2b",
             
            ] 
@@ -423,16 +434,25 @@ def run_processing(file, entries = -1):
             print(i, end="\r")
         
         root_data = file.get_entry(i)
-        event = datatypes.Event(root_data, metadata_digi, parse_truth=False) 
+        event = datatypes.Event(root_data, metadata_digi, parse_truth=False, detector_efficiency = efficiency, min_nhits=min_nhits)
         rrq = RRQ(event, root_data)
+
+        # Need to have vertex that passed preliminary cuts in RRQ()
+        if not rrq.has_valid_vertex:
+            continue
     
         # Basic information
         res["ROOT_entry"].append(i)
         res["Run_number"].append(event.Run_number)
         res["Evt_number"].append(event.Evt_number)
+
+        res["gen_p3"].append(event.genparticles[0].momentum)
+        res["gen_xyzt"].append(event.genparticles[0].xyzt)
+        res["gen_pdgID"].append(event.genparticles[0].pdg)    
     
         # Use the vertex with most tracks
         v =  rrq.v    
+        res["vertex_xyzt"].append(v.params)    
         res["vertex_topfrac"].append(rrq.vertex_topfrac)
         res["vertex_ntracks"].append(v.ntracks)
         res["vertex_ndigi"].append(v.nhits)
@@ -446,13 +466,12 @@ def run_processing(file, entries = -1):
         res["vertex_residual_longitrans"].append(rrq.project_vector(res["vertex_residual"][-1][:3]))
     
         ## Event level information
-        res["event_nhits"].append(len(event.digis))
-        res["event_ntracks"].append(len(event.tracks))
-        res["event_nvertices"].append(len(event.vertices))
+        res["event_nhits"].append(event.get_ndigis())
+        res["event_ntracks"].append(event.get_ntracks())
+        res["event_nvertices"].append(event.get_nvertices())
         res["event_ntrack_reconstructable"].append(sum(event.digi_truth_track_nhits>=4))
         res["event_ntrack_reconstructable_primary"].append(sum((event.digi_truth_track_nhits>=4) & (event.digi_truth_track_ids<=len(event.genparticles))))
-        res["event_ntrack_recon"].append(len(event.tracks))
-        res["event_track_nhits"].append(sum([t.nhits for t in event.tracks]))
+        res["event_track_nhits"].append(sum([t.nhits for t in event.tracks if not t.dropped]))
         res["event_track_nhits_upward"].append(sum([t.nhits for t in event.tracks if t.vdirection[2] > 0]))
     
         ## Calculate some features for cuts
@@ -460,7 +479,7 @@ def run_processing(file, entries = -1):
         res["vertex_ndownward_track"].append(rrq.get_v_downward_track())
         res["event_ndownward_track"].append(rrq.get_ev_downward_track())
         # Number of hits
-        ndigi_veto,ndigi_active, ndigi_veto_before,ndigi_active_before = rrq.get_ndigi_veto_and_active(limit=100)
+        ndigi_veto,ndigi_active, ndigi_veto_before,ndigi_active_before = rrq.get_ndigi_veto_and_active_timelimit(limit=100)
         res["event_ndigi_veto"].append(ndigi_veto)
         res["event_ndigi_active"].append(ndigi_active)
         res["vertex_ndigi_veto_before_limited"].append(ndigi_veto_before)
@@ -482,11 +501,6 @@ def run_processing(file, entries = -1):
         res["vertex_cms_angle_h_span"].append(angle_diffh_span)
         res["vertex_cms_angle_v_span"].append(angle_diffv_span)          
         res["vertex_cms_angle"].append(angle_diff_abs)
-
-        r1,r2,r3 = rrq.eval_hits_time()
-        res["vertex_hits_trend_1"].append(r1)
-        res["vertex_hits_trend_2"].append(r2)
-        res["vertex_hits_trend_3"].append(r3)
 
         r1,r2 = rrq.eval_hits_time_exclude()
         res["vertex_hits_trend_1b"].append(r1)

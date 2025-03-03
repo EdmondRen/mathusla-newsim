@@ -136,10 +136,16 @@ add_executable(merge merge.cc)
 target_link_libraries(merge PUBLIC  ${ROOT_LIBRARIES})
 
 
+## Add cosmic to signal events
+add_executable(attach_cosmic attach_cosmic.cc)
+target_link_libraries(attach_cosmic PUBLIC  ${ROOT_LIBRARIES})
+# set_target_properties(attach_cosmic PROPERTIES COMPILE_FLAGS "-g")
+
+
 ## Recon post processing
 add_executable(skim ${PROJECT_SOURCE_DIR}/studies/mathusla40/skim_vertex.cc)
 target_link_libraries(skim PUBLIC mu_recon mu_sim ${ROOT_LIBRARIES} ${CRY_LIBRARIES})
-set_target_properties(skim PROPERTIES COMPILE_FLAGS "-g")
+# set_target_properties(skim PROPERTIES COMPILE_FLAGS "-g")
 
 #----------------------------------------------------------------------------
 # Copy all scripts to the build directory, i.e. the directory in which we
