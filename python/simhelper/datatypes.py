@@ -2,6 +2,7 @@ import copy
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 from . import util,parser
 
@@ -110,6 +111,11 @@ class Track:
             self.convert_to_time()
             self.t0=data["Track_t0"][i]
 
+    def at_t(self, time):
+        dt = time-self.params_full[3]
+        xyz_new = self.params_time[:3] + dt * self.params_time[3:]
+        return xyz_new
+
     def convert_to_time(self):
         self.params_time = np.zeros(6);
         k=0
@@ -149,6 +155,7 @@ class Track:
             digi_times.append(digis_all[i].xyzt[-1])
             digi_hit_ids_new.append(i)
         self.hit_ids = digi_hit_ids_new
+        self.nhits = len(self.hit_ids)
 
         if (len(digi_trackid)>0):
             tid,tid_ind,tid_counts = np.unique(digi_trackid, return_counts=True, return_index=True)
@@ -213,6 +220,7 @@ class Vertex:
         self.nhits = np.sum(tracks_nhits) if len(self.track_ids)>0 else 0
 
         self.dropped = len(self.track_ids) < min_ntracks
+        self.ntracks = len(self.track_ids)
         return self.dropped
 
 class PDG:    
@@ -236,7 +244,62 @@ class PDG:
     def str(pdg):
         if pdg in PDG.name_map:
             return PDG.name_map[pdg][0]
-        return "pdg: " + str(pdg)          
+        return "pdg: " + str(pdg)        
+
+
+class DetectorMathusla40:
+    def __init__(self):
+        self.layer_width = 10700*4
+        self.layer_z_offset = [0,1020, 12000, 12000+800*1, 12000+800*2, 12000+800*3, 12000+800*4, 12000+800*5]
+
+        self.wall_height = 12000
+        self.wall_x_offset = [-10700*2 - 1200, -10700*2 - 200, 10700*2+500, 10700*2+500+800*1, 10700*2+500+800*2, 10700*2+500+800*3, 10700*2+500+800*4, 10700*2+500+800*5]
+
+    def draw_xz(self, axis=None, layer_height_vis=200, alpha=0.1, draw_wall=True):
+        if axis is None:
+            axis=plt.gca()
+    
+        verts=[] # vertices of polygons
+
+        layer_width = self.layer_width
+        layerX = [layer_width*-0.5,
+                  layer_width*-0.5,
+                  layer_width*0.5,
+                  layer_width*0.5,]
+        # Loop all 6 layers
+        for iz,z in enumerate(self.layer_z_offset):
+            layerZ = [z-layer_height_vis*0.5,
+                      z+layer_height_vis*0.5,
+                      z+layer_height_vis*0.5,
+                      z-layer_height_vis*0.5,]            
+            verts.append(np.transpose([layerX, layerZ]))
+                
+            
+        # Loop 2 Wall layers
+        if draw_wall:
+            for i,x in enumerate(self.wall_x_offset):
+                layerX1 = [x -layer_height_vis,
+                           x -layer_height_vis,
+                           x +layer_height_vis,
+                           x +layer_height_vis]
+            
+                if i<=1:
+                    vert_low = 0
+                    vert_high = self.wall_height
+                else:
+                    vert_low = self.wall_height-9000
+                    vert_high = self.wall_height                    
+                layerZ = [vert_low,vert_high,vert_high,vert_low,]            
+                verts.append(np.transpose([layerX1, layerZ]))         
+    
+        col = mpl.collections.PolyCollection(verts, alpha=alpha)
+        axis.add_collection(col)
+        
+        
+    def drawdet_yz(self, axis=None, layer_height_vis=0.2, alpha=0.1):
+        drawdet_xz(axis=axis, layer_height_vis=layer_height_vis, alpha=alpha, draw_wall=False)
+
+
 
 
 class Event:
@@ -428,6 +491,12 @@ class Event:
         axfront = fig.add_subplot(spec[:2, :4])
         axside = fig.add_subplot(spec[2:, :4])
         axtop = fig.add_subplot(spec[:3, 4:])
+
+        dc = [0,0,1.20]
+        ds = [21.400,21.400,11.000]
+        xlimits = [-25,27]
+        ylimits = [-24,24]
+        zlimits = [-0.5, 17.8]
         
         plt.sca(axfront)
         self.plot_truetracks(0,2)
@@ -436,6 +505,10 @@ class Event:
         self.genvertices.plot(0,2)
         plt.xlabel("x (beamline) [m]")
         plt.ylabel("z (verticle) [m]")
+        col = mpl.collections.PolyCollection([np.transpose([[dc[0]-ds[0], dc[0]-ds[0], dc[0]+ds[0], dc[0]+ds[0]], [dc[2], dc[2]+ds[2], dc[2]+ds[2], dc[2]]])], alpha=0.05)
+        plt.gca().add_collection(col)
+        plt.xlim(*xlimits)
+        plt.ylim(*zlimits)
         
         plt.sca(axside)
         self.plot_truetracks(1,2)
@@ -444,6 +517,10 @@ class Event:
         self.genvertices.plot(1,2)
         plt.xlabel("y (other) [m]")
         plt.ylabel("z (verticle) [m]")
+        col = mpl.collections.PolyCollection([np.transpose([[dc[1]-ds[1], dc[1]-ds[1], dc[1]+ds[1], dc[1]+ds[1]], [dc[2], dc[2]+ds[2], dc[2]+ds[2], dc[2]]])], alpha=0.05)
+        plt.gca().add_collection(col)
+        plt.xlim(*ylimits)
+        plt.ylim(*zlimits)        
         
         plt.sca(axtop)
         self.plot_truetracks(0,1)
@@ -452,7 +529,12 @@ class Event:
         self.genvertices.plot(0,1)
         plt.xlabel("x (beamline) [m]")
         plt.ylabel("y (other) [m]")
+        col = mpl.collections.PolyCollection([np.transpose([[dc[0]-ds[0], dc[0]-ds[0], dc[0]+ds[0], dc[0]+ds[0]], [dc[1]-ds[1], dc[1]+ds[1], dc[1]+ds[1], dc[1]-ds[1]]])], alpha=0.05)
+        plt.gca().add_collection(col)
+        plt.xlim(*xlimits)
+        plt.ylim(*ylimits)        
         
         plt.show()    
 
-                
+
+        

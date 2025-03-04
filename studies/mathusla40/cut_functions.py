@@ -184,7 +184,7 @@ class RRQ:
         is_before = [(self.v.t0-limit) <digi.t < self.v.t0 for digi in self.event.digis if not digi.dropped]
         return np.sum(is_before)   
 
-    def get_ndigi_veto_and_active_timelimit(self, limit = 100):
+    def get_ndigi_veto_and_active_timelimit(self, limit = 100, ):
         """ 
         Return:
         n_veto, 
@@ -202,7 +202,7 @@ class RRQ:
         n_veto_pre_active_timelimit = sum(is_before&~is_veto&is_valid)
         return [n_veto, n_active, n_veto_pre_veto_timelimit, n_veto_pre_active_timelimit]
 
-    def get_ndigi_veto_and_comp(self, limit = 200):
+    def get_ndigi_veto_and_comp(self, limit = 200, speed_comp_limit = 30):
         """
         Find number of veto hits that are
         * Later than the vertex
@@ -214,20 +214,33 @@ class RRQ:
         is_veto = np.array([(digi.copy_det in RRQ.CONST_VETO_DET) for digi in self.event.digis])
         is_comp = []
         # for i in np.flatnonzero(is_after&is_veto):
+        metrics_dt = []
+        metrics_speed = []
         for i in range(len(is_after)):
             digi = self.event.digis[i]
             dr = np.linalg.norm([digi.x - self.v.x0, digi.y - self.v.y0, digi.z - self.v.z0])
             dt = abs(digi.t - self.v.t0)
-            metric_dt = abs(dt - dr/290)
-            metric_speed = abs(abs(dr/dt) - 300)
+            metric_dt = abs(dt - dr/295)
+            metric_speed = abs(abs(dr/dt) - 295)
             # is_comp.append(np.abs(metric)<5)
-            is_comp.append(metric_speed<40)        
+            is_comp.append(metric_speed<speed_comp_limit)      
+            metrics_dt.append(metric_dt)
+            metrics_speed.append(abs(dr/dt)) 
+
+        metrics_dt=np.array(metrics_dt)
+        metrics_speed=np.array(metrics_speed)
+        metrics_dt=metrics_dt[is_valid&~is_veto&is_after&is_above]
+        metrics_speed=metrics_speed[is_valid&~is_veto&is_after&is_above]
+
+        metrics_dt = []
+        metrics_speed = []
+        
 
         n_veto_after = sum(is_after&is_veto&is_valid)
         n_veto_after_comp = sum(is_after&is_veto&is_comp&is_valid)
         n_active_after = sum(is_after&~is_veto&is_valid)
         n_active_after_comp = sum(is_after&~is_veto&is_comp&is_above&is_valid)        
-        return n_veto_after, n_veto_after_comp, n_active_after, n_active_after_comp
+        return n_veto_after, n_veto_after_comp, n_active_after, n_active_after_comp, metrics_dt, metrics_speed
 
     def get_slowest_track(self):
         vs = [self.event.tracks[i].vabs for i in self.v.track_ids]
@@ -238,9 +251,25 @@ class RRQ:
         vz = [self.event.tracks[i].vdirection[2]<0 for i in self.v.track_ids]
         return np.sum(vz)
 
-    def get_ev_downward_track(self):
-        vz = [self.event.tracks[i].vdirection[2]<0 for i in range(len(self.event.tracks)) if not self.event.tracks[i].dropped]
-        return np.sum(vz)    
+    def get_ev_downward_track(self, tlimit=200):
+        is_downward = np.array([self.event.tracks[i].vdirection[2]<0 for i in range(len(self.event.tracks)) if not self.event.tracks[i].dropped])
+        is_inward = np.array([(self.event.tracks[i].iv_index == 2 and self.event.tracks[i].params_full[7] < 0) for i in range(len(self.event.tracks)) if not self.event.tracks[i].dropped])
+        is_sidewall = np.array([(self.event.tracks[i].iv_index == 2) for i in range(len(self.event.tracks)) if not self.event.tracks[i].dropped])
+        mask_tlimit = np.array([abs(self.event.tracks[i].params_full[3]-self.v.t0)<tlimit for i in range(len(self.event.tracks)) if not self.event.tracks[i].dropped])
+
+        n_downward_top = sum(is_downward & (~is_sidewall) & mask_tlimit)
+        n_downward_side = sum((is_downward & is_sidewall & mask_tlimit) | (is_inward & mask_tlimit))
+        track_ids_downward = np.flatnonzero(is_downward | is_inward)
+        
+        min_downward_dist = []
+        for i in track_ids_downward:
+            tr = self.event.tracks[i]
+            tr_position = tr.at_t(self.v.t0)
+            dr = np.linalg.norm(tr_position - self.v.params[:3])
+            min_downward_dist.append(dr)
+        min_downward_dist = min(min_downward_dist) if len(min_downward_dist)>0 else 40000
+        
+        return n_downward_top, n_downward_side, min_downward_dist
 
     def eval_cone(self):
         """
@@ -340,19 +369,13 @@ class RRQ:
 
 
 class CutItem:
-    def __init__(self, name, func, plot_binning = None, make_plot = False, cut_order = -1):
+    def __init__(self, name, func, cut_order = -1):
         # Descriptive name of the cut
         self.name = name
 
         # Cut function (to be applied to the dictionary)
         self.func = func
-        
-        # plot_binning: [start, stop, bins]
-        self.plot_binning=plot_binning 
-        
-        # make_plot: bool
-        self.make_plot=make_plot
-        
+               
         # cut_order: int, the priority of the cut. Lower number will be applied first
         self.cut_order=cut_order
         
@@ -362,8 +385,14 @@ class CutItem:
         # Passage fraction
         self.passage_fraction = None
         
-    def get_eff(self, mask, event_uid):
+    def get_eff(self):
         return self.passage_fraction
+
+    def get_mask(self):
+        return self.mask
+
+    def get_func(self):
+        return self.func    
         
     def apply(self, data):
         self.mask = self.func(data)
@@ -371,19 +400,50 @@ class CutItem:
         return self.mask
 
 class RQ_dict:
-    def __init__(self, data = None):
+    def __init__(self, data):
         self.data = data
-        self.cuts = {}  # dict of {name: CutItem}
-        self.default_cuts = []
+        self.cuts_dict = {}  # dict of {name: CutItem}
+        self.cuts_name = []
+        self.cuts_active = []
+
+        name = "More than 2 tracks"
+        func = lambda res: res["vertex_ntracks"]>2
+        self.cuts_dict[name] = CutItem(name, func, cut_order = -1)
+        self.cuts_dict[name].apply(self.data)
+        self.cuts_name.append(name)
+        self.mask_2 = self.cuts_dict["More than 2 tracks"].get_mask()
+        
+        self.add_cut(lambda res: np.ones_like(res["vertex_ntracks"], dtype=bool), "True")   
+        self.mask_true = self.cuts_dict["True"].get_mask()
 
     def __getitem__(self, key):
         return self.data[key]
 
-    def add_cut(self, func, name):
-        self.cuts[name] = func(self.data)
+    def list_cut():
+        for i in range(len(self.cuts_name)):
+            name = self.cuts_name[i]
+            mask = self.cuts_dict[name].get_mask()
+            print(f"Cut {i:>2} {name: <20}, passage fraction {sum(mask)/len(mask):.7f}, (& > 2 tracks): {sum(mask&self.mask_2)/len(self.mask_2):.7f}")
+        pass
+
+    def print_active():
+        mask = self.mask_true
+        for i in self.cuts_active:
+            name = self.cuts_name[i]
+            mask = mask & self.cuts_dict[name].get_mask()
+            print(f"Cut {i:>2} {name: <20}, passage fraction {sum(mask)/len(mask):.7f}")
+        pass        
+
+    def add_cut(self, func, name, cut_order = -1):
+        self.cuts_dict[name] = CutItem(name, func, cut_order = cut_order)
+        self.cuts_dict[name].apply(self.data)
+        self.cuts_name = list(self.cuts_dict.keys())
+        mask = self.cuts_dict[name].get_mask()
+
+        print(f"Add cut: {name}, passage fraction {sum(mask)/len(mask)}, (& > 2 tracks): {sum(mask&self.mask_2)/len(self.mask_2)}")
 
     def get_cut(self, name):
-        return self.cuts[name]
+        return self.cuts_dict[name].get_mask()
 
 
 def run_processing(file, entries = -1, efficiency = 1, min_nhits=4):
@@ -401,6 +461,7 @@ def run_processing(file, entries = -1, efficiency = 1, min_nhits=4):
             "event_ntracks","event_nhits","event_nvertices",
             "event_ntrack_reconstructable", "event_ntrack_reconstructable_primary", "event_vntrk_max",
             "event_track_nhits", "event_track_nhits_upward",
+            "event_ndigi_veto", "event_ndigi_active", 
             
             # Vertex stats
             "vertex_topfrac", "vertex_xyzt",
@@ -409,7 +470,6 @@ def run_processing(file, entries = -1, efficiency = 1, min_nhits=4):
             "vertex_ndownward_track", "event_ndownward_track",
     
             # 
-            "event_ndigi_veto", "event_ndigi_active", 
             "vertex_ndigi_veto_before_limited", "vertex_ndigi_active_before_limited", "vertex_slowest_track",
             "vertex_ndigi_veto_after", "vertex_ndigi_veto_after_comp",
             "vertex_ndigi_active_after", "vertex_ndigi_active_after_comp",
@@ -421,6 +481,7 @@ def run_processing(file, entries = -1, efficiency = 1, min_nhits=4):
             "vertex_cms_angle",
             "vertex_hits_trend_1b", "vertex_hits_trend_2b",
             
+            "vertex_comp_metric_dt", "vertex_comp_metric_speed",
            ] 
     
     res = {key:[] for key in keys}    
@@ -485,11 +546,15 @@ def run_processing(file, entries = -1, efficiency = 1, min_nhits=4):
         res["vertex_ndigi_veto_before_limited"].append(ndigi_veto_before)
         res["vertex_ndigi_active_before_limited"].append(ndigi_active_before)
         # Number of veto that are later than the vertex and compatible with speed of light
-        n_veto_after, n_veto_after_comp, n_active_after, n_active_after_comp = rrq.get_ndigi_veto_and_comp()    
+        n_veto_after, n_veto_after_comp, n_active_after, n_active_after_comp, metrics_dt, metrics_speed = rrq.get_ndigi_veto_and_comp(limit=200)    
         res["vertex_ndigi_veto_after"].append(n_veto_after)
         res["vertex_ndigi_veto_after_comp"].append(n_veto_after_comp)
         res["vertex_ndigi_active_after"].append(n_active_after)
         res["vertex_ndigi_active_after_comp"].append(n_active_after_comp)        
+
+        # Temp:
+        res["vertex_comp_metric_dt"].append(metrics_dt)        
+        res["vertex_comp_metric_speed"].append(metrics_speed)        
         
         # Opening angle
         open_angle_max, open_angle_mean, axis, angle_diffh, angle_diffv, angle_diff_abs, angle_diffh_mean, angle_diffv_mean, angle_diffh_span, angle_diffv_span = rrq.eval_cone()
@@ -508,7 +573,11 @@ def run_processing(file, entries = -1, efficiency = 1, min_nhits=4):
         
     
     for key in res:
-        res[key] = np.array(res[key])
+        try:
+            res[key] = np.array(res[key])
+        except:
+            res[key] = np.array(res[key], dtype="object")
+            
 
     # res["event_ndigi_active_after"] = res["event_ndigi_active"] - res["vertex_ndigi_active_before_limited"]
     res["vertex_ndigi_before_limited"] = res["vertex_ndigi_active_before_limited"] + res["vertex_ndigi_veto_before_limited"]
