@@ -316,14 +316,14 @@ namespace Tracker
         {
             outputFile->Close();
             if (EN_COPY_RAW)
-                simFile->Close();            
+                simFile->Close();
             if (EN_COPY_DIGI)
                 digiFile->Close();
         }
 
         void SetSimBranches(bool save_raw_reduced);
 
-        int ApplyRecon(TrackList &tracks, VertexLilst &vertices, std::vector<std::unordered_map<int,int>> &track_statsm, int &simulation_entry_number);
+        int ApplyRecon(TrackList &tracks, VertexLilst &vertices, std::vector<std::unordered_map<int, int>> &track_statsm, int &simulation_entry_number);
         int ApplyCopy(long long entry);
         void Fill();
         void Clear();
@@ -336,6 +336,179 @@ namespace Tracker
                 digiTreeMetadata->CloneTree()->Write("metadata_digi", TObject::kOverwrite);
             if (EN_COPY_RAW)
                 simTreeMetadata->CloneTree()->Write("metadata_recon", TObject::kOverwrite);
+        }
+        void Close() { outputFile->Close(); }
+
+        // Buffer for metadata
+        //   Put this in public. Too troublesome to write set for each of them
+        void FillMetadata() { outputTreeMetadata->Fill(); }
+        std::string meta_ReconstructionConfigStr;
+    };
+
+    // Read the file after digitization, and arrange them into <DigiHit> type
+    // A modified and hardcoded version for the old simulation results.
+    class TreeReaderDigi_old
+    {
+    private:
+        TFile *File;
+        TTree *TreeData;
+
+        // Buffer for digitized data to read
+        std::vector<double> *Digi_x;
+        std::vector<double> *Digi_y;
+        std::vector<double> *Digi_z;
+        std::vector<double> *Digi_t;
+        std::vector<int> *Digi_trackID;
+        std::vector<int> *Digi_pdgID;
+        std::vector<int> *Digi_type;            // Soure of the event. -1: noise, 0: GUN, 1: PARMA, 2: CRY
+        std::vector<int> *Digi_hitInds;         // The index of truth hits of each digitized hit
+        std::vector<int> *Digi_bar_direction;   // Direction of the bar
+        std::vector<int> *Digi_layer_direction; // Direction of the bar
+        std::vector<int> *Digi_layer_id;        // Which layer it is in
+
+        // metadata;
+        float Uncertainty_t;
+        float Uncertainty_x;
+        float Uncertainty_y;
+        float Uncertainty_z;
+
+        // Container for processed data
+        Vector4d digi_unc;
+        std::vector<std::unique_ptr<DigiHit>> hits;
+
+        // Counter of current entry
+        long long entries_total;
+        long long entry_current;
+
+    public:
+        TreeReaderDigi_old(std::string filename);
+        ~TreeReaderDigi_old()
+        {
+            File->Close();
+        }
+
+        std::vector<std::unique_ptr<DigiHit>> GetEntry(long long entry);
+
+        // Group hits by detector copy number
+        // detID has format AAABBBCCCDDDD, in which BBB is the detector copy number
+        std::unordered_map<int, std::vector<DigiHit *>> ProcessHits(std::vector<std::unique_ptr<DigiHit>> &hits);
+
+        // Get methods
+        long long GetCurrentEntry() { return entry_current; }
+        long long GetEntries() { return entries_total; }
+        TTree *GetdataTree() { return TreeData; }
+    };
+
+    // Write output file
+    //  with option to merge the digi and raw data together
+    class TreeWriterRecon_old : public iroot::file::EntryCopy
+    {
+    private:
+        TFile *outputFile;
+        TTree *outputTree;
+        TTree *outputTreeMetadata;
+
+        TFile *digiFile;
+        TTree *digiTree;
+        TTree *digiTreeMetadata;
+
+        TFile *simFile;
+        TTree *simTree;
+        TTree *simTreeMetadata;
+
+        // Buffer for recon data to write
+        int SimEntry;
+        std::vector<float> Track_x0;
+        std::vector<float> Track_y0;
+        std::vector<float> Track_z0;
+        std::vector<float> Track_t0;
+        std::vector<float> Track_kx;
+        std::vector<float> Track_ky;
+        std::vector<float> Track_kz;
+        std::vector<float> Track_kt;
+        std::vector<float> Track_cov;
+        std::vector<float> Track_chi2;
+        std::vector<int> Track_id;
+        std::vector<int> Track_iv_ind;
+        std::vector<int> Track_iv_err;
+        std::vector<int> Track_digiInds;
+
+        std::vector<float> Vertex_x0;
+        std::vector<float> Vertex_y0;
+        std::vector<float> Vertex_z0;
+        std::vector<float> Vertex_t0;
+        std::vector<float> Vertex_cov;
+        std::vector<float> Vertex_chi2;
+        std::vector<int> Vertex_id;
+        std::vector<int> Vertex_trackInds;
+        std::vector<int> Vertex_tracklet_n0;
+        std::vector<int> Vertex_tracklet_n2;
+        std::vector<int> Vertex_tracklet_n3;
+        std::vector<int> Vertex_tracklet_n4p;
+
+        // Buffer for digitized data to read
+        std::vector<double> *Digi_x;
+        std::vector<double> *Digi_y;
+        std::vector<double> *Digi_z;
+        std::vector<double> *Digi_t;
+        std::vector<int> *Digi_trackID;
+        std::vector<int> *Digi_pdgID;
+        std::vector<int> *Digi_type;            // Soure of the event. -1: noise, 0: GUN, 1: PARMA, 2: CRY
+        std::vector<int> *Digi_bar_direction;   // Direction of the bar
+        std::vector<int> *Digi_layer_direction; // Direction of the bar
+        std::vector<int> *Digi_layer_id;        // Which layer it is in        
+        std::vector<int> *Digi_hitIndices;
+        std::vector<int> *Digi_numHits;
+
+        // To be added in the output file
+        std::vector<int> *Digi_hitInds;         
+        std::vector<int> *Digi_direction;
+        std::vector<Long64_t> *Digi_detectorID;
+        
+        
+        // Buffer for manually made digitier metadata;
+        std::string SimulationName;
+        std::string Geometry;
+        std::string Generator;
+        float Uncertainty_t;
+        float Uncertainty_x;
+        float Uncertainty_y;
+        float Uncertainty_z;
+
+        // Utility for copying raw and digits to the recon file
+        // iroot::file::EntryCopy *copier_raw, *copier_digi;
+
+        // Counter of current entry
+        long long entries_total;
+        long long entry_current;
+
+        // Boolean
+        bool EN_COPY_RAW;
+        bool EN_COPY_DIGI;
+
+    public:
+        TreeWriterRecon_old(std::string filename_recon, std::string filename_digi = "", std::string filename_sim = "", bool save_raw_reduced = false);
+        ~TreeWriterRecon_old()
+        {
+            outputFile->Close();
+            if (EN_COPY_RAW)
+                simFile->Close();
+            if (EN_COPY_DIGI)
+                digiFile->Close();
+        }
+
+        void SetSimBranches(bool save_raw_reduced);
+
+        int ApplyRecon(TrackList &tracks, VertexLilst &vertices, std::vector<std::unordered_map<int, int>> &track_statsm, int &simulation_entry_number);
+        int ApplyCopy(long long entry);
+        void Fill();
+        void Clear();
+        void Write()
+        {
+            outputFile->cd();
+            outputTree->Write("", TObject::kOverwrite);
+            outputTreeMetadata->Write();
+            digiTreeMetadata->Write("metadata_digi", TObject::kOverwrite);
         }
         void Close() { outputFile->Close(); }
 

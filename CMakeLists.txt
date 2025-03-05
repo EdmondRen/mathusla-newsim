@@ -131,6 +131,11 @@ add_executable(tracker tracker.cc)
 target_link_libraries(tracker PUBLIC  mu_recon mu_sim ${CRY_LIBRARIES})
 
 
+## Tracker with IO for old simulation
+add_executable(tracker_old tracker_old.cc)
+target_link_libraries(tracker_old PUBLIC  mu_recon mu_sim ${CRY_LIBRARIES})
+# set_target_properties(tracker_old PROPERTIES COMPILE_FLAGS "-g")
+
 ## ROOT tree combiner
 add_executable(merge merge.cc)
 target_link_libraries(merge PUBLIC  ${ROOT_LIBRARIES})
@@ -146,6 +151,10 @@ target_link_libraries(attach_cosmic PUBLIC  ${ROOT_LIBRARIES})
 add_executable(skim ${PROJECT_SOURCE_DIR}/studies/mathusla40/skim_vertex.cc)
 target_link_libraries(skim PUBLIC mu_recon mu_sim ${ROOT_LIBRARIES} ${CRY_LIBRARIES})
 # set_target_properties(skim PROPERTIES COMPILE_FLAGS "-g")
+
+## Recon post processing for old simulation
+add_executable(skim_old ${PROJECT_SOURCE_DIR}/studies/mathusla40/skim_vertex_old.cc)
+target_link_libraries(skim_old PUBLIC mu_recon mu_sim ${ROOT_LIBRARIES} ${CRY_LIBRARIES})
 
 #----------------------------------------------------------------------------
 # Copy all scripts to the build directory, i.e. the directory in which we

@@ -43,7 +43,7 @@ class Digi:
             self.id = i
             self.pdg = data["Digi_pdgID"][i]
             self.is_primary = False
-            self.hit_inds = data["Digi_hitInds_unpacked"][i]
+            self.hit_inds = data["Digi_hitInds_unpacked"][i] if len( data["Digi_hitInds_unpacked"])>0 else [0,1]
             self.direction = data["Digi_direction"][i]
             self.type = data["Digi_type"][i]
             self.track_id = data["Digi_trackID"][i]
@@ -305,8 +305,8 @@ class DetectorMathusla40:
 class Event:
     def __init__(self, data_parsed, metadata_digi, parse_truth = True, detector_efficiency = 1, min_nhits=4):
         ## Identity
-        self.Run_number = data_parsed['Run_number']
-        self.Evt_number = data_parsed['Evt_number']
+        self.Run_number = data_parsed['Run_number'] if "Run_number" in data_parsed else 0
+        self.Evt_number = data_parsed['Evt_number'] if "Evt_number" in data_parsed else 0
 
         # Make a unique and reproducible random number generator
         self.rng = np.random.default_rng(self.Run_number*100000000+self.Evt_number)
@@ -315,7 +315,7 @@ class Event:
         self.process_recon(data_parsed)
         
         # Get generator particles
-        self.genparticles = np.array([GenParticle(data_parsed, i) for i in range(len(data_parsed["Gen_x"]))])
+        self.genparticles = np.array([GenParticle(data_parsed, i) for i in range(len(data_parsed["Gen_x"]))]) if "Gen_x" in data_parsed else []
         self.genvertices = GenVertices(self.genparticles)
         
         # Get truth 

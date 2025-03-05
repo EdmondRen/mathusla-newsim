@@ -643,10 +643,414 @@ namespace Tracker
         Vertex_tracklet_n0.clear();
         Vertex_tracklet_n2.clear();
         Vertex_tracklet_n3.clear();
-        Vertex_tracklet_n4p.clear();        
+        Vertex_tracklet_n4p.clear();
     }
 
     void TreeWriterRecon::Fill()
+    {
+        outputTree->Fill();
+        this->Clear();
+    }
+
+    // Class TreeReaderDigi_old for backward compatibility ------------------------------------------------------------------------------------------------
+    TreeReaderDigi_old::TreeReaderDigi_old(std::string filename)
+    {
+        auto tree_name = "integral_tree";
+        std::cout << filename << std::endl;
+        File = TFile::Open(filename.c_str());
+        File->ls();
+        TreeData = (TTree *)File->Get(tree_name);
+
+        entries_total = TreeData->GetEntries();
+        Digi_x = nullptr;
+        Digi_y = nullptr;
+        Digi_z = nullptr;
+        Digi_t = nullptr;
+        Digi_trackID = nullptr;
+        Digi_pdgID = nullptr;
+        Digi_type = nullptr;
+        Digi_hitInds = nullptr;
+        Digi_bar_direction = nullptr;   // 0->x(old), 1->y(old), 2->z(old)
+        Digi_layer_direction = nullptr; // 0->x(old), 1->y(old), 2->z(old)
+        Digi_layer_id = nullptr;
+
+        // Setup tree pointer to data buffer
+        TreeData->SetBranchAddress("Digi_x", &Digi_x);
+        TreeData->SetBranchAddress("Digi_y", &Digi_y);
+        TreeData->SetBranchAddress("Digi_z", &Digi_z);
+        TreeData->SetBranchAddress("Digi_time", &Digi_t);
+        TreeData->SetBranchAddress("Digi_track_id", &Digi_trackID);
+        TreeData->SetBranchAddress("Digi_pdg_id", &Digi_pdgID);
+        TreeData->SetBranchAddress("Digi_type", &Digi_type);
+        TreeData->SetBranchAddress("Digi_bar_direction", &Digi_bar_direction);
+        TreeData->SetBranchAddress("Digi_layer_direction", &Digi_layer_direction);
+        TreeData->SetBranchAddress("Digi_layer_id", &Digi_layer_id);
+
+        // Read metadata
+        Uncertainty_t = 1;
+        Uncertainty_x = 158.6; // Bar length
+        Uncertainty_y = 10.1;  // Bar width
+        Uncertainty_z = 2.887; // Bar thickness
+        digi_unc << Uncertainty_x, Uncertainty_y, Uncertainty_z, Uncertainty_t;
+    }
+
+    std::vector<std::unique_ptr<DigiHit>> TreeReaderDigi_old::GetEntry(long long entry)
+    {
+        std::vector<std::unique_ptr<DigiHit>> hits_tmp;
+
+        // old_x -> y, old_y -8550cm -> z, old_z-70m-20m->x
+        std::map<int, int> dir_old_to_new = {{0, 1}, {1, 2}, {2, 0}};
+
+        TreeData->GetEntry(entry);
+        for (size_t i = 0; i < (*Digi_x).size(); i++)
+        {
+            int dir_x = (*Digi_bar_direction)[i];
+            int dir_y = 3 - (*Digi_bar_direction)[i] - (*Digi_layer_direction)[i];
+            int dir_z = (*Digi_layer_direction)[i];
+            double unc[3] = {0, 0, 0};
+            unc[dir_x] = digi_unc[0];
+            unc[dir_y] = digi_unc[1];
+            unc[dir_z] = digi_unc[2];
+            int hit_layer = 0;
+            int hit_detector_group = 0;
+            if ((*Digi_layer_id)[i] < 4)
+                hit_layer = (*Digi_layer_id)[i];
+            else if ((*Digi_layer_id)[i] < 10)
+            {
+                hit_layer = (*Digi_layer_id)[i] - 4;
+                hit_detector_group = 1;
+            }
+            else if ((*Digi_layer_id)[i] < 16)
+            {
+                hit_layer = (*Digi_layer_id)[i] - 10;
+                hit_detector_group = 2;
+            }
+            // std::cout<<"Add hit: " << i <<" " << hit_layer << std::endl;
+            auto hit = std::make_unique<Tracker::DigiHit>((*Digi_z)[i] * 10 - 90000,
+                                                          (*Digi_x)[i] * 10,
+                                                          (*Digi_y)[i] * 10 - 85500,
+                                                          (*Digi_t)[i],
+                                                          unc[2], unc[0], unc[1], digi_unc[3],
+                                                          dir_old_to_new[dir_z],
+                                                          hit_layer,
+                                                          hit_detector_group, i);
+            hit->detector_id = hit_detector_group * 100000000000 + hit_layer * 100000;
+            hits_tmp.push_back(std::move(hit));
+        }
+        return hits_tmp;
+    }
+
+    std::unordered_map<int, std::vector<DigiHit *>> TreeReaderDigi_old::ProcessHits(std::vector<std::unique_ptr<DigiHit>> &hits_tmp)
+    {
+        std::unordered_map<int, std::vector<DigiHit *>> hits_dict;
+        for (auto &hit : hits_tmp)
+        {
+            auto group = hit->group;
+            if (group == 0)
+                continue;
+            hits_dict[group].push_back(hit.get());
+        }
+
+        return hits_dict;
+    }
+
+    // Class TreeWriterRecon_old for backward compatibility ------------------------------------------------------------------------------------------------
+    TreeWriterRecon_old::TreeWriterRecon_old(std::string filename_recon,
+                                             std::string filename_digi,
+                                             std::string filename_sim,
+                                             bool save_raw_reduced) : iroot::file::EntryCopy()
+    {
+
+        auto output_tree_name = "data";
+        outputFile = TFile::Open(filename_recon.c_str(), "RECREATE");
+        outputTree = new TTree(output_tree_name, "Reconstruction Tree");
+        outputTreeMetadata = new TTree("metadata", "Metadata for reconstruction");
+        digiTreeMetadata = new TTree("metadata_digi", "Metadata for digitization");
+
+        // Write metadata
+        outputTreeMetadata->Branch("ReconstructionConfigStr", &meta_ReconstructionConfigStr);
+
+        // Write metadata
+
+        digiTreeMetadata->Branch("SimulationName", &SimulationName);
+        digiTreeMetadata->Branch("Geometry", &Geometry);
+        digiTreeMetadata->Branch("Generator", &Generator);
+        digiTreeMetadata->Branch("Uncertainty_t", &Uncertainty_t);
+        digiTreeMetadata->Branch("Uncertainty_x", &Uncertainty_x);
+        digiTreeMetadata->Branch("Uncertainty_y", &Uncertainty_y);
+        digiTreeMetadata->Branch("Uncertainty_z", &Uncertainty_z);
+        SimulationName = "Mathusla simulation";
+        Geometry = "mu40v0";
+        Generator = "gun";
+        Uncertainty_t = 1;
+        Uncertainty_x = 158.6; // Bar length
+        Uncertainty_y = 10.1;  // Bar width
+        Uncertainty_z = 2.887; // Bar thickness
+        digiTreeMetadata->Fill();
+
+        // Setup tree pointer to data buffer
+        outputTree->Branch("SimEntry", &SimEntry);
+        outputTree->Branch("Track_x0", &Track_x0);
+        outputTree->Branch("Track_y0", &Track_y0);
+        outputTree->Branch("Track_z0", &Track_z0);
+        outputTree->Branch("Track_t0", &Track_t0);
+        outputTree->Branch("Track_kx", &Track_kx);
+        outputTree->Branch("Track_ky", &Track_ky);
+        outputTree->Branch("Track_kz", &Track_kz);
+        outputTree->Branch("Track_kt", &Track_kt);
+        outputTree->Branch("Track_cov", &Track_cov); // Have to be flattened, each track takes 6x6=36 elements
+        outputTree->Branch("Track_chi2", &Track_chi2);
+        outputTree->Branch("Track_id", &Track_id);
+        outputTree->Branch("Track_iv_ind", &Track_iv_ind);
+        outputTree->Branch("Track_iv_err", &Track_iv_err);
+        outputTree->Branch("Track_digiInds", &Track_digiInds);
+        outputTree->Branch("Vertex_x0", &Vertex_x0);
+        outputTree->Branch("Vertex_y0", &Vertex_y0);
+        outputTree->Branch("Vertex_z0", &Vertex_z0);
+        outputTree->Branch("Vertex_t0", &Vertex_t0);
+        outputTree->Branch("Vertex_cov", &Vertex_cov); // Have to be flattened, each track takes 6x6=36 elements
+        outputTree->Branch("Vertex_chi2", &Vertex_chi2);
+        outputTree->Branch("Vertex_id", &Vertex_id);
+        outputTree->Branch("Vertex_trackInds", &Vertex_trackInds);
+        outputTree->Branch("Vertex_tracklet_n0", &Vertex_tracklet_n0);
+        outputTree->Branch("Vertex_tracklet_n2", &Vertex_tracklet_n2);
+        outputTree->Branch("Vertex_tracklet_n3", &Vertex_tracklet_n3);
+        outputTree->Branch("Vertex_tracklet_n4p", &Vertex_tracklet_n4p);
+
+        // Setup copy methods for raw/digi data
+        EN_COPY_DIGI = filename_digi.size() > 0 ? true : false;
+        if (EN_COPY_DIGI)
+        {
+            digiFile = TFile::Open(filename_digi.c_str());
+            digiTree = (TTree *)digiFile->Get("integral_tree");
+
+            // Can no long use this automatic setup of branch address
+            // We need to manually modify all the numbers to be compatible with the current analysis
+            // Let's do it all in SetSimBranches
+            // Setup(digiTree, outputTree); // Setup for copying from digiTree to outputTree
+            SetSimBranches(save_raw_reduced);
+        }
+    }
+
+    void TreeWriterRecon_old::SetSimBranches(bool save_raw_reduced)
+    {
+        if (EN_COPY_DIGI)
+        {
+            if (save_raw_reduced)
+            {
+                std::vector<std::string> branches_enabled = {"Digi_*"};
+                // Disable all branches first
+                digiTree->SetBranchStatus("*", 0);
+
+                // Enable selected ones
+                for (auto &br : branches_enabled)
+                    digiTree->SetBranchStatus(br.c_str(), 1);
+
+                Digi_x = nullptr;
+                Digi_y = nullptr;
+                Digi_z = nullptr;
+                Digi_t = nullptr;
+                Digi_trackID = nullptr;
+                Digi_pdgID = nullptr;
+                Digi_type = nullptr;
+                Digi_hitInds = nullptr;
+                Digi_bar_direction = nullptr;   // 0->x(old), 1->y(old), 2->z(old)
+                Digi_layer_direction = nullptr; // 0->x(old), 1->y(old), 2->z(old)
+                Digi_layer_id = nullptr;
+
+                // Setup tree pointer to data buffer
+                digiTree->SetBranchAddress("Digi_x", &Digi_x);
+                digiTree->SetBranchAddress("Digi_y", &Digi_y);
+                digiTree->SetBranchAddress("Digi_z", &Digi_z);
+                digiTree->SetBranchAddress("Digi_time", &Digi_t);
+                digiTree->SetBranchAddress("Digi_track_id", &Digi_trackID);
+                digiTree->SetBranchAddress("Digi_pdg_id", &Digi_pdgID);
+                digiTree->SetBranchAddress("Digi_type", &Digi_type);
+                digiTree->SetBranchAddress("Digi_bar_direction", &Digi_bar_direction);
+                digiTree->SetBranchAddress("Digi_layer_direction", &Digi_layer_direction);
+                digiTree->SetBranchAddress("Digi_layer_id", &Digi_layer_id);
+                digiTree->SetBranchAddress("Digi_hitIndices", &Digi_hitIndices);
+                digiTree->SetBranchAddress("Digi_numHits", &Digi_numHits);
+
+                // Setup tree pointer to data buffer
+                Digi_detectorID = new std::vector<Long64_t>();
+                Digi_hitInds = new std::vector<int>();
+                Digi_direction = new std::vector<int>();
+                outputTree->Branch("Digi_x", Digi_z); // Switch old_z->x
+                outputTree->Branch("Digi_y", Digi_x); // Switch old_x->y
+                outputTree->Branch("Digi_z", Digi_y); // Switch old_y->z
+                outputTree->Branch("Digi_t", Digi_t);
+                outputTree->Branch("Digi_trackID", Digi_trackID);
+                outputTree->Branch("Digi_pdgID", Digi_pdgID);
+                outputTree->Branch("Digi_type", Digi_type);
+                outputTree->Branch("Digi_detectorID", Digi_detectorID); // New
+                outputTree->Branch("Digi_hitInds", Digi_hitInds);       // New
+                outputTree->Branch("Digi_direction", Digi_direction);   // New
+            }
+        }
+    }
+
+    int TreeWriterRecon_old::ApplyRecon(TrackList &tracks, VertexLilst &vertices, std::vector<std::unordered_map<int, int>> &track_stats_all, int &simulation_entry_number)
+    {
+        SimEntry = simulation_entry_number;
+
+        for (auto &track : tracks)
+        {
+            Track_x0.push_back(track->params_full[0]);
+            Track_y0.push_back(track->params_full[1]);
+            Track_z0.push_back(track->params_full[2]);
+            Track_t0.push_back(track->params_full[3]);
+            Track_kx.push_back(track->params_full[4]);
+            Track_ky.push_back(track->params_full[5]);
+            Track_kz.push_back(track->params_full[6]);
+            Track_kt.push_back(track->params_full[7]);
+            Track_chi2.push_back(track->chi2);
+            Track_id.push_back(track->id);
+            Track_iv_ind.push_back(track->iv_index);
+            Track_iv_err.push_back(track->iv_error);
+            // Flatten cov matrix
+            for (Eigen::MatrixXd::Index i = 0; i < track->cov.size(); ++i)
+                Track_cov.push_back(track->cov.data()[i]);
+            // Flatten hit ids, separate by -1 at the end
+            for (auto hitid : track->hit_ids)
+                Track_digiInds.push_back(hitid);
+            Track_digiInds.push_back(-1);
+        }
+
+        for (auto &vertex : vertices)
+        {
+            Vertex_x0.push_back(vertex->params[0]);
+            Vertex_y0.push_back(vertex->params[1]);
+            Vertex_z0.push_back(vertex->params[2]);
+            Vertex_t0.push_back(vertex->params[3]);
+            Vertex_chi2.push_back(vertex->chi2);
+            Vertex_id.push_back(vertex->id);
+            // Flatten cov matrix
+            for (Eigen::MatrixXd::Index i = 0; i < vertex->cov.size(); ++i)
+                Vertex_cov.push_back(vertex->cov.data()[i]);
+            // Flatten hit ids, separate by -1 at the end
+            for (auto trackid : vertex->track_ids)
+                Vertex_trackInds.push_back(trackid);
+            Vertex_trackInds.push_back(-1);
+        }
+
+        for (auto &track_stats : track_stats_all)
+        {
+            Vertex_tracklet_n0.push_back(track_stats[0]);
+            Vertex_tracklet_n2.push_back(track_stats[2]);
+            Vertex_tracklet_n3.push_back(track_stats[3]);
+            Vertex_tracklet_n4p.push_back(track_stats[4] + track_stats[5] + track_stats[6] + track_stats[7] + track_stats[8]);
+            // std::cout<<(track_stats[4] + track_stats[5] + track_stats[6] + track_stats[7] + track_stats[8]) << std::endl;
+        }
+
+        return 0;
+    }
+
+    int TreeWriterRecon_old::ApplyCopy(long long entry)
+    {
+        std::map<int, int> dir_old_to_new = {{0, 1}, {1, 2}, {2, 0}};
+
+        if (EN_COPY_DIGI)
+        {
+            // ReadSource(digiTree, entry);
+            digiTree->GetEntry(entry);
+
+            // digiTree->SetBranchAddress("Digi_x", &Digi_x);
+            // digiTree->SetBranchAddress("Digi_y", &Digi_y);
+            // digiTree->SetBranchAddress("Digi_z", &Digi_z);
+            // digiTree->SetBranchAddress("Digi_time", &Digi_t);
+            // digiTree->SetBranchAddress("Digi_track_id", &Digi_trackID);
+            // digiTree->SetBranchAddress("Digi_pdg_id", &Digi_pdgID);
+            // digiTree->SetBranchAddress("Digi_type", &Digi_type);
+            // digiTree->SetBranchAddress("Digi_bar_direction", &Digi_bar_direction);
+            // digiTree->SetBranchAddress("Digi_layer_direction", &Digi_layer_direction);
+            // digiTree->SetBranchAddress("Digi_layer_id", &Digi_layer_id);
+            // digiTree->SetBranchAddress("Digi_hitIndices", &Digi_hitIndices);
+            // digiTree->SetBranchAddress("Digi_numHits", &Digi_numHits);
+
+            // // Setup tree pointer to data buffer
+            // outputTree->Branch("Digi_x", Digi_z); // Switch old_z->x
+            // outputTree->Branch("Digi_y", Digi_x); // Switch old_x->y
+            // outputTree->Branch("Digi_z", Digi_y); // Switch old_y->z
+            // outputTree->Branch("Digi_t", Digi_t);
+            // outputTree->Branch("Digi_trackID", Digi_trackID);
+            // outputTree->Branch("Digi_pdgID", Digi_pdgID);
+            // outputTree->Branch("Digi_type", Digi_type);
+            // outputTree->Branch("Digi_detectorID", Digi_detectorID); // New
+            // outputTree->Branch("Digi_hitInds", Digi_hitInds); // New
+            // outputTree->Branch("Digi_direction", Digi_direction); // New
+
+            // old_x -> y, old_y -8550cm -> z, old_z-70m-20m->x
+
+            for (size_t i = 0; i < (*Digi_x).size(); i++)
+            {
+                // Shift to center
+                (*Digi_x)[i] = (*Digi_x)[i] * 10;
+                (*Digi_y)[i] = (*Digi_y)[i] * 10 - 85500;
+                (*Digi_z)[i] = (*Digi_z)[i] * 10 - 90000;
+
+                int dir_x = (*Digi_bar_direction)[i];
+                int dir_y = 3 - (*Digi_bar_direction)[i] - (*Digi_layer_direction)[i];
+                int dir_z = (*Digi_layer_direction)[i];
+
+                int hit_layer = 0;
+                int hit_detector_group = 0;
+                if ((*Digi_layer_id)[i] < 4)
+                    hit_layer = (*Digi_layer_id)[i];
+                else if ((*Digi_layer_id)[i] < 10)
+                {
+                    hit_layer = (*Digi_layer_id)[i] - 4;
+                    hit_detector_group = 1;
+                }
+                else if ((*Digi_layer_id)[i] < 16)
+                {
+                    hit_layer = (*Digi_layer_id)[i] - 10;
+                    hit_detector_group = 2;
+                }
+
+                (*Digi_detectorID).push_back(hit_detector_group * 100000000000 + hit_layer * 100000);
+                (*Digi_direction).push_back(dir_old_to_new[dir_x] * 100 + dir_old_to_new[dir_y] * 100 + dir_old_to_new[dir_z]);
+            }
+        }
+
+        return 0;
+    }
+
+    void TreeWriterRecon_old::Clear()
+    {
+        Track_x0.clear();
+        Track_y0.clear();
+        Track_z0.clear();
+        Track_t0.clear();
+        Track_kx.clear();
+        Track_ky.clear();
+        Track_kz.clear();
+        Track_kt.clear();
+        Track_cov.clear();
+        Track_chi2.clear();
+        Track_id.clear();
+        Track_iv_ind.clear();
+        Track_iv_err.clear();
+        Track_digiInds.clear();
+        Vertex_x0.clear();
+        Vertex_y0.clear();
+        Vertex_z0.clear();
+        Vertex_t0.clear();
+        Vertex_cov.clear();
+        Vertex_chi2.clear();
+        Vertex_id.clear();
+        Vertex_trackInds.clear();
+        Vertex_tracklet_n0.clear();
+        Vertex_tracklet_n2.clear();
+        Vertex_tracklet_n3.clear();
+        Vertex_tracklet_n4p.clear();
+
+        Digi_detectorID->clear();
+        Digi_hitInds->clear();
+        Digi_direction->clear();
+    }
+
+    void TreeWriterRecon_old::Fill()
     {
         outputTree->Fill();
         this->Clear();
