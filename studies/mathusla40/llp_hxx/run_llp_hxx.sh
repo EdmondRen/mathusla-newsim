@@ -23,32 +23,33 @@ FILENAME_LIST=()
 # 4. Combine the digitzation results from cosmic to signal with given probability
 #   - The average cosmic event per signal sample is **0.86**
 # 5. Run reconsturction on combined files
+
 N_COSMIC_PER_EVENT=0.86
 
 ############################################################################################
 # 1. Generate cosmic simulation
 
-# NITER=${#momentum_list[@]}
-# pushd $SIM_REPO_DIR/build
+NITER=${#momentum_list[@]}
+pushd $SIM_REPO_DIR/build
 
-# NEVENT_COSMIC=30000
-# for ((i = 0; i < NITER; i++)); do
+NEVENT_COSMIC=30000
+for ((i = 0; i < NITER; i++)); do
 
-#     RUN_NUMBER=${momentum_list[i]}
-#     SEED=$RUN_NUMBER
-#     ## Simulation
-#     env G4RUN_MANAGER_TYPE=Serial ./simulation -r $RUN_NUMBER \
-#         -s $SEED \
-#         -m $SIM_REPO_DIR/studies/mathusla40/llp_hxx/run_cry_all_mathusla40.mac,events,$NEVENT_COSMIC \
-#         -o $DATA_DIR/cosmic
+    RUN_NUMBER=${momentum_list[i]}
+    SEED=$RUN_NUMBER
+    ## Simulation
+    env G4RUN_MANAGER_TYPE=Serial ./simulation -r $RUN_NUMBER \
+        -s $SEED \
+        -m $SIM_REPO_DIR/studies/mathusla40/llp_hxx/run_cry_all_mathusla40.mac,events,$NEVENT_COSMIC \
+        -o $DATA_DIR/cosmic
 
-#     ## Digitizer
-#     ./digitizer $DATA_DIR/cosmic/run_${RUN_NUMBER}.root \
-#         -s $SEED \
-#         -p 200 \
-#         -n 0
-# done
-# popd
+    ## Digitizer
+    ./digitizer $DATA_DIR/cosmic/run_${RUN_NUMBER}.root \
+        -s $SEED \
+        -p 200 \
+        -n 0
+done
+popd
 
 ############################################################################################
 # 2. Signal
@@ -78,43 +79,43 @@ for filename in "${FILENAME_LIST[@]}"; do
     pushd $SIM_REPO_DIR/build
     RUN_NUMBER=${momentum_list[i]}
 
-    # ## Simulation
-    # echo $SIM_REPO_DIR/studies/mathusla40/llp_hxx/g4_llp_hxx_${momentum_list[i]}_GeV.mac
-    # env G4RUN_MANAGER_TYPE=Serial ./simulation -r $RUN_NUMBER \
-    #     -s $SEED \
-    #     -m $SIM_REPO_DIR/studies/mathusla40/llp_hxx/g4_llp_hxx_${momentum_list[i]}_GeV.mac \
-    #     -o $DATA_DIR
+    ## Simulation
+    echo $SIM_REPO_DIR/studies/mathusla40/llp_hxx/g4_llp_hxx_${momentum_list[i]}_GeV.mac
+    env G4RUN_MANAGER_TYPE=Serial ./simulation -r $RUN_NUMBER \
+        -s $SEED \
+        -m $SIM_REPO_DIR/studies/mathusla40/llp_hxx/g4_llp_hxx_${momentum_list[i]}_GeV.mac \
+        -o $DATA_DIR
 
-    # ## Digitizer
-    # ./digitizer $DATA_DIR/run_${RUN_NUMBER}.root \
-    #     -s $SEED \
-    #     -p 100 \
-    #     -n $NOSIE_RATE_PER_BAR_HZ
+    ## Digitizer
+    ./digitizer $DATA_DIR/run_${RUN_NUMBER}.root \
+        -s $SEED \
+        -p 100 \
+        -n $NOSIE_RATE_PER_BAR_HZ
 
-    # ## Add cosmic ray
-    # ./attach_cosmic $DATA_DIR/run_${RUN_NUMBER}_digi.root \
-    #     $DATA_DIR/cosmic/run_${RUN_NUMBER}_digi.root \
-    #     $DATA_DIR/run_${RUN_NUMBER}_digi_cosmic.root \
-    #     $N_COSMIC_PER_EVENT
+    ## Add cosmic ray
+    ./attach_cosmic $DATA_DIR/run_${RUN_NUMBER}_digi.root \
+        $DATA_DIR/cosmic/run_${RUN_NUMBER}_digi.root \
+        $DATA_DIR/run_${RUN_NUMBER}_digi_cosmic.root \
+        $N_COSMIC_PER_EVENT
 
 
-    # ## Reconstruction on vanila digitzation (no cosmic)
-    # # -k 0: save all events
-    # # -R: discard simulation truth except for the generator status to reproduce the event later
-    # # -p 100: print every 100 events
-    # ./tracker $DATA_DIR/run_${RUN_NUMBER}_digi.root \
-    #     -r $DATA_DIR/run_${RUN_NUMBER}.root \
-    #     -k 0 \
-    #     -p 100
+    ## Reconstruction on vanila digitzation (no cosmic)
+    # -k 0: save all events
+    # -R: discard simulation truth except for the generator status to reproduce the event later
+    # -p 100: print every 100 events
+    ./tracker $DATA_DIR/run_${RUN_NUMBER}_digi.root \
+        -r $DATA_DIR/run_${RUN_NUMBER}.root \
+        -k 0 \
+        -p 100
 
-    # ## Reconstruction on cosmic-added digitzation
-    # # -k 0: save all events
-    # # -R: discard simulation truth except for the generator status to reproduce the event later
-    # # -p 100: print every 100 events
-    # ./tracker $DATA_DIR/run_${RUN_NUMBER}_digi_cosmic.root \
-    #     -r $DATA_DIR/run_${RUN_NUMBER}.root \
-    #     -k 0 \
-    #     -p 1000 -R
+    ## Reconstruction on cosmic-added digitzation
+    # -k 0: save all events
+    # -R: discard simulation truth except for the generator status to reproduce the event later
+    # -p 100: print every 100 events
+    ./tracker $DATA_DIR/run_${RUN_NUMBER}_digi_cosmic.root \
+        -r $DATA_DIR/run_${RUN_NUMBER}.root \
+        -k 0 \
+        -p 1000 -R
 
     ## Select events with at least one vertex in the box
     ./skim $DATA_DIR/run_${RUN_NUMBER}_digi_cosmic_recon.root -p 1000

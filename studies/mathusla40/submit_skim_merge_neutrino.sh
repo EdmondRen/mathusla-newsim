@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=4:00:00
+#SBATCH --time=1:00:00
 #SBATCH --account=ctb-ut-atlas
 #SBATCH --array=0
 #SBATCH --mem=8G
@@ -17,7 +17,7 @@ basedir="/project/6049244/data/MATHUSLA/simulation/"
 SIM_REPO_DIR=$(realpath ../..)
 cd $SIM_REPO_DIR/build
 
-run_names=(run-2024-07-mathusla40-full)
+run_names=(run-2024-07-cosmic-neutrino)
 
 if [ -z "$SLURM_TMPDIR" ]; then
     echo "No SLURM_TMPDIR, running locally"
@@ -52,16 +52,14 @@ for ((i = 0; i < NITER; i++)); do
     \rm $filename_merged
     # for filename in "${files[@]}"; do
     #     ((processed += 1))
-    nfiles=2000
+    nfiles=10
     for ((processed=0;processed<=nfiles;processed++)); do
-        echo 
-        echo
-        echo
-        echo processing $processed/$nfiles "$filename"
+        echo Reconstruction
+        filename=$data_directory/DigiOutput/run_$processed/0/stat0.root
 
-        filename=$data_directory/DigiOutput/$processed/0/stat0.root
         [ ! -f $filename ] && continue
 
+        echo processing $processed/$nfiles "$filename"
 
         ## Reonstruction
         new_filename_recon="${filename%.*}_recon.${filename##*.}"

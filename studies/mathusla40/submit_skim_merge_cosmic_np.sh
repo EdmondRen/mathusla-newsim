@@ -71,6 +71,7 @@ for ((i = 0; i < NITER; i++)); do
     # Move all files back to perm storage
     echo "Move file back from SLURM_TMPDIR"
     \mv $filename_merged_tmp $filename_merged
+    chgrp rrg-mdiamond $filename_merged
     echo "Finished copying merged file"
     for filename in "${files[@]}"; do
         new_filename="${filename%.*}_skim.${filename##*.}"

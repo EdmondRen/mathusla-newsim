@@ -271,6 +271,16 @@ class RRQ:
         
         return n_downward_top, n_downward_side, min_downward_dist
 
+    def get_vertex_track_dist(self):
+        downward_dist = []
+        for i in self.v.track_ids:
+            tr = self.event.tracks[i]
+            tr_position = tr.at_t(self.v.t0)
+            dr = np.linalg.norm(tr_position - self.v.params[:3])
+            downward_dist.append(dr)     
+
+        return sum(downward_dist)
+
     def eval_cone(self):
         """
         Find the properties of the cone formed by the tracks
@@ -419,30 +429,40 @@ class RQ_dict:
     def __getitem__(self, key):
         return self.data[key]
 
-    def list_cut():
+    def list_cut(self):
         for i in range(len(self.cuts_name)):
             name = self.cuts_name[i]
             mask = self.cuts_dict[name].get_mask()
-            print(f"Cut {i:>2} {name: <20}, passage fraction {sum(mask)/len(mask):.7f}, (& > 2 tracks): {sum(mask&self.mask_2)/len(self.mask_2):.7f}")
+            print(f"Cut {i:<2}: {name: <20}, npassed {sum(mask):>6}, passage fraction {sum(mask)/len(mask):.7f}")
         pass
 
-    def print_active():
+    def print_active(self, show=True):
         mask = self.mask_true
+        info = dict() # Each entry is a [num passed, frac passed]  pair
+        info["Total"] = [len(mask), 1]
+        if show:
+            print(f"Total events: {len(mask)}")
+            
         for i in self.cuts_active:
             name = self.cuts_name[i]
             mask = mask & self.cuts_dict[name].get_mask()
-            print(f"Cut {i:>2} {name: <20}, passage fraction {sum(mask)/len(mask):.7f}")
-        pass        
+            info[name] = [sum(mask), sum(mask)/len(mask)]
+            if show:
+                print(f"Cut {i:<2}: {name: <20}, npassed {sum(mask):>6}, passage fraction {sum(mask)/len(mask):.7f}")
+        return info        
 
-    def add_cut(self, func, name, cut_order = -1):
+    def add_cut(self, func, name, cut_order = -1, PRINT=False):
         self.cuts_dict[name] = CutItem(name, func, cut_order = cut_order)
         self.cuts_dict[name].apply(self.data)
         self.cuts_name = list(self.cuts_dict.keys())
         mask = self.cuts_dict[name].get_mask()
 
-        print(f"Add cut: {name}, passage fraction {sum(mask)/len(mask)}, (& > 2 tracks): {sum(mask&self.mask_2)/len(self.mask_2)}")
+        if PRINT:
+            print(f"Add cut: {name}, passage fraction {sum(mask)/len(mask)}, (& > 2 tracks): {sum(mask&self.mask_2)/len(self.mask_2)}")
 
     def get_cut(self, name):
+        if type(name) is int:
+            name = self.cuts_name[i]
         return self.cuts_dict[name].get_mask()
 
 
@@ -473,6 +493,7 @@ def run_processing(file, entries = -1, efficiency = 1, min_nhits=4):
             "vertex_ndigi_veto_before_limited", "vertex_ndigi_active_before_limited", "vertex_slowest_track",
             "vertex_ndigi_veto_after", "vertex_ndigi_veto_after_comp",
             "vertex_ndigi_active_after", "vertex_ndigi_active_after_comp",
+            "vertex_track_dist",
             
             "vertex_open_angle", 
             "vertex_cms_angle_h", "vertex_cms_angle_v", 
@@ -507,9 +528,10 @@ def run_processing(file, entries = -1, efficiency = 1, min_nhits=4):
         res["Run_number"].append(event.Run_number)
         res["Evt_number"].append(event.Evt_number)
 
-        res["gen_p3"].append(event.genparticles[0].momentum)
-        res["gen_xyzt"].append(event.genparticles[0].xyzt)
-        res["gen_pdgID"].append(event.genparticles[0].pdg)    
+        if len(event.genparticles)>0:
+            res["gen_p3"].append(event.genparticles[0].momentum)
+            res["gen_xyzt"].append(event.genparticles[0].xyzt)
+            res["gen_pdgID"].append(event.genparticles[0].pdg)    
     
         # Use the vertex with most tracks
         v =  rrq.v    
@@ -519,12 +541,13 @@ def run_processing(file, entries = -1, efficiency = 1, min_nhits=4):
         res["vertex_ndigi"].append(v.nhits)
         res["vertex_chi2"].append(v.chi2)
         res["vertex_prob"].append(scipy.stats.chi2.cdf(res["vertex_chi2"][-1], res["vertex_ntracks"][-1]*3-4))
-        res["vertex_residual"].append(v.params - event.genvertices.vertices[0])
+        if len(event.genvertices.vertices)>0:
+            res["vertex_residual"].append(v.params - event.genvertices.vertices[0])
+            res["vertex_residual_longitrans"].append(rrq.project_vector(res["vertex_residual"][-1][:3]))
         res["vertex_error"].append(np.sqrt(np.diagonal(v.cov)))
         res["vertex_ntracklet_0"].append(v.vertex_ntracklet_0)
         res["vertex_ntracklet_2"].append(v.vertex_ntracklet_2)
         res["vertex_ntracklet_3+"].append(v.vertex_ntracklet_3)
-        res["vertex_residual_longitrans"].append(rrq.project_vector(res["vertex_residual"][-1][:3]))
     
         ## Event level information
         res["event_nhits"].append(event.get_ndigis())
@@ -550,7 +573,8 @@ def run_processing(file, entries = -1, efficiency = 1, min_nhits=4):
         res["vertex_ndigi_veto_after"].append(n_veto_after)
         res["vertex_ndigi_veto_after_comp"].append(n_veto_after_comp)
         res["vertex_ndigi_active_after"].append(n_active_after)
-        res["vertex_ndigi_active_after_comp"].append(n_active_after_comp)        
+        res["vertex_ndigi_active_after_comp"].append(n_active_after_comp)  
+        res["vertex_track_dist"].append(rrq.get_vertex_track_dist())
 
         # Temp:
         res["vertex_comp_metric_dt"].append(metrics_dt)        

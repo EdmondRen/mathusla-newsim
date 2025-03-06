@@ -836,57 +836,57 @@ namespace Tracker
     {
         if (EN_COPY_DIGI)
         {
-            if (save_raw_reduced)
-            {
-                std::vector<std::string> branches_enabled = {"Digi_*"};
-                // Disable all branches first
-                digiTree->SetBranchStatus("*", 0);
+            // if (save_raw_reduced)
+            std::vector<std::string> branches_enabled = {"Digi_*"};
+            // Disable all branches first
+            digiTree->SetBranchStatus("*", 0);
 
-                // Enable selected ones
-                for (auto &br : branches_enabled)
-                    digiTree->SetBranchStatus(br.c_str(), 1);
+            // Enable selected ones
+            for (auto &br : branches_enabled)
+                digiTree->SetBranchStatus(br.c_str(), 1);
 
-                Digi_x = nullptr;
-                Digi_y = nullptr;
-                Digi_z = nullptr;
-                Digi_t = nullptr;
-                Digi_trackID = nullptr;
-                Digi_pdgID = nullptr;
-                Digi_type = nullptr;
-                Digi_hitInds = nullptr;
-                Digi_bar_direction = nullptr;   // 0->x(old), 1->y(old), 2->z(old)
-                Digi_layer_direction = nullptr; // 0->x(old), 1->y(old), 2->z(old)
-                Digi_layer_id = nullptr;
+            Digi_x = nullptr;
+            Digi_y = nullptr;
+            Digi_z = nullptr;
+            Digi_t = nullptr;
+            Digi_trackID = nullptr;
+            Digi_pdgID = nullptr;
+            Digi_type = nullptr;
+            Digi_hitInds = nullptr;
+            Digi_bar_direction = nullptr;   // 0->x(old), 1->y(old), 2->z(old)
+            Digi_layer_direction = nullptr; // 0->x(old), 1->y(old), 2->z(old)
+            Digi_layer_id = nullptr;
+            Digi_hitIndices = nullptr;
+            Digi_numHits = nullptr;
 
-                // Setup tree pointer to data buffer
-                digiTree->SetBranchAddress("Digi_x", &Digi_x);
-                digiTree->SetBranchAddress("Digi_y", &Digi_y);
-                digiTree->SetBranchAddress("Digi_z", &Digi_z);
-                digiTree->SetBranchAddress("Digi_time", &Digi_t);
-                digiTree->SetBranchAddress("Digi_track_id", &Digi_trackID);
-                digiTree->SetBranchAddress("Digi_pdg_id", &Digi_pdgID);
-                digiTree->SetBranchAddress("Digi_type", &Digi_type);
-                digiTree->SetBranchAddress("Digi_bar_direction", &Digi_bar_direction);
-                digiTree->SetBranchAddress("Digi_layer_direction", &Digi_layer_direction);
-                digiTree->SetBranchAddress("Digi_layer_id", &Digi_layer_id);
-                digiTree->SetBranchAddress("Digi_hitIndices", &Digi_hitIndices);
-                digiTree->SetBranchAddress("Digi_numHits", &Digi_numHits);
+            // Setup tree pointer to data buffer
+            digiTree->SetBranchAddress("Digi_x", &Digi_x);
+            digiTree->SetBranchAddress("Digi_y", &Digi_y);
+            digiTree->SetBranchAddress("Digi_z", &Digi_z);
+            digiTree->SetBranchAddress("Digi_time", &Digi_t);
+            digiTree->SetBranchAddress("Digi_track_id", &Digi_trackID);
+            digiTree->SetBranchAddress("Digi_pdg_id", &Digi_pdgID);
+            digiTree->SetBranchAddress("Digi_type", &Digi_type);
+            digiTree->SetBranchAddress("Digi_bar_direction", &Digi_bar_direction);
+            digiTree->SetBranchAddress("Digi_layer_direction", &Digi_layer_direction);
+            digiTree->SetBranchAddress("Digi_layer_id", &Digi_layer_id);
+            digiTree->SetBranchAddress("Digi_hitIndices", &Digi_hitIndices);
+            digiTree->SetBranchAddress("Digi_numHits", &Digi_numHits);
 
-                // Setup tree pointer to data buffer
-                Digi_detectorID = new std::vector<Long64_t>();
-                Digi_hitInds = new std::vector<int>();
-                Digi_direction = new std::vector<int>();
-                outputTree->Branch("Digi_x", Digi_z); // Switch old_z->x
-                outputTree->Branch("Digi_y", Digi_x); // Switch old_x->y
-                outputTree->Branch("Digi_z", Digi_y); // Switch old_y->z
-                outputTree->Branch("Digi_t", Digi_t);
-                outputTree->Branch("Digi_trackID", Digi_trackID);
-                outputTree->Branch("Digi_pdgID", Digi_pdgID);
-                outputTree->Branch("Digi_type", Digi_type);
-                outputTree->Branch("Digi_detectorID", Digi_detectorID); // New
-                outputTree->Branch("Digi_hitInds", Digi_hitInds);       // New
-                outputTree->Branch("Digi_direction", Digi_direction);   // New
-            }
+            // Setup tree pointer to data buffer
+            Digi_detectorID = new std::vector<Long64_t>();
+            Digi_hitInds = new std::vector<int>();
+            Digi_direction = new std::vector<int>();
+            outputTree->Branch("Digi_x", Digi_z); // Switch old_z->x
+            outputTree->Branch("Digi_y", Digi_x); // Switch old_x->y
+            outputTree->Branch("Digi_z", Digi_y); // Switch old_y->z
+            outputTree->Branch("Digi_t", Digi_t);
+            outputTree->Branch("Digi_trackID", Digi_trackID);
+            outputTree->Branch("Digi_pdgID", Digi_pdgID);
+            outputTree->Branch("Digi_type", Digi_type);
+            outputTree->Branch("Digi_detectorID", Digi_detectorID); // New
+            outputTree->Branch("Digi_hitInds", Digi_hitInds);       // New
+            outputTree->Branch("Digi_direction", Digi_direction);   // New
         }
     }
 
