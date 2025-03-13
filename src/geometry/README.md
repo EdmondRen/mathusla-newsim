@@ -2,7 +2,7 @@ How to get the numbers from the mathusla40 geometry
 
 ```c++
 float m = 1000;
-float cm = 100;
+float cm = 10;
 size_t GEO_DEPTH = 4;
 
 // 0: bar. x: along the bar, y: width, z: thickness
@@ -84,4 +84,11 @@ int vw_Nbars_z_layer1 = ceil(0.5 * vw_panel_lenz / bar_leny_real) * 2;
 int vw_Nbars_y_layer1 = ceil(0.5 * vw_panel_leny / bar_lenx_real) * 2;
 int vw_Nbars_z_layer2 = ceil(0.5 * vw_panel_lenz / bar_lenx_real) * 2;
 int vw_Nbars_y_layer2 = ceil(0.5 * vw_panel_leny / bar_leny_real) * 2;
+
+cout << "Decay volume bottom offset: "  << detector_ground_offset[2] <<endl;
+cout << "Backwall bottom offset: "  << -module_lenx + detector_ground_offset[2] + 75*cm <<endl;
+
+cout << "Veto wall height: "  << vw_panel_lenz <<endl;
+
+
 ```
