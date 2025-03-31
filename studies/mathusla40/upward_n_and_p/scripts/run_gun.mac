@@ -1,0 +1,33 @@
+# Macro file for example Mu
+# 
+# Can be run in batch, without graphic
+# or interactively: Idle> /control/execute run1.mac
+#
+# Change the default number of workers (in multi-threading mode) 
+#/run/numberOfThreads 4
+#
+# Initialize kernel
+/vis/disable
+/tracking/verbose 0
+
+# Select detector
+/det/select mu40v0
+
+# Initialize
+/run/initialize
+/run/printProgress 5000
+
+
+## Step limiter
+/control/execute ../macros/init_limit.mac
+
+
+## Setup CRY generator
+/gen/select gun
+/gun/position 5 5 2 m 
+/gun/direction 0 0 1
+/gun/particle {particle}
+/gun/energy {energy} MeV
+
+
+/run/beamOn {nevents}
