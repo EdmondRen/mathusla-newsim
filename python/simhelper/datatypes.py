@@ -496,7 +496,7 @@ class Event:
         ds = [21.400,21.400,11.000]
         xlimits = [-25,27]
         ylimits = [-24,24]
-        zlimits = [-0.5, 17.8]
+        zlimits = [-0.5, 21]
         
         plt.sca(axfront)
         self.plot_truetracks(0,2)

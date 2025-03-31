@@ -12,6 +12,39 @@ from simhelper import datatypes, util
 
 
 
+# Helper functions to print the summary
+
+def append_info_dict(dict_a, dict_b):
+    if len(dict_a.keys()) == 0:
+        for key,value in dict_b.items():
+            dict_a[key] = [value[0]]
+    else:
+        for key,value in dict_b.items():
+            dict_a[key].append(value[0])
+
+def print_info_dict(info, col_names):
+    str_print = []
+    str_save = []
+
+    # Prepare header line
+    str_save.append(f" ")
+    str_print.append(" "*20)
+    [str_save.append(f",{v}") for v in col_names]
+    [str_print.append(f"{v:>10}") for v in col_names]
+    str_save.append("\n")
+    str_print.append("\n")
+    
+    for key,value in info.items():
+        str_save.append(f"{key}")
+        str_print.append(f"{key:<20}")
+        [str_save.append(f",{v}") for v in value]
+        [str_print.append(f"{v:>10}") for v in value]
+        str_save.append("\n")
+        str_print.append("\n")
+    str_print = "".join(str_print)
+    print(str_print)
+    return "".join(str_save)
+
 
 
 class RRQ:
@@ -281,6 +314,24 @@ class RRQ:
 
         return sum(downward_dist)
 
+    def track_to_veto_dist(self, limit = 200, speed_comp_limit = 30):
+        """
+        Find the closest distance between track and veto hits
+        """
+        is_valid = np.array([(not digi.dropped) for digi in self.event.digis])
+        is_veto = np.array([(digi.copy_det in RRQ.CONST_VETO_DET) for digi in self.event.digis])
+
+        distances = []
+        for ihit in np.flatnonzero(is_valid&is_veto):
+            for itrack in self.v.track_ids:
+                tr = self.event.tracks[itrack]
+                hit = self.event.digis[ihit]
+                track_position = tr.at_t(hit.t)
+                dr = np.linalg.norm(track_position - hit.xyzt[:3])
+                distances.append(dr)
+        dist_min = min(distances) if len(distances) > 0 else np.inf
+        return dist_min      
+
     def eval_cone(self):
         """
         Find the properties of the cone formed by the tracks
@@ -502,7 +553,7 @@ def run_processing(file, entries = -1, efficiency = 1, min_nhits=4):
             "vertex_cms_angle",
             "vertex_hits_trend_1b", "vertex_hits_trend_2b",
             
-            "vertex_comp_metric_dt", "vertex_comp_metric_speed",
+            "vertex_comp_metric_dt", "vertex_comp_metric_speed", "vertex_track_to_veto_dist"
            ] 
     
     res = {key:[] for key in keys}    
@@ -593,7 +644,10 @@ def run_processing(file, entries = -1, efficiency = 1, min_nhits=4):
 
         r1,r2 = rrq.eval_hits_time_exclude()
         res["vertex_hits_trend_1b"].append(r1)
-        res["vertex_hits_trend_2b"].append(r2)        
+        res["vertex_hits_trend_2b"].append(r2)   
+
+        dist = rrq.track_to_veto_dist()
+        res["vertex_track_to_veto_dist"].append(dist)   
         
     
     for key in res:
