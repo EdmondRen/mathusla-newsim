@@ -30,6 +30,7 @@ namespace MuGenerators
     {
         // Initialize Other parameters that is not part of CRY, but are needed to generate particle at correct points
         fCRY_additional_setup["use_shape"] = 0; // 0: square, 1: box, 2: sphere
+        fCRY_additional_setup["use_abs_time"] = 0; // 0: false, 1: true
 
         fCRY_additional_setup["box_lenx"] = 2 * m;
         fCRY_additional_setup["box_leny"] = 2 * m;
@@ -69,6 +70,9 @@ namespace MuGenerators
         _ui_shape = CreateCommand<G4UIcmdWithAnInteger>("shape", "Set the shape of generator. 0: square, 1: box, 2: sphere (dome)");
         _ui_shape->SetParameterName("shape", false, false);
         _ui_shape->AvailableForStates(G4State_PreInit, G4State_Idle);
+        _ui_abstime = CreateCommand<G4UIcmdWithAnInteger>("abstime", "Use absolute time. 0: false, 1: true");
+        _ui_abstime->SetParameterName("abstime", false, false);
+        _ui_abstime->AvailableForStates(G4State_PreInit, G4State_Idle);        
         _ui_box = CreateCommand<G4UIcmdWith3VectorAndUnit>("box", "Set x-y-z length of the box.");
         _ui_box->SetParameterName("box_lenx", "box_leny", "box_lenz", false, false);
         _ui_box->AvailableForStates(G4State_PreInit, G4State_Idle);
@@ -234,7 +238,7 @@ namespace MuGenerators
             G4double fParticleMomentumX = fParticleMomentum * fParticleMomentumDirectionU;
             G4double fParticleMomentumY = fParticleMomentum * fParticleMomentumDirectionV;
             G4double fParticleMomentumZ = fParticleMomentum * fParticleMomentumDirectionW;
-            G4double fParticleTime = t0 + ((*cry_generated)[j]->t() - tmin);
+            G4double fParticleTime = fCRY_additional_setup["use_abs_time"]==0 ? t0 + ((*cry_generated)[j]->t() - tmin) : (*cry_generated)[j]->t();
 
             // Generate the particle.
             // You can continue using particle gun,
@@ -286,6 +290,10 @@ namespace MuGenerators
             fCRY_additional_setup["use_shape"] = _ui_shape->GetNewIntValue(value);
             resetDimensions();
         }
+        else if (command == _ui_abstime)
+        {
+            fCRY_additional_setup["use_abs_time"] = _ui_abstime->GetNewIntValue(value);
+        }        
         else if (command == _ui_box)
         {
             auto vec = _ui_offset->GetNew3VectorValue(value);

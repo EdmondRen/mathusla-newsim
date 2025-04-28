@@ -14,7 +14,9 @@ NOSIE_RATE_PER_BAR_HZ="27.4"
 cd $SIM_REPO_DIR/build
 
 ## Simulation
-# echo $SIM_REPO_DIR/studies/mathusla40/upward_n_and_p/scripts/run_gun.mac,particle,$PARTICLE,energy,$ENERGY,nevents,$EVENTS_PER_RU
+echo 
+echo $SIM_REPO_DIR/studies/mathusla40/upward_n_and_p/scripts/run_gun.mac,particle,$PARTICLE,energy,$ENERGY,nevents,$EVENTS_PER_RUN
+echo 
 env G4RUN_MANAGER_TYPE=Serial ./simulation -r $RUN_NUMBER \
     -s $SEED \
     -m $SIM_REPO_DIR/studies/mathusla40/upward_n_and_p/scripts/run_gun.mac,particle,$PARTICLE,energy,$ENERGY,nevents,$EVENTS_PER_RUN \
