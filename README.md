@@ -148,6 +148,16 @@ There are two ROOT tuples in the digitizer output ROOT file: "digi" and "metadat
 | Digi_hitInds    | int32 | Indices of the truth hits of each digi. Separated by -1.                                                                                                                                                                                                                                                                                                                                |
 | Digi_direction  | int32 | Direction of the bar coded into the last three digits of this number. Each digit indicates the current direction of the bar. The hundreds place is for the original x direction, the tens place for the original y direction, and the ones place for x. For example, 201 means the x direction (along the bar) is now pointing to z, y direction is now pointing to x, and z is now y.  |
 
+
+# Python helper functions
+
+Python helper function are located in `/python` folder. The library can be installed with the following commands:
+
+```bash
+cd python
+pip install -e . --user
+```
+
 # Standalone generator: CRY
 
 ```
