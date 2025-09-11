@@ -33,10 +33,12 @@ from scipy.io import loadmat
 from scipy import stats,signal
 from scipy import optimize
 from scipy.optimize import curve_fit
-from sklearn.cluster import KMeans
+#from sklearn.cluster import KMeans
 import uncertainties
-import h5py
+#import h5py
 
+# KMeans is not working, make a dummy function
+KMeans = lambda x:x
 
 def rand_exp(tau, min_val, max_val, rng=None):
     """

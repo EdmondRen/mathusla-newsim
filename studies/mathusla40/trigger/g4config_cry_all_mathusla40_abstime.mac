@@ -15,7 +15,7 @@
 
 # Initialize
 /run/initialize
-/run/printProgress 1000
+/run/printProgress 5000
 
 
 ## Step limiter

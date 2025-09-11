@@ -86,6 +86,55 @@ Notes:
   * Seed are saved as integer in the ROOT file, but they need to be converted to unsigned int before using it.
   * Example: `*reinterpret_cast<unsigned int*>(&seed)`
 
+### Simulation output format
+
+| Key | dtype | Comment |
+|-----|-------|---------|
+| Run_number | int | Single value - Run number identifier |
+| Evt_number | int | Single value - Event number within run |
+| Seed_0 | int | First part of random seed |
+| Seed_1 | int | Second part of random seed |
+| Hit_x | float[] | Hit X positions |
+| Hit_y | float[] | Hit Y positions |
+| Hit_z | float[] | Hit Z positions |
+| Hit_t | float[] | Hit times |
+| Hit_edep | float[] | Energy deposits |
+| Hit_px | float[] | Hit momentum X components |
+| Hit_py | float[] | Hit momentum Y components |
+| Hit_pz | float[] | Hit momentum Z components |
+| Hit_trackID | int[] | Track identifiers |
+| Hit_trackIDparent | int[] | Parent track identifiers |
+| Hit_pdgID | int[] | Particle PDG codes |
+| Hit_pdgIDparent | int[] | Parent particle PDG codes |
+| Hit_isprimary | int[] | Indicates if hit is from primary particle |
+| Hit_processID | int[] | Physics process identifiers |
+| Hit_detectorID | double[] | Detector identifiers (uses double due to int32 limitations) |
+| Gen_x | float[] | [mm] Generated particle X positions |
+| Gen_y | float[] | [mm] Generated particle Y positions |
+| Gen_z | float[] | [mm] Generated particle Z positions |
+| Gen_t | float[] | [mm] Generated particle times |
+| Gen_px | float[] | [MeV/c] Generated particle momentum X components |
+| Gen_py | float[] | [MeV/c]Generated particle momentum Y components |
+| Gen_pz | float[] | [MeV/c]Generated particle momentum Z components |
+| Gen_pdgID | double[] | Generated particle PDG codes |
+| Gen_index | double[] | Generated particle indices |
+
+#### Optional step information
+| Key | dtype | Comment |
+|-----|-------|---------|
+| Step_x | float[] | Step X positions |
+| Step_y | float[] | Step Y positions |
+| Step_z | float[] | Step Z positions |
+| Step_t | float[] | Step times |
+| Step_edep | float[] | Step energy deposits |
+| Step_px | float[] | Step momentum X components |
+| Step_py | float[] | Step momentum Y components |
+| Step_pz | float[] | Step momentum Z components |
+| Step_trackID | int[] | Step track identifiers |
+| Step_trackIDparent | int[] | Step parent track identifiers |
+| Step_pdgID | int[] | Step particle PDG codes |
+| Step_status | int[] | Step status flags |
+
 ## 2. Event generator
 
 ### 2.1. Geant4 prticle gun (gun)
@@ -147,6 +196,40 @@ There are two ROOT tuples in the digitizer output ROOT file: "digi" and "metadat
 | Digi_type       | int32 | Indicates which generator the digi is from. 0: gun, 1: cry, 2: parma, -1: noise                                                                                                                                                                                                                                                                                                         |
 | Digi_hitInds    | int32 | Indices of the truth hits of each digi. Separated by -1.                                                                                                                                                                                                                                                                                                                                |
 | Digi_direction  | int32 | Direction of the bar coded into the last three digits of this number. Each digit indicates the current direction of the bar. The hundreds place is for the original x direction, the tens place for the original y direction, and the ones place for x. For example, 201 means the x direction (along the bar) is now pointing to z, y direction is now pointing to x, and z is now y.  |
+
+
+# Reconstruction
+
+## Reconstruction output format
+
+| Key | dtype | Comment |
+|-----|-------|---------|
+|Track_x0 | float[] | [mm] Track_x0|
+|Track_y0 | float[] | [mm] Track_y0|
+|Track_z0 | float[] | [mm] Track_z0|
+|Track_t0 | float[] | [ns] Track_t0|
+|Track_kx | float[] | [depends on track_iv_ind] Track_kx|
+|Track_ky | float[] | [depends on track_iv_ind] Track_ky|
+|Track_kz | float[] | [depends on track_iv_ind] Track_kz|
+|Track_kt | float[] | [depends on track_iv_ind] Track_kt|
+|Track_cov | float[] | Track covariance matrix|
+|Track_chi2 | float[] | Track chi2|
+|Track_id | int[] | Track number, ranging from 0|
+|Track_iv_ind | int[] | Track_iv_ind|
+|Track_iv_err | int[] | Track_iv_err|
+|Track_digiInds | int[] | Indices of digits used in each track|
+|Vertex_x0 | float[] | Vertex_x0|
+|Vertex_y0 | float[] | Vertex_y0|
+|Vertex_z0 | float[] | Vertex_z0|
+|Vertex_t0 | float[] | Vertex_t0|
+|Vertex_cov | float[] | Vertex_cov|
+|Vertex_chi2 | float[] | Vertex_chi2|
+|Vertex_id | int[] | Indices of vertex|
+|Vertex_trackInds | int[] | Indices of tracks used in each vertex|
+|Vertex_tracklet_n0 | int[] | Vertex_tracklet_n0|
+|Vertex_tracklet_n2 | int[] | Vertex_tracklet_n2|
+|Vertex_tracklet_n3 | int[] | Vertex_tracklet_n3|
+|Vertex_tracklet_n4p | int[] | Vertex_tracklet_n4p|
 
 
 # Python helper functions
