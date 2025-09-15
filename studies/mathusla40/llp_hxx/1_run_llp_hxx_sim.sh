@@ -79,32 +79,32 @@ for i in $SLURM_ARRAY_TASK_ID; do
     #     -m $SIM_REPO_DIR/studies/mathusla40/llp_hxx/g4_llp_hxx_arg.mac,sourcefile,${filename} \
     #     -o $data_dir_this
 
-    # if [ -f $data_dir_this/run_${RUN_NUMBER}_digi.root ]; then
-    #     echo "Already processed, skip simulation and digitization."
-    #     exit 1
-    # fi    
+    if [ -f $data_dir_this/run_${RUN_NUMBER}_digi.root ]; then
+        echo "Already processed, skip simulation and digitization."
+        exit 1
+    fi    
 
-    # ## Digitizer
-    # ./digitizer $data_dir_this/run_${RUN_NUMBER}.root \
-    #     -s $SEED \
-    #     -p 100 \
-    #     -n $NOSIE_RATE_PER_BAR_HZ
+    ## Digitizer
+    ./digitizer $data_dir_this/run_${RUN_NUMBER}.root \
+        -s $SEED \
+        -p 100 \
+        -n $NOSIE_RATE_PER_BAR_HZ
 
-    # ## Add cosmic ray
-    # ./attach_cosmic $data_dir_this/run_${RUN_NUMBER}_digi.root \
-    #     $data_dir_cosmic/run_${i}_digi.root \
-    #     $data_dir_this/run_${RUN_NUMBER}_digi_cosmic.root \
-    #     $N_COSMIC_PER_EVENT
+    ## Add cosmic ray
+    ./attach_cosmic $data_dir_this/run_${RUN_NUMBER}_digi.root \
+        $data_dir_cosmic/run_${i}_digi.root \
+        $data_dir_this/run_${RUN_NUMBER}_digi_cosmic.root \
+        $N_COSMIC_PER_EVENT
 
 
-    # ## Reconstruction on vanila digitzation (no cosmic)
-    # # -k 0: save all events
-    # # -R: discard simulation truth except for the generator status to reproduce the event later
-    # # -p 100: print every 100 events
-    # ./tracker $data_dir_this/run_${RUN_NUMBER}_digi.root \
-    #     -r $data_dir_this/run_${RUN_NUMBER}.root \
-    #     -k 0 \
-    #     -p 100
+    ## Reconstruction on vanila digitzation (no cosmic)
+    # -k 0: save all events
+    # -R: discard simulation truth except for the generator status to reproduce the event later
+    # -p 100: print every 100 events
+    ./tracker $data_dir_this/run_${RUN_NUMBER}_digi.root \
+        -r $data_dir_this/run_${RUN_NUMBER}.root \
+        -k 0 \
+        -p 100
 
     ## Reconstruction on cosmic-added digitzation
     # -k 0: save all events

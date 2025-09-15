@@ -215,15 +215,15 @@ There are two ROOT tuples in the digitizer output ROOT file: "digi" and "metadat
 |Track_cov | float[] | Track covariance matrix|
 |Track_chi2 | float[] | Track chi2|
 |Track_id | int[] | Track number, ranging from 0|
-|Track_iv_ind | int[] | Track_iv_ind|
-|Track_iv_err | int[] | Track_iv_err|
+|Track_iv_ind | int[] | Index of the independent variable. one of {0,1,2,3}. Use it to decide which one of x,y,z,t is the independent variable. For example, if Track_iv_ind is 0 for a track, then x is the independent variable. Then Track_kx,ky,kz,kt are all defined with respect to x: track_kx = dx/dx = 1, track_ky = dy/dx, track_kz = dz/dx, track_kt=dt/dx|
+|Track_iv_err | int[] | The uncertainty of the independent variable.|
 |Track_digiInds | int[] | Indices of digits used in each track|
-|Vertex_x0 | float[] | Vertex_x0|
-|Vertex_y0 | float[] | Vertex_y0|
-|Vertex_z0 | float[] | Vertex_z0|
-|Vertex_t0 | float[] | Vertex_t0|
-|Vertex_cov | float[] | Vertex_cov|
-|Vertex_chi2 | float[] | Vertex_chi2|
+|Vertex_x0 | float[] | [mm] Vertex x0|
+|Vertex_y0 | float[] | [mm] Vertex y0|
+|Vertex_z0 | float[] | [mm] Vertex z0|
+|Vertex_t0 | float[] | [mm] Vertex t0|
+|Vertex_cov | float[] | Vertex covariance matrix|
+|Vertex_chi2 | float[] | Vertex chi2|
 |Vertex_id | int[] | Indices of vertex|
 |Vertex_trackInds | int[] | Indices of tracks used in each vertex|
 |Vertex_tracklet_n0 | int[] | Vertex_tracklet_n0|
