@@ -80,6 +80,11 @@ MuDetectorConstruction::MuDetectorConstruction(const std::string &detector_name,
   _ui_select->SetDefaultValue("uoft1");
   _ui_select->AvailableForStates(G4State_PreInit, G4State_Idle);
 
+  _ui_export = CreateCommand<G4UIcmdWithAString>("export", "Set export directory.");
+  _ui_export->SetParameterName("export", false, false);
+  _ui_export->SetDefaultValue("export");
+  _ui_export->AvailableForStates(G4State_PreInit, G4State_Idle);
+
   // Set the detector to the default one
   _det_name_ = detector_name;
   _det_ = _det_map_[_det_name_];
@@ -139,4 +144,17 @@ void MuDetectorConstruction::SetNewValue(G4UIcommand *command,
     _det_ = _det_map_[_det_name_];
     G4cout << "** Selecting detector: " << _det_name_ << G4endl;
   }
+  else if (command == _ui_export)
+  {
+    this->_export_dir_ = value;
+    G4cout << "** Setting export directory to: " << this->_export_dir_ << G4endl;
+    // static G4ThreadLocal G4GDMLParser _parser;
+    // _parser.Write(path, _det_name_, true,
+    //               !schema.empty() ? schema : G4GDML_DEFAULT_SCHEMALOCATION);    
+  }
+  else
+  {
+    /* code */
+  }
+  
 }

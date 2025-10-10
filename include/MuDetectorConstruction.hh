@@ -103,6 +103,7 @@ class MuDetectorConstruction : public G4VUserDetectorConstruction, public G4UIme
                                 G4String value) override;    
     // Messenger commands
     G4UIcmdWithAString *_ui_select;
+    G4UIcmdWithAString *_ui_export;
 };
 
 // inline functions

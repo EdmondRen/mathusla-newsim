@@ -1,0 +1,22 @@
+# Generate the core top-antitop pair process
+generate p p > t t~
+
+# Define the output directory name
+output proc_sm_tt_unmatched
+
+# Launch the process
+launch
+
+# Settings for run_card.dat
+1
+0
+set ebeam1 = 7000 # Set beam to 14 TeV
+set ebeam2 = 7000 # Set beam to 14 TeV
+set ickkw = 0     # Disable jet matching
+set iseed = 1
+set use_syst = False
+set nevents = 10000
+
+# Settings for pythia8_card.dat
+set pythia8_card HEPMCoutput:file hepmc
+done

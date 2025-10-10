@@ -1,12 +1,12 @@
 generate p p > b b~ @0
 add process  p p > b b~ j @1
-output proc_sm_muprod_bb_matched
+output proc_sm_muprod_bb_nomatch
 launch
 1
 0
 set ebeam1 = 7000 # Set beam to 14 TeV
 set ebeam2 = 7000 # Set beam to 14 TeV
-set ickkw = 1
+set ickkw = 0
 set xqcut = 15.0
 set ptb   = 20.0
 set etab  = 3.0
