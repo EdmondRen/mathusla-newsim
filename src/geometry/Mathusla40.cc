@@ -129,7 +129,7 @@ namespace MuGeoBuilder
             // Now we need to manually calculate which bar it is in based on the local coordinate.
             int nx = floor(local_coord.x() / mu40dims::bar_lenx_real) + mu40dims::layer_Nbars_x_real / 2;
             int ny = floor(local_coord.y() / mu40dims::bar_leny_real) + mu40dims::layer_Nbars_y_real / 2;
-            // Handel edge cases, if the hit lies on the edge and got rounded wrong.
+            // Handel edge cases, if the hit lies on the edge and got rounded wrong. 
             if (nx == mu40dims::layer_Nbars_x_real)
                 nx = mu40dims::layer_Nbars_x_real - 1;
             if (nx == -1)
@@ -137,11 +137,11 @@ namespace MuGeoBuilder
             if (ny == mu40dims::layer_Nbars_y_real)
                 ny = mu40dims::layer_Nbars_y_real - 1;
             if (ny == -1)
-                ny = 0;
+                ny = 0;                
 
             long bar_id = ny + nx * mu40dims::layer_Nbars_y_real;
-            if (bar_id < 0)
-                bar_id = 0;
+            if (bar_id<0)
+                bar_id=0;
             det_id += bar_id;
             G4int layer_number = copy_numbers[1];
             G4int tower_number = copy_numbers[2];
@@ -206,7 +206,7 @@ namespace MuGeoBuilder
             det_id += ny + nx * ny_total;
             int veto_detector_number = 0;
             det_id += layer_number * 100000 + veto_detector_number * 100000 * 1000000;
-        }
+        }  
 
         return det_id;
     }
@@ -937,67 +937,6 @@ namespace MuGeoBuilder
         (void)layer_veto_wall2PV;
     }
 
-    //----------------------------------------------------------------------------------------------
-
-    namespace CMS
-    {
-
-        constexpr auto ____DEFINE_ME____ = 0.0 * m;
-
-        constexpr auto earth_total_depth = (mu40dims::env_earth_depth_top + mu40dims::env_earth_depth_mid);
-
-        constexpr auto uxc55_cavern_length = 53.0 * m;
-        constexpr auto uxc55_inner_radius = 13.250 * m;
-        constexpr auto uxc55_outer_radius = 14.530 * m;
-        constexpr auto IPDepth = earth_total_depth - uxc55_outer_radius;
-        constexpr auto _base_depth = earth_total_depth;
-        constexpr auto access_shaft_x = -14.00 * m;
-        constexpr auto access_shaft_y = 0.00 * m;
-        constexpr auto access_shaft_z = -1.0 * uxc55_outer_radius;
-
-        constexpr auto CMSSteelThickness = 1.48L * m;
-        constexpr auto CMSDetectorLength = 20.00L * m;
-        constexpr auto CMSDetectorRadius = 8.00L * m;
-
-        constexpr auto AS_Depth = 20.50 * m;
-        constexpr auto AS_Width = 20.50 * m;
-        constexpr auto AS_Height = earth_total_depth - 2 * uxc55_outer_radius;
-        constexpr auto AS_Thickness = 1.5 * m;
-
-        G4Translate3D Access_Shaft_Transform()
-        {
-            return G4Translate3D(access_shaft_x, access_shaft_y, static_cast<long double>(access_shaft_z));
-        }
-
-        G4Translate3D Cavern_Transform()
-        {
-            return G4Translate3D(0, 0, -0.5 * earth_total_depth + IPDepth);
-            //* Construction::Rotate(0, 1, 0, 90*deg))
-        }
-
-        G4LogicalVolume *CMSRingVolume()
-        {
-            return G4LogicalVolume(G4Tubs("DetectorRing",
-                                        CMSDetectorLength, CMSDetectorRadius - CMSSteelThickness, CMSDetectorRadius),
-                                        Material::Iron,
-                                        Construction::CasingAttributes());
-        }
-
-        G4LogicalVolume *CMSVolume()
-        {
-            using namespace Construction;
-            auto cavern = Cylinder("cavern", uxc55_cavern_length, 0.0 * m, uxc55_outer_radius);
-
-            auto access_shaft = Construction::Box("shaft", AS_Width, AS_Depth, AS_Height);
-
-            return Construction::Volume(new G4UnionSolid("fake_cms",
-                                                         access_shaft,
-                                                         cavern,
-                                                         Construction::Rotate(1, 0, 0, 90 * deg) * G4Translate3D(0.0, -1.0 * static_cast<long double>(uxc55_outer_radius + 0.5 * AS_Height), -0.5 * uxc55_cavern_length + 0.5 * AS_Width)));
-        }
-
-    } // NAMESPACE CMS
-
     G4LogicalVolume *Mathusla40_Builder::ConstructEnvironment(G4LogicalVolume *_worldLV)
     {
         // Make the detector box again, so that we can subtract it from earth/air
@@ -1021,7 +960,7 @@ namespace MuGeoBuilder
             "earth_top");        // its name
         earthLV->SetVisAttributes(Vis::styles["TransparentBrown"]);
 
-        // Place earth_top in world
+        // Place earth in world
         auto earthPV = new G4PVPlacement(
             G4Transform3D(G4RotationMatrix(), // rotation
                           G4ThreeVector(0, 0,
@@ -1051,7 +990,7 @@ namespace MuGeoBuilder
             "earth_mid");        // its name
         earthLV_mid->SetVisAttributes(Vis::styles["TransparentBrown"]);
 
-        // Place earth_mid in world
+        // Place earth in world
         auto earthPV_mid = new G4PVPlacement(
             G4Transform3D(G4RotationMatrix(), // rotation
                           G4ThreeVector(0, 0,

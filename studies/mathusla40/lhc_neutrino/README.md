@@ -2,6 +2,9 @@ GENIE
 
 Modify gAtmoEvGen.cxx to use the histogram flux driver.
 
+configure with --enable-atmo
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:\/opt/mathusla/release/lib
+
 Let's first test the built-in atmospheric neutrino generator
 
 ``` bash
@@ -58,8 +61,6 @@ Replace `-n 1` with `-T 86400`
 It takes 3.5 minutes on my compuerter and took 2MB of disk space
 
 
-
-
 ```bash
 $GENIE/bin/gevgen_flux \
 -f $SIM_DIR/studies/mathusla40/lhc_neutrino/flux_data/combined_flux.root,12[NHLLHCνeAtEachEnergyGeV],-12[NHLLHCνeAtEachEnergyGeV] \
@@ -72,6 +73,15 @@ $GENIE/bin/gevgen_flux \
  gntpc  -f rootracker -i gntp.1.ghep.root 
  --message-thresholds $GENIE/config/Messenger_laconic.xml
 ```
+
+
+### Run everything together
+
+run_genie.sh runs all four files. It takes 8 minutes and 6 MB for one day of exposure. 
+
+100 days: 13 hours
+1 year: 48 hours, 6GB
+5 years: 240 hours, 30GB --> 100 day x 20
 
 
 

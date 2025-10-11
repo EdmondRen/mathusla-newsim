@@ -68,7 +68,9 @@ int main(int argc, const char *argv[])
       ("o,output", "output filename", cxxopts::value<std::string>()->default_value("cry_genparticles.out"))
       ("n,nevents", "Number of events (after energy cut, if energy cut is enabled)", cxxopts::value<int>()->default_value("1000"))
       ("e,ekin", "Kinetic energy cut. Positive value means above, and negative means below. Set to 0 to disable", cxxopts::value<float>()->default_value("0"))
-      ("c,contains", "Select only events that contains specific PDG-ids, separated by commas. Eg, --contains=13,-13. All supported: e(+-11), mu(+-13), neutron(2112), proton(2212), gamma(22), pion(+-211,111), kaon(+-321,311,310,130). Set to 0 to disable", cxxopts::value<std::vector<int>>()->default_value("0"));
+      ("c,contains", "Select only events that contains specific PDG-ids, separated by commas. Eg, --contains=13,-13. All supported: e(+-11), mu(+-13), neutron(2112), proton(2212), gamma(22), pion(+-211,111), kaon(+-321,311,310,130). Set to 0 to disable", cxxopts::value<std::vector<int>>()->default_value("0"))
+      ("m,minimum_count", "If selection is enabled, minimum number of particles required", cxxopts::value<int>()->default_value("1"))
+      ;
   auto args = options.parse(argc, argv);
   // clang-format on
 
@@ -144,15 +146,18 @@ int main(int argc, const char *argv[])
 
     if (selection_en)
     {
+      int nselected = 0;
       for (unsigned j = 0; j < ev->size(); j++)
       {
         CRYParticle *p = (*ev)[j];
         if ((std::find(selections.begin(), selections.end(), p->PDGid()) != selections.end()) && ((p->ke() * ekin_cut_sign) > ekin_cut))
         {
-          selected = true;
+          nselected++;
           // break;
         }
       }
+      if (nselected >= args["minimum_count"].as<int>())
+        selected = true;
     }
     else
       selected = true;
