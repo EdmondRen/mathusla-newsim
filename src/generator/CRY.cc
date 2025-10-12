@@ -46,6 +46,8 @@ namespace MuGenerators
         fCRY_additional_setup["ekin_cut_low"] = 0.1 * GeV;
         fCRY_additional_setup["ekin_cut_high"] = 100 * TeV;
         fCRY_additional_setup["particle_pdgid"] = 0;
+        fCRY_additional_setup["particle_pdgid_coinc"] = 0;
+        fCRY_additional_setup["particle_count"] = 1;
 
         // A particle gun to use with CRY
         G4int nofParticles = 1;
@@ -93,7 +95,16 @@ namespace MuGenerators
         _ui_ekin_high->AvailableForStates(G4State_PreInit, G4State_Idle);
         _ui_particle = CreateCommand<G4UIcmdWithADouble>("particle_pdgid", "Select the PDG ID of the particle to apply the cut on. Default is all particles. If this command is set, then only events CONTAINING the selected particle will be kept. To undo it, set the value to 0");
         _ui_particle->SetParameterName("particle_pdgid", false, false);
+        _ui_particle->SetDefaultValue(0);
         _ui_particle->AvailableForStates(G4State_PreInit, G4State_Idle);
+        _ui_particle_coinc = CreateCommand<G4UIcmdWithADouble>("particle_pdgid_coinc", "Select the PDG ID of the second particle to apply the cut on. Default is all particles. If this command is set, then only events CONTAINING the selected particle will be kept. To undo it, set the value to 0");
+        _ui_particle_coinc->SetParameterName("particle_pdgid_coinc", false, false);
+        _ui_particle_coinc->SetDefaultValue(0);
+        _ui_particle_coinc->AvailableForStates(G4State_PreInit, G4State_Idle);  
+        _ui_particle_count = CreateCommand<G4UIcmdWithADouble>("particle_count", "Select the number of particles. Default is 1. ");
+        _ui_particle_count->SetParameterName("particle_count", false, false);
+        _ui_particle_count->AvailableForStates(G4State_PreInit, G4State_Idle);          
+        _ui_particle_count->SetDefaultValue(1);
     }
 
     void MuCRY::startCRY(const std::string &cry_config, const std::string &cry_data)
@@ -152,9 +163,19 @@ namespace MuGenerators
         {
             cry_generated->clear();
             fCRYgenerator->genEvent(cry_generated);
-
+            int particle_count = 0;
+            if (fCRY_additional_setup["particle_pdgid"] == 0)
+                break;
+                
             for (unsigned j = 0; j < cry_generated->size(); j++)
             {
+                if (particle_count >= fCRY_additional_setup["particle_count"])
+                {
+                    // print("Particle count now", particle_count, " setting", fCRY_additional_setup["particle_count"]);
+                    pass_cuts1 = true;
+                    break;
+                }
+                
                 // G4ParticleDefinition *particleDefinition = fparticleTable->FindParticle((*cry_generated)[j]->PDGid());
                 // particleName = CRYUtils::partName((*cry_generated)[j]->id());
                 kinEnergy = (*cry_generated)[j]->ke() * MeV;
@@ -163,8 +184,12 @@ namespace MuGenerators
                 // Cuts
                 // 1. Select particles in the given energy range and with certain PDG id
                 // If "particle_pdgid" is set, cut on that as well.
-                if ((fCRY_additional_setup["particle_pdgid"] == 0 || fCRY_additional_setup["particle_pdgid"] == pdgid) && (kinEnergy >= fCRY_additional_setup["ekin_cut_low"] && kinEnergy <= fCRY_additional_setup["ekin_cut_high"]))
-                    pass_cuts1 = true;
+                if ((fCRY_additional_setup["particle_pdgid"] == pdgid || fCRY_additional_setup["particle_pdgid_coinc"] == pdgid) && (kinEnergy >= fCRY_additional_setup["ekin_cut_low"] && kinEnergy <= fCRY_additional_setup["ekin_cut_high"])
+                    )
+                {
+                    particle_count += 1; 
+                    // print("pdgid", pdgid);
+                }
                 else
                     countAttempt++;
 
@@ -218,6 +243,7 @@ namespace MuGenerators
 
         // Sample a time for this event
         G4double t0 = GenerateRandomInRange(fCRY_additional_setup["offset_t_low"], fCRY_additional_setup["offset_t_high"]);
+        // print("Real time:", fCRYgenerator->timeSimulated());
 
         for (unsigned j = 0; j < cry_generated->size(); j++)
         {
@@ -313,6 +339,10 @@ namespace MuGenerators
             fCRY_additional_setup["ekin_cut_high"] = _ui_ekin_high->GetNewDoubleValue(value);
         else if (command == _ui_particle)
             fCRY_additional_setup["particle_pdgid"] = _ui_particle->GetNewDoubleValue(value);
+        else if (command == _ui_particle_coinc)
+            fCRY_additional_setup["particle_pdgid_coinc"] = _ui_particle_coinc->GetNewDoubleValue(value);
+        else if (command == _ui_particle_count)
+            fCRY_additional_setup["particle_count"] = _ui_particle_count->GetNewDoubleValue(value);        
     }
 
     float MuCRY::extractSubBoxLength(const std::string &filename)
