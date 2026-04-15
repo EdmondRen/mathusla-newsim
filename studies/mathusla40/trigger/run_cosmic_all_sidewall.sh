@@ -6,12 +6,12 @@
 #SBATCH --job-name=mucosmic_all
 #SBATCH --output=/project/6075887/MATHUSLA/simulation/cosmic/cosmic_all/log/%a.out
 
-DATA_DIR="/project/6075887/MATHUSLA/simulation/cosmic/cosmic_all"
+DATA_DIR="/project/6075887/MATHUSLA/simulation/cosmic/cosmic_all_sidewall"
 SIM_REPO_DIR="/project/6035200/tomren/jupyter/mathusla-newsim"
 
 NOSIE_RATE_PER_BAR_HZ="27.4"
 SEED=1
-NITER=10
+NITER=1
 
 # Set a default value for SLURM_ARRAY_TASK_ID if not running as a job array
 if [ -z ${SLURM_ARRAY_TASK_ID+x} ]; then
@@ -37,7 +37,7 @@ for ((i = SLURM_ARRAY_TASK_ID*NITER; i < (SLURM_ARRAY_TASK_ID+1)*NITER; i++)); d
     #env G4RUN_MANAGER_TYPE=Serial ./simulation -r $RUN_NUMBER \
     ./simulation -r $RUN_NUMBER \
         -s $SEED \
-        -m $SIM_REPO_DIR/studies/mathusla40/trigger/g4config_cry_all_mathusla40_abstime.mac,events,$NEVENT_COSMIC \
+        -m $SIM_REPO_DIR/studies/mathusla40/trigger/g4config_cry_all_mathusla40_abstime_sidewall.mac,events,$NEVENT_COSMIC \
         -o $DATA_DIR
 
 

@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --time=4:00:00
-#SBATCH --account=ctb-ut-atlas
+#SBATCH --time=3:00:00
+#SBATCH --account=rrg-mdiamond
 #SBATCH --array=0
 #SBATCH --mem=8G
 #SBATCH --job-name=merge_lhc
@@ -47,8 +47,8 @@ for ((i = 0; i < NITER; i++)); do
 
     # Loop all files, select events and merge the output
     # Save output to temp file
-    filename_merged=$data_directory/v2_recon_and_skim/merged.root
-    filename_merged_tmp=$SLURM_TMPDIR/merged.root
+    filename_merged=$data_directory/v2_recon_and_skim/merged_full.root
+    filename_merged_tmp=$SLURM_TMPDIR/merged_full.root
     \rm $filename_merged
     # for filename in "${files[@]}"; do
     #     ((processed += 1))
@@ -64,22 +64,22 @@ for ((i = 0; i < NITER; i++)); do
 
 
         ## Reonstruction
-        new_filename_recon="${filename%.*}_recon.${filename##*.}"
-        new_filename_recon=$SLURM_TMPDIR/$(basename $new_filename_recon)
-        ./tracker_old $filename --output $new_filename_recon -p 1000 -k 3 
+        new_filename_recon="${filename%.*}_recon_newsim.${filename##*.}"
+        new_filename_recon=$data_directory/DigiOutput/$processed/0/$(basename $new_filename_recon)
+        ./tracker_old $filename --output $new_filename_recon -p 1000 -k 3
 
         ## Pre-selection
         echo
         echo
         new_filename_skim="${filename%.*}_recon_skim.${filename##*.}"
-        new_filename_skim=$SLURM_TMPDIR/$(basename $new_filename_skim)
+        new_filename_skim=$data_directory/DigiOutput/$processed/0/$(basename $new_filename_skim)
 
         ./skim_old $new_filename_recon --output $new_filename_skim -p 1000
 
-        echo
-        echo "Merge file"
-        echo ./merge $new_filename_skim $filename_merged_tmp data
-        ./merge $new_filename_skim $filename_merged_tmp data
+        # echo
+        # echo "Merge file"
+        # echo ./merge $new_filename_skim $filename_merged_tmp data
+        # ./merge $new_filename_skim $filename_merged_tmp data
     done
 
     # Move all files back to perm storage

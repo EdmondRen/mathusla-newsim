@@ -75,6 +75,7 @@ namespace MuGenerators
         G4UIcmdWithADouble *_ui_particle;
         G4UIcmdWithADouble *_ui_particle_coinc;
         G4UIcmdWithADouble *_ui_particle_count;
+        G4UIcmdWithAnInteger *_ui_box_dosidewall;
     };
 }
 

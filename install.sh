@@ -19,6 +19,7 @@
 CONFIG_CMAKE=0
 CLEAN_BUILD=0
 RUN_BUILD=0
+BUILD_CRY=0
 OTHER_ARGS=""
 EIGEN3_USER="$HOME/geant_projects/lib/share/eigen3/cmake"
 
@@ -31,6 +32,8 @@ while [[ $# -gt 0 ]]; do
             shift;;
         --run | run) RUN_BUILD=1
             shift;;
+        --cry ) BUILD_CRY=1
+            shift;;            
         --help | help | -h)
             echo -e "usage: ./install [--clean] [--cmake] [--run [args]]"
             echo -e "  clean      : rebuild all source files"
@@ -45,17 +48,17 @@ done
 
 
 
-
-# Build CRY first
-echo "------------------------------------------------"
-echo "  Building CRY"
-cd external/cry_v1.7
-make clean
-make -j8
-cd ../..
-echo "  Finished building CRY"
-echo "------------------------------------------------\n"
-
+if [[ "$BUILD_CRY" -eq 1 ]]; then
+    # Build CRY first
+    echo "------------------------------------------------"
+    echo "  Building CRY"
+    cd external/cry_v1.7
+    make clean
+    make -j8
+    cd ../..
+    echo "  Finished building CRY"
+    echo "------------------------------------------------\n"
+fi
 
 if [[ "$CONFIG_CMAKE" -eq 1 && "$CLEAN_BUILD" -eq 1 ]]; then
     rm -rf build;

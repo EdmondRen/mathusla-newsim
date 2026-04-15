@@ -10,6 +10,7 @@
 #include "G4SystemOfUnits.hh"
 #include "Randomize.hh"
 #include "G4RandomTools.hh" // For G4UniformRand
+#include "CLHEP/Random/RandFlat.h"
 
 // CRY
 #include "CRYSetup.h"
@@ -35,6 +36,7 @@ namespace MuGenerators
         fCRY_additional_setup["box_lenx"] = 2 * m;
         fCRY_additional_setup["box_leny"] = 2 * m;
         fCRY_additional_setup["box_lenz"] = 1 * m;
+        fCRY_additional_setup["box_dosidewall"] = 0; // 0: sample from the top of the box, 1: sample from the side wall of the box
         fCRY_additional_setup["sphere_r"] = 1 * m;
 
         fCRY_additional_setup["offset_x"] = 0 * m;
@@ -78,6 +80,9 @@ namespace MuGenerators
         _ui_box = CreateCommand<G4UIcmdWith3VectorAndUnit>("box", "Set x-y-z length of the box.");
         _ui_box->SetParameterName("box_lenx", "box_leny", "box_lenz", false, false);
         _ui_box->AvailableForStates(G4State_PreInit, G4State_Idle);
+        _ui_box_dosidewall = CreateCommand<G4UIcmdWithAnInteger>("box_dosidewall", "Resample particles to sidewalls, rather than from the top.");
+        _ui_box_dosidewall->SetParameterName("box_dosidewall", false, false);
+        _ui_box_dosidewall->AvailableForStates(G4State_PreInit, G4State_Idle);        
         _ui_offset = CreateCommand<G4UIcmdWith3VectorAndUnit>("offset", "Set x-y-z offset with unit.");
         _ui_offset->SetParameterName("offset_x", "offset_y", "offset_z", false, false);
         _ui_offset->AvailableForStates(G4State_PreInit, G4State_Idle);
@@ -200,9 +205,52 @@ namespace MuGenerators
 
         } while (pass_cuts1 == false);
 
+        // Resample the particles to sidewalls if box_dosidewall is enabled.
+        if (fCRY_additional_setup["box_dosidewall"] == 1)
+        {
+            double sidewall_z = 0.001 * fCRY_additional_setup["offset_z"];
+            double sidewall_x1 = 0.001 * (fCRY_additional_setup["offset_x"]-this->subboxLength/2);
+            double sidewall_x2 = 0.001 * (fCRY_additional_setup["offset_x"]+this->subboxLength/2);
+            double sidewall_y1 = 0.001 * (fCRY_additional_setup["offset_y"]-this->subboxLength/2);
+            double sidewall_y2 = 0.001 * (fCRY_additional_setup["offset_y"]+this->subboxLength/2);
+            
+            
+            for (unsigned j = 0; j < cry_generated->size(); j++)
+            {   
+                double z_temp = GenerateRandomInRange(0., sidewall_z);
+                // Resample the particle to a sidewall
+                long side = CLHEP::RandFlat::shootInt(4); // 0,1,2,3 for 4 sides. 0: enter from x1, 1: enter from x2, 2: enter from y1, 3: enter from y2
+                // print("original", (*cry_generated)[j]->x(), (*cry_generated)[j]->y(), (*cry_generated)[j]->z(), (*cry_generated)[j]->u(), (*cry_generated)[j]->v(), (*cry_generated)[j]->w());
+
+                switch (side){
+                    case 0:
+                        (*cry_generated)[j]->setPosition(sidewall_x1, GenerateRandomInRange(sidewall_y1, sidewall_y2), z_temp);
+                        (*cry_generated)[j]->setDirection(1.0 * std::abs((*cry_generated)[j]->u()), (*cry_generated)[j]->v(), (*cry_generated)[j]->w());
+                        // print(sidewall_x1, GenerateRandomInRange(sidewall_y1, sidewall_y2), z_temp);
+                        break;
+                    case 1:
+                        (*cry_generated)[j]->setPosition(sidewall_x2, GenerateRandomInRange(sidewall_y1, sidewall_y2), z_temp);
+                        (*cry_generated)[j]->setDirection(-1.0 * std::abs((*cry_generated)[j]->u()), (*cry_generated)[j]->v(), (*cry_generated)[j]->w());                    
+                        break;
+                    case 2:
+                        (*cry_generated)[j]->setPosition(GenerateRandomInRange(sidewall_x1, sidewall_x2), sidewall_y1, z_temp);
+                        (*cry_generated)[j]->setDirection((*cry_generated)[j]->u(), 1.0 * std::abs((*cry_generated)[j]->v()),  (*cry_generated)[j]->w());
+                        break;
+                    case 3:
+                        (*cry_generated)[j]->setPosition(GenerateRandomInRange(sidewall_x1, sidewall_x2), sidewall_y2, z_temp);
+                        (*cry_generated)[j]->setDirection((*cry_generated)[j]->u(), -1.0 * std::abs((*cry_generated)[j]->v()),  (*cry_generated)[j]->w());
+                        break;                        
+                }
+
+                // print("mod     ", (*cry_generated)[j]->x(), (*cry_generated)[j]->y(), (*cry_generated)[j]->z(), (*cry_generated)[j]->u(), (*cry_generated)[j]->v(), (*cry_generated)[j]->w());
+
+            }
+        }
+
         // 2. Reject events whose tracks do not intersect with the box
         for (unsigned j = 0; j < cry_generated->size(); j++)
         {
+            // if (this->samplingShape == box && fCRY_additional_setup["box_dosidewall"] == 0)
             if (this->samplingShape == box)
             {
                 G4double fParticlePosX = (*cry_generated)[j]->x() * m + fCRY_additional_setup["offset_x"];
@@ -331,6 +379,8 @@ namespace MuGenerators
         }
         else if (command == _ui_offset_t_low)
             fCRY_additional_setup["offset_t_low"] = _ui_offset_t_low->GetNewDoubleValue(value);
+        else if (command == _ui_box_dosidewall)
+            fCRY_additional_setup["box_dosidewall"] = _ui_box_dosidewall->GetNewIntValue(value);
         else if (command == _ui_offset_t_high)
             fCRY_additional_setup["offset_t_high"] = _ui_offset_t_high->GetNewDoubleValue(value);
         else if (command == _ui_ekin_low)
