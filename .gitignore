@@ -12,3 +12,6 @@ python/simhelper.egg-info
 # CRY
 external/cry_v1.7/src/*.o
 external/cry_v1.7/lib/libCRY.a
+
+
+studies/mathusla40/lhc_muon/muon_momentum_raw.joblib
