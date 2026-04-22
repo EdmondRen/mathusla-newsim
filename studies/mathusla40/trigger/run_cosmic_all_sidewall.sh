@@ -1,17 +1,17 @@
 #!/bin/bash
-#SBATCH --time=2:30:00
+#SBATCH --time=6:00:00
 #SBATCH --account=rrg-mdiamond
-#SBATCH --array=10-99
+#SBATCH --array=1-99
 #SBATCH --mem=4G
 #SBATCH --job-name=mucosmic_all
-#SBATCH --output=/project/6075887/MATHUSLA/simulation/cosmic/cosmic_all/log/%a.out
+#SBATCH --output=/project/6075887/MATHUSLA/simulation/cosmic/cosmic_all_sidewall/log/%a.out
 
 DATA_DIR="/project/6075887/MATHUSLA/simulation/cosmic/cosmic_all_sidewall"
 SIM_REPO_DIR="/project/6035200/tomren/jupyter/mathusla-newsim"
 
 NOSIE_RATE_PER_BAR_HZ="27.4"
 SEED=1
-NITER=1
+NITER=10
 
 # Set a default value for SLURM_ARRAY_TASK_ID if not running as a job array
 if [ -z ${SLURM_ARRAY_TASK_ID+x} ]; then
@@ -28,7 +28,7 @@ echo current job id is: $SLURM_ARRAY_TASK_ID
 
 pushd $SIM_REPO_DIR/build
 
-NEVENT_COSMIC=500000
+NEVENT_COSMIC=5000000
 for ((i = SLURM_ARRAY_TASK_ID*NITER; i < (SLURM_ARRAY_TASK_ID+1)*NITER; i++)); do
 
     RUN_NUMBER=$i
