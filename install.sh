@@ -27,8 +27,10 @@ while [[ $# -gt 0 ]]; do
     arg="$1"
     case $arg in
         --cmake | cmake) CONFIG_CMAKE=1
+            BUILD_CRY=1
             shift;;
         --clean | clean) CLEAN_BUILD=1
+            BUILD_CRY=1
             shift;;
         --run | run) RUN_BUILD=1
             shift;;
