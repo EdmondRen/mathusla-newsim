@@ -52,12 +52,26 @@ def rand_exp(tau, min_val, max_val, rng=None):
     """
     if rng is None:
         rng = np.random.default_rng()
-    u_min = np.exp(-min_val / tau);
-    u_max = np.exp(-max_val / tau);
+    if tau <= 0:
+        raise ValueError("tau must be positive")
+    if max_val <= min_val:
+        raise ValueError("max_val must be greater than min_val")
+
+    # # Inverse CDF for an exponential distribution truncated to
+    # # [min_val, max_val].  The log1p/expm1 form avoids underflow in
+    # # exp(-min_val/tau) when the decay length is short compared with
+    # # the distance to the volume.
+    # delta = (max_val - min_val) / tau
+    # truncated_fraction = -np.expm1(-delta)
+    # u = rng.random()
+    # return min_val - tau * np.log1p(-u * truncated_fraction)
+
+    u_min = 1 - np.expm1(-min_val / tau);
+    u_max = 1 - np.expm1(-max_val / tau);
 
     u = u_min + rng.random() * (u_max - u_min);
     # print(u_min, u_max, u)
-    return -np.log(u) * tau;
+    return -np.log1p(1-u) * tau;    
 
 def most_frequent(nums):
     

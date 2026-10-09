@@ -7,6 +7,8 @@
 #SBATCH --output=/project/6075887/MATHUSLA/simulation/cosmic/cosmic_all_sidewall/log/%a.out
 
 DATA_DIR="/project/6075887/MATHUSLA/simulation/cosmic/cosmic_all_sidewall"
+DATA_DIR_MD="/project/6049244/data/MATHUSLA/simulation_v2/cosmic_all_sidewall"
+
 SIM_REPO_DIR="/project/6035200/tomren/jupyter/mathusla-newsim"
 
 NOSIE_RATE_PER_BAR_HZ="27.4"
@@ -51,9 +53,12 @@ for ((i = SLURM_ARRAY_TASK_ID*NITER; i < (SLURM_ARRAY_TASK_ID+1)*NITER; i++)); d
     # -k 0: save all events
     # -p 1000: print every 1000 events
     ./tracker $DATA_DIR/run_${RUN_NUMBER}_digi.root \
-        -r $DATA_DIR/run_${RUN_NUMBER}.root \
+        # -r $DATA_DIR/run_${RUN_NUMBER}.root \
         -k 0 \
         -p 5000
+
+    # Move the raw file to Miriam's folder
+    mv  $DATA_DIR/run_${RUN_NUMBER}.root $DATA_DIR_MD/run_${RUN_NUMBER}.root
 
 done
 popd

@@ -560,6 +560,8 @@ def gen_llp(filename_llp4vec, filename_products, filename_output, mX, ctau, N_MC
     cube_ex = [-1, 0, 0 ]
     cube_ey = [0, 1, 0]
     cube_ez = [0, 0, 1 ]
+    bottom_xz_range = [[-full_module_width/2, full_module_width/2], [module_to_CMS, module_to_CMS+full_module_width]]
+    side_xy_range = [[-full_module_width/2, full_module_width/2], [volume_floor_height, volume_top_height]]
 
     theta_range = np.array([np.arctan(volume_top_height/module_to_CMS),np.arctan(volume_floor_height/(module_to_CMS+full_module_width))])
     eta_range = -np.log(np.tan(theta_range/2))
@@ -610,9 +612,44 @@ def gen_llp(filename_llp4vec, filename_products, filename_output, mX, ctau, N_MC
 
     
     # Calculate the maximum probability for the LLP to decay within the volume
-    L_min = np.linalg.norm([volume_floor_height, module_to_CMS])
-    L_max = np.linalg.norm([volume_top_height, full_module_width*0.5,  module_to_CMS+full_module_width])
-    
+    # L_min = np.linalg.norm([volume_floor_height, module_to_CMS])
+    # L_max = np.linalg.norm([volume_top_height, full_module_width*0.5,  module_to_CMS+full_module_width])
+   
+    P_all = np.array([np.linalg.norm(vec[1:4])      for ivec, vec in enumerate(p4vec[:])])
+    Boost_min = min(P_all)/mX
+    Boost_max = max(P_all)/mX
+    Boost_grid = np.linspace(Boost_min, Boost_max, 50)
+    P_decay_max = 0
+    dL = 0
+    # P_decay_list = []
+    # x = np.linspace(bottom_xz_range[0][0], bottom_xz_range[0][1], 300) 
+    # z = np.linspace(bottom_xz_range[1][0], bottom_xz_range[1][1], 300) 
+    # y = np.linspace(side_xy_range[1][0], side_xy_range[1][1], 300) 
+    # for i in range(len(x)):
+    #     for j in range(len(z)):
+    #         point1, point2 = line_cube_intersect([0,0,0], [x[i], volume_floor_height, z[j]], cube_vertex_xyz, cube_length_xyz, cube_ex, cube_ey, cube_ez) # Find the intersect point of the track to the decay volume
+    #         L1, L2 = np.linalg.norm(point1),np.linalg.norm(point2)
+    #         if (L1==L2 or L1==0):
+    #             continue     
+    #         for b in Boost_grid:
+    #             Pdecay = (np.exp(-L1/(b*ctau)) - np.exp(-L2/(b*ctau)))
+    #             # P_decay_list.append(Pdecay)
+    #             if Pdecay>P_decay_max:
+    #                 P_decay_max = Pdecay
+    # for i in range(len(x)):
+    #     for j in range(len(y)):
+    #         point1, point2 = line_cube_intersect([0,0,0], [x[i], y[j], module_to_CMS], cube_vertex_xyz, cube_length_xyz, cube_ex, cube_ey, cube_ez) # Find the intersect point of the track to the decay volume
+    #         L1, L2 = np.linalg.norm(point1),np.linalg.norm(point2)
+    #         if (L1==L2 or L1==0):
+    #             continue        
+    #         for b in Boost_grid:
+    #             Pdecay = (np.exp(-L1/(b*ctau)) - np.exp(-L2/(b*ctau)))
+    #             # P_decay_list.append(Pdecay)
+    #             if Pdecay>P_decay_max:
+    #                 P_decay_max = Pdecay
+
+    # print(np.quantile(P_decay_list, 0.9), np.quantile(P_decay_list, 0.95), np.quantile(P_decay_list, 0.99))
+
     print("Calculating kinematics of 4vecs")
     vec_remaining = []
     vec_Boost = []
@@ -624,13 +661,15 @@ def gen_llp(filename_llp4vec, filename_products, filename_output, mX, ctau, N_MC
     vec_eta = []
     vec_phi = []
     vec_Pdecay=[]
+    vec_PdecayMax=[]
     vec_L1=[]
     vec_L2=[]
     vec_point1=[]
     vec_point2=[]
+    
     for ivec, vec in enumerate(p4vec[:]):
         P = np.linalg.norm(vec[1:4])
-        P_l = vec[3]
+        P_l = abs(vec[3])
         P_t = np.linalg.norm(vec[1:3])
         Boost = P/mX
         Gamma = np.sqrt(mX**2+P**2)/mX        
@@ -638,44 +677,52 @@ def gen_llp(filename_llp4vec, filename_products, filename_output, mX, ctau, N_MC
         
         # 1) eta cut
         if eta<eta_range[0] or eta>eta_range[1]:
-            continue            
-            
-        # 2) phi sampling
-        phi = rng.uniform(*phi_range)
-        P_x = P_t*np.sin(phi)
-        P_y = P_t*np.cos(phi) 
-        
-        # 3) calculate decay probability within the decay volume
-        point1, point2 = line_cube_intersect([0,0,0], [P_x, P_y, P_l], cube_vertex_xyz, cube_length_xyz, cube_ex, cube_ey, cube_ez) # Find the intersect point of the track to the decay volume
-        L1, L2 = np.linalg.norm(point1),np.linalg.norm(point2)
-        if (L1==L2 and L1==0):
-            continue        
-        Pdecay = np.exp(-L1/(Boost*ctau)) - np.exp(-L2/(Boost*ctau))
-        
+            continue      
+
+        p_decay = 0
+        p_decay_max = 0
+        nphi = 30
+        for j in range(nphi):
+            # 2) phi sampling
+            phi = rng.uniform(*phi_range)
+            P_x = P_t*np.sin(phi)
+            P_y = P_t*np.cos(phi)        
+            # Find intersection
+            point1, point2 = line_cube_intersect([0,0,0], [P_x, P_y, P_l], cube_vertex_xyz, cube_length_xyz, cube_ex, cube_ey, cube_ez) # Find the intersect point of the track to the decay volume
+            L1, L2 = np.linalg.norm(point1),np.linalg.norm(point2)
+            if (L1==L2 or L1==0):
+                continue        
+            p = (np.exp(-L1/(Boost*ctau)) - np.exp(-L2/(Boost*ctau)))  
+            p_decay += p
+            if p_decay_max < p:
+                p_decay_max = p
+        p_decay = p_decay/nphi
+
+        vec_PdecayMax.append(p_decay_max)
+        vec_Pdecay.append(p_decay)
         vec_remaining.append(vec)
         vec_Boost.append(Boost)
         vec_Gamma.append(Gamma)
         vec_Pt.append(P_t)
         vec_Pl.append(P_l)
-        vec_Px.append(P_x)
-        vec_Py.append(P_y)        
         vec_eta.append(eta)
-        vec_phi.append(phi)
-        vec_Pdecay.append(Pdecay)
-        vec_L1.append(L1)
-        vec_L2.append(L2)
-        vec_point1.append(point1)
-        vec_point2.append(point2)
+
+    vec_Pdecay = np.array(vec_Pdecay)
+    vec_Pdecay_normed = vec_Pdecay/sum(vec_Pdecay)
     
-    P_decay_max = np.max(vec_Pdecay)
+    print("  Number of 4vectors", len(vec_remaining))
+
      
     print(f"Selecting {N_MC} events out of {N_decay}")
     n_processed = 0
     vecs_used = 0
     vecs_used_list = []
     all_vertex= []
+    inds = np.arange(len(vec_remaining))
     while n_processed<N_MC:
-        ivec = rng.integers(low=0,high=len(vec_remaining))
+        # ivec = rng.integers(low=0,high=len(vec_remaining))
+        ivec =  rng.choice(inds, p=vec_Pdecay_normed) 
+        
         vec = vec_remaining[ivec]
         vecs_used +=1
         
@@ -683,33 +730,37 @@ def gen_llp(filename_llp4vec, filename_products, filename_output, mX, ctau, N_MC
         Boost=vec_Boost[ivec]
         Gamma=vec_Gamma[ivec]
         P_l=vec_Pl[ivec]
-        P_t=vec_Pt[ivec] 
-        P_x=vec_Px[ivec]
-        P_y=vec_Py[ivec]         
+        P_t=vec_Pt[ivec]        
         eta=vec_eta[ivec]
-        phi=vec_phi[ivec]
-        L1=vec_L1[ivec]
-        L2=vec_L2[ivec]
-        P_decay=vec_Pdecay[ivec]
-        point1 = vec_point1[ivec]
-        point2 = vec_point2[ivec]
+        p_decay_max = vec_PdecayMax[ivec]
+
         
+        # 2) phi sampling
+        phi = rng.uniform(*phi_range)
+        P_x = P_t*np.sin(phi)
+        P_y = P_t*np.cos(phi)        
+        # Find intersection
+        point1, point2 = line_cube_intersect([0,0,0], [P_x, P_y, P_l], cube_vertex_xyz, cube_length_xyz, cube_ex, cube_ey, cube_ez) # Find the intersect point of the track to the decay volume
+        L1, L2 = np.linalg.norm(point1),np.linalg.norm(point2)
+        if (L1==L2 or L1==0):
+            continue        
+        P_decay = (np.exp(-L1/(Boost*ctau)) - np.exp(-L2/(Boost*ctau)))
         
-        # 1) eta cut (no longer needed)
-        # 2) phi sampling (no longer needed)
         # 3) exponential sampling
         L_sampled = util.rand_exp(Boost*ctau, L1, L2, rng)
+
+        
         # 4) Drop with probablity of P_decay to deweight the event
         rand_drop = rng.random()
-        if rand_drop>(P_decay/P_decay_max):
+        if rand_drop>(P_decay/p_decay_max):
             continue
-            
             
         # This 4-vec passed all cuts now
         point_decay = point1 + (point2-point1)*(L_sampled-L1)/(L2-L1)
         point_decay_G4 = [point_decay[2], point_decay[0], -point_decay[1]+surface_height]
         all_vertex.append(point_decay_G4)
 
+        # print(L1, L2, P_decay/P_decay_max, point_decay_G4[0]*1000 - (module_to_CMS+full_module_width*0.5)*1000)
 
         # 4) Get a LLP decay, and do Lorentz transform
         i_decay = i_decay_list[n_processed%N_decay]
@@ -749,7 +800,8 @@ def gen_llp(filename_llp4vec, filename_products, filename_output, mX, ctau, N_MC
             print(f"  Processed {n_processed} events")
             # print("   - number of 4-vector sampled:", vecs_used)
     
-    
+    print("   Number of unique 4-vec:", len(np.unique(vecs_used_list)))
+
     tree_writer.write_and_close()            
     
 #     vecs_used_weights = vecs_used/N_LLP

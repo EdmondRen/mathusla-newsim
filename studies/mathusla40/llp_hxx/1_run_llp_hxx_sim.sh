@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --time=1:00:00
+#SBATCH --time=12:00:00
 #SBATCH --account=rrg-mdiamond
-#SBATCH --array=0-39
+#SBATCH --array=0-44
 #SBATCH --mem=4G
 #SBATCH --job-name=muLLP
 #SBATCH --output=/project/6075887/MATHUSLA/simulation/llp/2_sim_output/log/hxx_%a.out
@@ -45,7 +45,7 @@ echo current job id is: $SLURM_ARRAY_TASK_ID
 ############################################################################################
 # 2. Signal
 # Loop through each element of source_array and append to destination_array
-for p in "${DATA_DIR}/llp/1_decay_files_transformed/MATHUSLA_LLPfiles_HXX/*.root"; do
+for p in "${DATA_DIR}/llp/1_decay_files_transformed_V2/MATHUSLA_LLPfiles_HXX/*.root"; do
     FILENAME_LIST+=($p)
 done
 
@@ -72,12 +72,12 @@ for i in $SLURM_ARRAY_TASK_ID; do
     mkdir -p $data_dir_this
     data_dir_cosmic="${DATA_DIR}/cosmic/cosmic_all/"
 
-    ## Simulation
-    # env G4RUN_MANAGER_TYPE=Serial ./simulation -r $RUN_NUMBER \
-    # ./simulation -r 0 \
-    #     -s $SEED \
-    #     -m $SIM_REPO_DIR/studies/mathusla40/llp_hxx/g4_llp_hxx_arg.mac,sourcefile,${filename} \
-    #     -o $data_dir_this
+    # Simulation
+    env G4RUN_MANAGER_TYPE=Serial ./simulation -r $RUN_NUMBER \
+    ./simulation -r 0 \
+        -s $SEED \
+        -m $SIM_REPO_DIR/studies/mathusla40/llp_hxx/g4_llp_hxx_arg.mac,sourcefile,${filename} \
+        -o $data_dir_this
 
     if [ -f $data_dir_this/run_${RUN_NUMBER}_digi.root ]; then
         echo "Already processed, skip simulation and digitization."

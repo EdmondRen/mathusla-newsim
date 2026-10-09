@@ -169,7 +169,16 @@ namespace MuGenerators
             cry_generated->clear();
             fCRYgenerator->genEvent(cry_generated);
             int particle_count = 0;
-            if (fCRY_additional_setup["particle_pdgid"] == 0)
+            
+            for (unsigned j = 0; j < cry_generated->size(); j++)
+            {
+                // Find the time of the first particle in this CRY event.
+                if ((*cry_generated)[j]->t() < tmin)
+                    tmin = (*cry_generated)[j]->t();
+            }
+
+
+			if (fCRY_additional_setup["particle_pdgid"] == 0)
                 break;
                 
             for (unsigned j = 0; j < cry_generated->size(); j++)

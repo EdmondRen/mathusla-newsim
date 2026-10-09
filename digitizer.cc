@@ -258,7 +258,7 @@ public:
     std::vector<float> *Hit_py = nullptr;
     std::vector<float> *Hit_pz = nullptr;
     std::vector<int> *Hit_trackID = nullptr;
-    std::vector<double> *Hit_pdgID = nullptr;
+    std::vector<int> *Hit_pdgID = nullptr;
     std::vector<double> *Hit_detectorID = nullptr;
 
     std::string SimulationName;
@@ -725,6 +725,8 @@ int main(int argc, const char *argv[])
     print("Digitizer > Building Select geometry: ", infile->Geometry, "**");
     print("Digitizer > Finished building geometry ");
     print("Digitizer > Running");
+	print("Generateor is ", infile->Generator);
+	print("Digi type is:", DIGI_TYPE_MAP[infile->Generator]);
 
     int digi_type = DIGI_TYPE_MAP[infile->Generator];
 
@@ -767,7 +769,10 @@ int main(int argc, const char *argv[])
         {
             digi->type = digi_type;
             // Debug, Inspect the digits
+			//
             // print("Digi x", digi->x);
+			// print("Digi type", digi->type);
+
         }
 
         // Make noise hits
